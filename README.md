@@ -31,4 +31,8 @@ never how it is made to happen.
 
 ## Rights
 
-Rules text © Sneat Co. All rights reserved.
+Rules text © Sneat Co., licensed under
+[CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/) — share
+with attribution; no commercial use, no derivatives. Game mechanics
+described here are, as mechanics, not the licensed material. See
+[LICENSE](LICENSE).
