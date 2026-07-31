@@ -1,0 +1,239 @@
+---
+format: https://specscore.md/feature-specification
+status: Stable
+---
+
+# Feature: Real-Time Command
+
+> [SpecScore.**Studio**](https://specscore.studio): | [Explore](https://specscore.studio/app/github.com/sneat-games/chessraiders/spec/features/real-time-command?op=explore) | [Edit](https://specscore.studio/app/github.com/sneat-games/chessraiders/spec/features/real-time-command?op=edit) | [Ask question](https://specscore.studio/app/github.com/sneat-games/chessraiders/spec/features/real-time-command?op=ask) | [Request change](https://specscore.studio/app/github.com/sneat-games/chessraiders/spec/features/real-time-command?op=request-change) |
+**Status:** Stable
+**Source Ideas:** —
+
+## Summary
+
+Chess Raiders has no turns. Both armies act at the same time. A commanded
+piece does not move the instant you command it — it charges on its starting
+square for a duration set by its rank, then the move resolves. Charging is
+readable to your own side as a route plan; an attack is readable to the
+threatened side as an anonymous warning. Classical movement, castling,
+en passant, and promotion continue to work exactly as in ordinary chess.
+
+## Problem
+
+Alternating turns do not fit a group commanding one army together, and simply
+moving a piece at once and locking it afterward gives a defender no way to
+see a blow coming and gives teammates no way to see that someone is already
+routing a piece toward a square. Chess Raiders needed preparation *before* movement
+rather than recovery *after* it — readable to your own side without leaking
+your plans to the enemy, except for the one signal the enemy is owed: that
+something is about to hit them.
+
+## Behavior
+
+### Command and army
+
+#### REQ: shared-command
+
+A match has exactly two teams, White and Black. Each team has one or more
+players, and team sizes need not match — 1v1, 2v3, 5v10, and every other
+combination are supported, never flagged as invalid. Every player on a team
+may command any of that team's units; there is no per-player ownership of a
+piece and no turn order. Any teammate may continue a plan another teammate
+started.
+
+#### REQ: charge-before-move
+
+When you command a legal move or attack, the piece stays on its starting
+square and begins charging. It has at most one active order at a time. While
+it charges, an upward-filling indicator is bound to the piece itself, not to
+the square — it disappears the instant the move resolves or the order is
+cancelled. The piece leaves its square only at the moment the charge
+completes and the move resolves.
+
+Charge duration depends on the piece's rank:
+
+| Piece | Charge time |
+|---|---:|
+| King | 1s |
+| Pawn | 2s |
+| Knight | 3s |
+| Bishop | 3s |
+| Rook | 4s |
+| Queen | 5s |
+| Loaded convoy | 1s |
+
+These are the default tuning values recorded on every match; a match may be
+started with a different rules preset.
+
+#### REQ: player-command-interval
+
+Separately from any piece's charge time, every player has a personal
+1-second command interval that applies across every unit they command. It
+paces how quickly one person can issue new orders; it is not a property of
+the piece and is never reduced or extended by anything that shortens or
+lengthens a piece's charge.
+
+### Route planning
+
+#### REQ: route-planning-basics
+
+A route is your ordered list of destinations for one piece: step 1, step 2,
+step 3, and so on. Only your own team sees it. Each planned destination shows
+as a small, dim ring on its target square carrying the route-step number; the
+ring reflects cumulative progress through the whole route, not just the
+current step. If several teammates plan moves to the same square, the team
+sees one ring that grows bolder with each additional plan and carries a small
+badge with the total overlap count.
+
+Selecting a piece that already has a queued route shows its full planned path
+as numbered rings joined by dashed lines, together with the moves currently
+legal from where the piece actually stands — this is read-only and changes
+nothing. If you then commit one of those currently legal moves, the old route
+and its live charge are dropped, all its markers disappear, and a new route
+begins at step 1. This works regardless of which teammate queued the
+original route, because the army is shared.
+
+None of this — destinations, order, progress, overlaps, or which piece is
+moving — is ever visible to the opposing team.
+
+#### REQ: attack-target-lock
+
+An accepted attack creates a second, different signal: an anonymous
+under-attack marker on the threatened piece, visible to both teams. It says
+only that the piece is threatened. It never reveals who is attacking, where
+the attack is coming from, its charge progress, or its route. Your own team
+still gets its ordinary route marker on the attacker in addition to this.
+
+If the threatened piece manages to escape before the charge completes, the
+warning ends — but the attacker's committed move is not cancelled by the
+escape. When the charge completes, the attacker still advances onto the
+targeted square if it is empty by then.
+
+### Classical movement baseline
+
+#### REQ: classical-movement
+
+Ordinary piece movement, pawn direction, the pawn's initial double step, path
+blocking, and capture geometry all follow classical chess. Check, checkmate,
+and stalemate do not exist: a king may move into or remain on an attacked
+square, and the match never ends merely because a king is under attack. A
+king fights, moves, and gets captured like any other piece — see
+[Prisoner Convoys](../prisoner-convoys/README.md) for what capturing a king
+actually does.
+
+#### REQ: castling
+
+Castling is a single command: select the king with destination g1/c1 (White)
+or g8/c8 (Black). It is legal when neither the king nor the chosen rook has
+ever moved, both are on the board and able to act, the squares between them
+are free, and neither is busy with something else. There is no check concept,
+so attacked squares along the way are irrelevant. King and rook both charge
+on their starting squares and then move together the instant the charge
+completes.
+
+#### REQ: en-passant
+
+A pawn that completes a double-step move becomes capturable en passant for a
+2-second real-time window. Within that window, an enemy pawn on an adjacent
+file may capture it onto the square it passed over, with ordinary en-passant
+geometry. The window closes early if the double-stepped pawn moves, is
+captured, or is otherwise transformed before the window expires.
+
+#### REQ: promotion
+
+A pawn move onto the last rank must carry its promotion choice — queen, rook,
+bishop, or knight — as part of the same command; there is no separate
+"awaiting promotion" state. The promoted piece keeps its history, and from
+that point on it moves, charges, and counts for every rank-based rule as its
+new rank.
+
+## Acceptance Criteria
+
+### AC: charge-then-resolve
+
+**Given** a legal move is commanded for a piece
+**When** the server accepts it
+**Then** the piece remains on its starting square for its full charge
+duration, showing an upward-filling indicator bound to the piece, and only
+moves once that charge completes.
+
+### AC: player-interval-is-separate
+
+**Given** a player has just issued one command
+**When** they attempt to issue another command for a different unit before
+their 1-second interval has elapsed
+**Then** the second command is paced by the player interval regardless of
+either unit's own charge time.
+
+### AC: route-markers-are-team-private
+
+**Given** a player plans an ordered route with three destinations
+**When** a teammate and an opposing player each view the board
+**Then** the teammate sees the numbered rings and cumulative progress while
+the opponent sees no destination, order, progress, or identity of the moving
+piece.
+
+### AC: overlapping-plans-stand-out
+
+**Given** one teammate already has a route targeting a square
+**When** a second teammate plans a different route to the same square
+**Then** the team's shared marker on that square becomes visibly bolder and
+shows an overlap count, without exposing either plan to the opponent.
+
+### AC: replacing-a-queued-route
+
+**Given** a piece has an existing queued route and live charge
+**When** a teammate selects it and commits a different, currently legal move
+**Then** the old route and charge are cancelled, all of its markers vanish,
+and the new move becomes step 1 of a fresh route.
+
+### AC: attack-warning-is-anonymous
+
+**Given** an attack begins charging against a piece
+**When** both teams view the board
+**Then** both see that the piece is under attack, but neither the identity of
+the attacker, its origin, nor its route is ever revealed by that warning.
+
+### AC: escape-does-not-cancel-the-advance
+
+**Given** an attack is charging toward a square
+**When** the threatened piece legally moves away before the charge completes
+**Then** the warning ends, and the attacker still advances onto that square
+once its charge completes, if the square is empty.
+
+### AC: king-can-stand-under-attack
+
+**Given** a king is on a square that an enemy piece threatens
+**When** a player considers moving the king there or leaving it there
+**Then** the move is legal — there is no check, checkmate, or stalemate rule
+that forbids it.
+
+### AC: castling-is-one-command
+
+**Given** neither the king nor the chosen rook has moved, both are able to
+act, and the squares between them are free
+**When** the player commands castling
+**Then** both pieces charge on their own squares and then move together the
+moment the charge completes, with no check-related restriction applied.
+
+### AC: en-passant-window-closes
+
+**Given** a pawn has just completed a double-step move
+**When** an adjacent enemy pawn captures it en passant within 2 seconds
+**Then** the capture is legal; **when** instead 2 seconds pass without a
+capture, or the pawn moves or is captured first, the window is closed and the
+en-passant capture is no longer available.
+
+### AC: promotion-choice-travels-with-the-move
+
+**Given** a pawn moves onto the last rank
+**When** the move is committed
+**Then** it carries its promotion choice in the same command, and the
+resulting piece immediately moves, charges, and counts as its new rank.
+
+## Open Questions
+
+None at this time.
+
+---
+*This document follows the https://specscore.md/feature-specification*
