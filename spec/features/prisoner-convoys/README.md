@@ -57,8 +57,9 @@ A loaded convoy moves exactly one square per move, only onto a free square,
 and only sideways or toward its own side's home — straight or diagonally,
 never toward the enemy. Dead ends are legal and intended: nothing rescues a
 trapped convoy. There is no escape action, no teleport, and no relief for
-congestion. A loaded convoy charges its one-square move in just 1 second —
-the fastest unit on the board, and the one that can never defend itself.
+congestion. A loaded convoy charges its one-square move in 2 seconds — quick
+for logistics, but slow enough to give a defender a real chance to catch it,
+and it can never defend itself either way.
 
 ### Interception
 

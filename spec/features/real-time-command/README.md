@@ -13,10 +13,11 @@ status: Stable
 
 Chess Raiders has no turns. Both armies act at the same time. A commanded
 piece does not move the instant you command it — it charges on its starting
-square for a duration set by its rank, then the move resolves. Charging is
-readable to your own side as a route plan; an attack is readable to the
-threatened side as an anonymous warning. Classical movement, castling,
-en passant, and promotion continue to work exactly as in ordinary chess.
+square for a duration set by its rank and by whether it is moving or
+attacking, then the order resolves. Charging is readable to your own side as
+a route plan; an attack is readable to the threatened side as an anonymous
+warning. Classical movement, castling, en passant, and promotion continue to
+work exactly as in ordinary chess.
 
 ## Problem
 
@@ -50,20 +51,24 @@ the square — it disappears the instant the move resolves or the order is
 cancelled. The piece leaves its square only at the moment the charge
 completes and the move resolves.
 
-Charge duration depends on the piece's rank:
+Charge duration depends on the piece's rank, and moving charges faster than
+attacking: repositioning is quick, but violence always takes longer to
+prepare, so an alert defender can generally answer an attack before it
+lands. The king moves faster than anything on the board but fights slower
+than most of it — it leads, escapes, and defends rather than assassinating.
 
-| Piece | Charge time |
-|---|---:|
-| King | 1s |
-| Pawn | 2s |
-| Knight | 3s |
-| Bishop | 3s |
-| Rook | 4s |
-| Queen | 5s |
-| Loaded convoy | 1s |
+| Piece | Move charge | Attack charge |
+|---|---:|---:|
+| King | 1s | 3s |
+| Pawn | 1s | 2s |
+| Knight | 1.5s | 2.5s |
+| Bishop | 1.5s | 2.5s |
+| Rook | 2s | 3s |
+| Queen | 2.5s | 3.5s |
+| Loaded convoy | 2s | — (cannot attack) |
 
-These are the default tuning values recorded on every match; a match may be
-started with a different rules preset.
+These are the default tuning values of the **balance-v7** profile, recorded
+on every match; a match may be started with a different rules preset.
 
 #### REQ: player-command-interval
 
@@ -108,6 +113,19 @@ If the threatened piece manages to escape before the charge completes, the
 warning ends — but the attacker's committed move is not cancelled by the
 escape. When the charge completes, the attacker still advances onto the
 targeted square if it is empty by then.
+
+#### REQ: alerted-flee-discount
+
+A piece currently carrying an active attack target-lock reacts faster than
+usual: while the warning is live, a move command for that piece — fleeing,
+not attacking — charges at a reduced rate, a configurable percentage taken
+off that piece's ordinary move-charge time. The default discount is **10%**;
+a match may configure it anywhere from 0% (no discount — off) to 100% (an
+alerted piece moves instantly). The discount is applied to the base
+move-charge time before any [fatigue](../fatigue/README.md) charge-slowing
+is added on top. It never applies to an attack command, only to moving away,
+and it stops the instant the warning ends — whether because the piece
+escaped, the attack resolved, or the attack was cancelled.
 
 ### Classical movement baseline
 
@@ -156,6 +174,32 @@ new rank.
 **Then** the piece remains on its starting square for its full charge
 duration, showing an upward-filling indicator bound to the piece, and only
 moves once that charge completes.
+
+### AC: attack-charges-slower-than-move
+
+**Given** a piece has both a move charge and an attack charge configured in
+the active rules preset
+**When** the same piece is commanded to move to an empty square, and
+separately commanded to attack
+**Then** the attack takes at least as long to charge as the move, matching
+the two distinct values recorded for that piece and preset.
+
+### AC: alerted-piece-flees-faster
+
+**Given** a piece is carrying an active attack target-lock and the match's
+flee-discount setting is at its 10% default
+**When** a teammate commands that piece to move away
+**Then** the move's charge time is 10% shorter than the piece's ordinary
+move charge, and an attack command from that same piece is unaffected by
+the discount.
+
+### AC: flee-discount-is-configurable
+
+**Given** a match configures the flee-discount setting to 0%, and a separate
+match configures it to 100%
+**When** an alerted piece is commanded to move away in each match
+**Then** the 0% match charges the move at the ordinary rate with no
+discount, and the 100% match resolves the move instantly.
 
 ### AC: player-interval-is-separate
 

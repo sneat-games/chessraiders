@@ -13,9 +13,11 @@ status: Stable
 
 Fighting takes a toll and long marches are exhausting. Every piece carries a
 fatigue level that rises when it fights or marches and drains back down when
-it rests. Fatigue never removes a piece or blocks a move by itself — it only
-shifts the odds the moment that piece is voluntarily involved in a risky
-[Capture or Recruit](../capture-outcomes/README.md) attempt.
+it rests. Fatigue never removes a piece or blocks a move by itself. It shifts
+the odds the moment that piece is voluntarily involved in a risky
+[Capture or Recruit](../capture-outcomes/README.md) attempt, and — as of the
+**balance-v7** profile — it also slows down that piece's own next charge:
+tired soldiers are slow, and that now includes the king.
 
 ## Problem
 
@@ -68,12 +70,25 @@ they simply pile up and drain independently.
 
 #### REQ: fatigue-shapes-capture-risk
 
-Fatigue has exactly one gameplay effect: it shifts the odds of an explicit
+Fatigue shifts the odds of an explicit
 [Capture or Recruit](../capture-outcomes/README.md) attempt. A tired
 defender is easier to take alive; a tired attacker is less able to secure a
 prisoner. Equal fatigue on both sides cancels out. Kill, king capture, and
-convoy interception are never affected by fatigue — they are always
-certain.
+convoy interception are never affected by fatigue as an input to a roll —
+Kill stays certain by default regardless of either side's fatigue (see
+[Capture Outcomes](../capture-outcomes/README.md) for the opt-in
+Probabilistic Kill setting, which rolls but still ignores fatigue).
+
+#### REQ: fatigue-slows-charging
+
+Fatigue also has a second, universal effect, introduced in the
+**balance-v7** profile: every point of a piece's current fatigue adds 0.25
+seconds to that piece's next charge — move or attack — up to a cap of +2
+seconds of added charge time regardless of how much fatigue the piece is
+carrying. This applies to every piece without exception, including the
+king: tired soldiers are slow. The penalty is computed from the piece's
+fatigue at the moment the new charge starts and is fixed for that charge;
+later fatigue changes affect only the charge after it.
 
 #### REQ: fatigue-visibility
 
@@ -125,6 +140,21 @@ fatigued defender
 **Then** the fresh attacker's estimated success is higher than the fatigued
 attacker's, while a Kill attempt by either attacker is unaffected because
 Kill never uses fatigue.
+
+### AC: fatigue-adds-quarter-second-per-point
+
+**Given** a piece carries 4 fatigue points when it begins a new charge
+**When** that charge starts
+**Then** the charge takes 1 additional second to complete (4 × 0.25s), on
+top of the piece's ordinary move or attack charge time for that order.
+
+### AC: fatigue-charge-penalty-is-capped
+
+**Given** a piece carries 12 fatigue points, which would compute to a 3
+second penalty
+**When** it begins a new charge
+**Then** the added charge time is capped at 2 seconds, not 3, and this cap
+applies to every piece including the king.
 
 ### AC: fatigue-bar-follows-visibility
 

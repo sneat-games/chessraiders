@@ -12,11 +12,12 @@ status: Stable
 ## Summary
 
 Every match is set to one battle mode, and the mode decides what your
-options are when a piece lands on an enemy. Killing is always certain when
-it is offered. Taking a prisoner or recruiting an informer, on the other
-hand, is a deliberate gamble: the attacker names the risk before committing,
-sees an estimated chance of success, and the server resolves it as success,
-a dead defender, or a repelled attack.
+options are when a piece lands on an enemy. Killing is certain by default
+whenever it is offered — a match can opt into the **Probabilistic Kill**
+setting to make it roll instead. Taking a prisoner or recruiting an
+informer, on the other hand, is always a deliberate gamble: the attacker
+names the risk before committing, sees an estimated chance of success, and
+the server resolves it as success, a dead defender, or a repelled attack.
 
 ## Problem
 
@@ -28,9 +29,11 @@ neither a defender who has fought hard to survive nor an attacker who
 strikes fresh instead of exhausted; making killing itself uncertain would
 have just made ordinary chess unreliable for no reason.
 
-The founder's framing: **kills are deterministic chess; the risk is entirely
-opt-in.** Nobody is ever forced to gamble to capture an enemy piece — the
-gamble is the price of *keeping the defender alive*.
+The founder's framing: **kills are deterministic chess by default; the risk
+is entirely opt-in.** Nobody is ever forced to gamble to capture an enemy
+piece — the gamble is the price of *keeping the defender alive*. A lobby
+that wants Kill itself to carry risk can opt into Probabilistic Kill, but
+that is a deliberate match-setting choice, never the default.
 
 ## Behavior
 
@@ -44,7 +47,7 @@ A match uses exactly one of three battle modes, chosen before it starts:
 |---|---|
 | **Skirmish** (`kill_only`) | Every non-king capture removes the defender from the board; the attacker takes its square. The closest thing to classic chess, and almost entirely morale-free. |
 | **Raid** (`capture_only`) | There is no Kill option. Every non-king attack deterministically creates a [convoy](../prisoner-convoys/README.md) with the defender as a captive, or transfers an existing convoy. This is the signature Chess Raiders mode. |
-| **Conquest** (`kill_or_capture`) | The attacker explicitly chooses Kill, Capture, or Recruit Informer for each individual attack. Kill is certain; Capture and Recruit Informer both carry risk. |
+| **Conquest** (`kill_or_capture`) | The attacker explicitly chooses Kill, Capture, or Recruit Informer for each individual attack. Kill is certain by default; Capture and Recruit Informer always carry risk. |
 
 Two things are true regardless of mode: capturing the enemy king is always a
 capture, never a kill (see [Prisoner Convoys](../prisoner-convoys/README.md)),
@@ -72,8 +75,10 @@ three outcomes: **success** (the defender becomes a prisoner, or an
 informer), **defender killed** (no prisoner or informer is created and the
 attacker simply advances, as if it had killed outright), and **repelled**
 (neither piece moves, both survive, and both suffer a brief recovery
-penalty before either can act again). Kill itself never rolls — it is
-certain whenever it is offered.
+penalty before either can act again). Kill itself never rolls by default —
+it is certain whenever it is offered, unless the match has turned on
+Probabilistic Kill (see below), in which case Kill rolls its own two-outcome
+version of this same mechanism.
 
 The default success formula compares the two pieces' material value and
 current [fatigue](../fatigue/README.md):
@@ -100,6 +105,24 @@ always keeping at least a 5% chance:
 These are the default tuning values recorded on the match; a rules preset
 may adjust them.
 
+### Probabilistic Kill (opt-in)
+
+#### REQ: probabilistic-kill-setting
+
+Kill is deterministic by default in every battle mode: **off** is the
+default value of the Probabilistic Kill match setting, and an off match
+behaves exactly as described above — Kill never rolls. A lobby may instead
+turn Probabilistic Kill **on** for the match. When it is on, an explicit
+Kill command uses the same roll-and-repel machinery as Capture and Recruit,
+but with only two outcomes instead of three: **success** (the defender is
+eliminated and the attacker advances, exactly like today's deterministic
+Kill) and **repelled** (neither piece moves, both survive, and both take
+the match's configured recovery penalty). There is no "defender killed"
+bucket for Kill — that outcome already *is* Kill's success case. The
+setting carries its own configured success rate, commonly 85–90% when
+enabled, independent of the Capture/Recruit success formula. Kill's outcome
+is never influenced by either piece's fatigue, on or off.
+
 #### REQ: capture-estimate-display
 
 Whenever an explicit Capture or Recruit attempt is currently available, the
@@ -109,8 +132,11 @@ for the moment the attack's charge would finish, using both pieces'
 projected fatigue at that time — it updates as fatigue, timing, or material
 change, and it is an estimate, not a guarantee: the actual roll happens at
 the moment of contact, using the real state at that instant. Deterministic
-actions (Kill, an automatic Raid-mode capture, king capture, and convoy
-interception) never show a percentage, because they never roll.
+actions (a default-mode Kill, an automatic Raid-mode capture, king capture,
+and convoy interception) never show a percentage, because they never roll.
+When a match has Probabilistic Kill turned on, Kill shows its own estimate
+in the same `Kill - 90%` form, using that setting's configured rate rather
+than the Capture/Recruit formula.
 
 ### Outcomes in play
 
@@ -142,10 +168,29 @@ contact, no roll happens at all and neither piece gains fatigue from it.
 
 ### AC: kill-mode-is-certain
 
-**Given** a match set to Skirmish
+**Given** a match set to Skirmish with Probabilistic Kill left at its off
+default
 **When** a non-king piece captures an enemy piece
 **Then** the defender is removed from the board and the attacker occupies
 its square, with no roll and no estimate shown.
+
+### AC: probabilistic-kill-can-be-repelled
+
+**Given** a match has turned the Probabilistic Kill setting on
+**When** a piece commits an explicit Kill against an enemy piece
+**Then** the action shows a `Kill - NN%` estimate beforehand, and the server
+resolves it as either success (the defender is eliminated exactly like a
+deterministic Kill) or repelled (neither piece moves, both survive, and
+both take the configured recovery penalty) — never as a third "defender
+killed" outcome.
+
+### AC: probabilistic-kill-ignores-fatigue
+
+**Given** a match has Probabilistic Kill on, and an attacker and defender
+carry different fatigue levels
+**When** the Kill's success rate is calculated
+**Then** it matches the setting's configured rate exactly, unaffected by
+either piece's fatigue.
 
 ### AC: raid-mode-always-creates-a-convoy
 
