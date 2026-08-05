@@ -66,6 +66,21 @@ and behaves as covert vision-sharing rather than a capture; its rules are
 owned by [Espionage](../espionage/README.md). When the target is the enemy
 king, only Capture is ever offered.
 
+### Committing an attack
+
+#### REQ: kill-waits-for-rest
+
+As of the **balance-v7** profile, every attack — Kill included — requires
+the acting piece to be fully rested before its charge can begin; see
+[Fatigue](../fatigue/README.md)'s rest-then-fight rule. A Kill command
+issued while the piece is still fatigued does not fail and does not change
+its odds: the piece visibly rests in place, and the moment its fatigue
+reaches zero the Kill's attack charge starts on its own. This is a timing
+precondition only — it never touches Kill's determinism, the
+Capture/Recruit success formula, or the Probabilistic Kill setting's
+success rate. Capturing the enemy king and intercepting a loaded enemy
+convoy are exempt and always begin immediately, regardless of fatigue.
+
 ### The risk roll
 
 #### REQ: risky-outcome-buckets
@@ -173,6 +188,22 @@ default
 **When** a non-king piece captures an enemy piece
 **Then** the defender is removed from the board and the attacker occupies
 its square, with no roll and no estimate shown.
+
+### AC: kill-queues-behind-fatigue
+
+**Given** a piece carrying fatigue is commanded to Kill an enemy piece
+**When** the command is accepted
+**Then** the Kill does not begin charging immediately; the piece visibly
+rests until its fatigue reaches zero, and only then does the Kill's attack
+charge start — with the eventual outcome exactly as certain as an
+unfatigued Kill.
+
+### AC: king-capture-and-interception-ignore-the-rest-gate
+
+**Given** an attacker carries fatigue, including the match's maximum
+**When** it captures the enemy king, or intercepts a loaded enemy convoy
+**Then** the action proceeds immediately, without waiting for the attacker
+to rest.
 
 ### AC: probabilistic-kill-can-be-repelled
 

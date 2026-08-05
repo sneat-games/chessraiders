@@ -127,6 +127,19 @@ is added on top. It never applies to an attack command, only to moving away,
 and it stops the instant the warning ends — whether because the piece
 escaped, the attack resolved, or the attack was cancelled.
 
+#### REQ: rest-before-attacking
+
+As of the **balance-v7** profile, committing an attack additionally
+requires the acting piece to be fully rested: its
+[fatigue](../fatigue/README.md) must be at zero before an attack charge may
+start. A command that is otherwise legal but issued while the piece is
+still fatigued does not fail — it queues, the piece visibly rests on its
+square, and its attack charge begins automatically the instant fatigue
+reaches zero, at an instant already fixed the moment the order was
+accepted. This applies to every attack, including a plain Kill. Two attacks
+are exempt and always begin immediately regardless of fatigue: capturing
+the enemy king and intercepting a loaded enemy convoy.
+
 ### Classical movement baseline
 
 #### REQ: classical-movement
@@ -200,6 +213,14 @@ match configures it to 100%
 **When** an alerted piece is commanded to move away in each match
 **Then** the 0% match charges the move at the ordinary rate with no
 discount, and the 100% match resolves the move instantly.
+
+### AC: fatigued-attack-queues-then-charges
+
+**Given** a piece carrying fatigue is ordered to attack
+**When** the command is accepted
+**Then** no attack charge starts immediately; the piece rests visibly until
+its fatigue reaches zero, and its attack charge then begins on its own at
+that deterministic instant.
 
 ### AC: player-interval-is-separate
 
