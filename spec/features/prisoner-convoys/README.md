@@ -17,7 +17,9 @@ anonymous prisoner riding along as cargo, and getting that cargo home is a
 second objective layered on top of ordinary movement. Hit an enemy convoy
 and everything it carries — cargo and escort alike — becomes yours instead.
 Capturing the enemy king is the ultimate version of this: he becomes a
-prisoner too, and delivering him to a base square is how the match is won.
+prisoner too, and delivering him to one of your two royal squares — for
+king cargo specifically, regardless of which piece is escorting him — is
+how the match is won.
 
 ## Problem
 
@@ -119,6 +121,10 @@ convoy that loses its very last prisoner to a
 escort on the spot, and refits immediately if it happens to already be
 standing on a base square.
 
+These base squares govern only an *emptied* escort's own return to active
+play. A *loaded* convoy — one still carrying cargo — delivers that cargo
+somewhere else entirely; see `cargo-based-delivery` below.
+
 ### The captured king
 
 #### REQ: king-is-always-captured
@@ -130,19 +136,38 @@ transfers intact through every interception a convoy carrying him goes
 through. A convoy can carry at most one captured king at a time. Capturing
 the enemy king does not end the match by itself.
 
+#### REQ: cargo-based-delivery
+
+Where a loaded convoy may deliver depends on what it is carrying, never on
+its escort's own rank. A captured king is delivered onto either of the
+delivering side's two **royal squares** — the King's own base square or the
+Queen's base square (e1 or d1 for White, e8 or d8 for Black) — no matter
+which piece is currently escorting him. A captive pawn is still delivered
+(unloaded) onto the delivering side's pawn-starting rank exactly as
+`pawn-unloading` describes above, likewise regardless of escort rank. An
+escort's own rank continues to decide only its own refit once it is
+carrying no cargo at all — it never decides where cargo already aboard
+comes home.
+
+Two royal squares exist, rather than one, because a Bishop is colour-bound:
+White's e1 is a dark square and d1 is light (the mirror image for Black), so
+a Bishop escort can physically reach exactly one of the two. A single
+delivery square would leave a Bishop-escorted king permanently
+undeliverable by that escort.
+
 #### REQ: king-delivery-victory
 
 The match is won the instant a convoy carrying the captured enemy king
-stands on a valid base square for its current escort's rank — whether it
-walked there or was formed there directly by an interception landing on a
-base square. This is the highest-priority objective in the game: any
-captive pawns still riding along do not delay or prevent the win, and are
-simply recorded as undelivered. Only the *enemy's* captured king counts this
-way — if a team recaptures a convoy carrying its own king, that king is just
-protected cargo; reaching a base square with it triggers nothing. The moment
-victory is won, the match ends immediately: the winning side, the final
-board, and the full match history are preserved, and nothing further can be
-commanded.
+stands on either of the delivering side's royal squares (per
+`cargo-based-delivery`) — whether it walked there or was formed there
+directly by an interception landing on one. This is the highest-priority
+objective in the game: any captive pawns still riding along do not delay or
+prevent the win, and are simply recorded as undelivered. Only the *enemy's*
+captured king counts this way — if a team recaptures a convoy carrying its
+own king, that king is just protected cargo; reaching a royal square with it
+triggers nothing. The moment victory is won, the match ends immediately: the
+winning side, the final board, and the full match history are preserved,
+and nothing further can be commanded.
 
 ## Dependencies
 
@@ -202,15 +227,36 @@ the game, and the match continues.
 ### AC: delivering-the-captured-king-wins
 
 **Given** a convoy carrying the captured enemy king, plus some captive
-pawns, is positioned to enter a valid free base square for its escort's rank
+pawns, is positioned to enter a free royal square (e1 or d1 for White, e8 or
+d8 for Black)
 **When** the convoy enters that square
 **Then** the delivering side wins immediately, the match locks against
 further commands, and the final board and match history are preserved.
 
+### AC: delivery-square-follows-cargo-not-escort
+
+**Given** a Rook-escorted convoy carries the captured enemy king and stands
+one homeward step from a royal square, with the Rook's own base squares
+(a1/h1) irrelevant to this cargo
+**When** the convoy enters that royal square
+**Then** the delivering side wins immediately, exactly as it would for any
+other escort rank, because the king cargo decides the delivery square, not
+the Rook's own rank
+
+### AC: colour-bound-escort-still-delivers
+
+**Given** a Bishop-escorted convoy carries the captured enemy king and can
+legally reach one royal square but, being colour-bound, can never reach the
+other
+**When** the convoy enters the reachable royal square
+**Then** the delivering side wins immediately — the second royal square
+exists for exactly this reason, so a colour-bound escort is never left
+without a reachable delivery square
+
 ### AC: own-king-recapture-is-just-protected-cargo
 
 **Given** a side recaptures a convoy carrying its own captured king
-**When** that convoy later reaches a base square
+**When** that convoy later reaches a royal square
 **Then** nothing special happens — the king remains protected cargo, and the
 match does not end.
 
