@@ -149,11 +149,16 @@ escort's own rank continues to decide only its own refit once it is
 carrying no cargo at all — it never decides where cargo already aboard
 comes home.
 
-Two royal squares exist, rather than one, because a Bishop is colour-bound:
-White's e1 is a dark square and d1 is light (the mirror image for Black), so
-a Bishop escort can physically reach exactly one of the two. A single
-delivery square would leave a Bishop-escorted king permanently
-undeliverable by that escort.
+Two royal squares exist, rather than one, because a Bishop's *capture* is
+colour-bound: a Bishop's attack geometry is diagonal-only, which preserves
+square colour, so a Bishop can only ever capture a king standing on a
+square of the Bishop's own colour. White's e1 is a dark square and d1 is
+light (the mirror image for Black), so exactly one Bishop colour can
+capture-and-deliver on a given royal square in the same motion as the
+capture. Once a capture has formed a convoy, ordinary convoy movement (see
+`convoy-movement` above) is unrestricted by rank or square colour, so this
+colour bind affects only that one instant — a Bishop escort already under
+way can still walk to either royal square.
 
 #### REQ: king-delivery-victory
 
@@ -243,15 +248,17 @@ one homeward step from a royal square, with the Rook's own base squares
 other escort rank, because the king cargo decides the delivery square, not
 the Rook's own rank
 
-### AC: colour-bound-escort-still-delivers
+### AC: bishop-capture-and-deliver-is-colour-bound
 
-**Given** a Bishop-escorted convoy carries the captured enemy king and can
-legally reach one royal square but, being colour-bound, can never reach the
-other
-**When** the convoy enters the reachable royal square
-**Then** the delivering side wins immediately — the second royal square
-exists for exactly this reason, so a colour-bound escort is never left
-without a reachable delivery square
+**Given** a Bishop captures the enemy king while the king already stands on
+a royal square of the Bishop's own colour, forming the convoy directly on
+that square
+**When** the capture is applied
+**Then** the delivering side wins immediately in the same motion as the
+capture — the second royal square exists for exactly this reason, so a
+Bishop of either colour can capture-and-deliver the king in one move, even
+though a single Bishop can never capture a king standing on the opposite
+colour
 
 ### AC: own-king-recapture-is-just-protected-cargo
 
