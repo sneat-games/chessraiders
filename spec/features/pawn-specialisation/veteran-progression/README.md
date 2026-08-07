@@ -137,7 +137,7 @@ under the old names.
 | Veteran Pawn | 1 prisoner mission, as an ordinary pawn | may train (Engineer or Sergeant) |
 | Engineer | 1 training session at base, 10s | builds wooden walls |
 | Veteran Engineer | a 2nd prisoner mission, as an Engineer | builds wooden walls **faster** |
-| Master Engineer | a 2nd training session at base | can build **stone** walls |
+| Master Engineer | a 2nd training session at base, 12s | can build **stone** walls |
 
 Spelled out plainly, so nobody has to work it out: getting to stone costs
 **two** prisoner missions and **two** trips to the training ground — one
@@ -174,12 +174,13 @@ It is not Morale-gated — training further does not add another specialist to
 the count. Nothing about how you earn it changes; what changes is that it
 stays in the game under a better name instead of leaving it.
 
-**One number is not settled.** The founder said this training defaults to 10
-seconds. The version of this training already running in the game defaults to
-15. Ten seconds is what *ordinary* Engineer and Sergeant training already
-takes — so either the shipped 15-second value is about to become 10, or "10
-seconds" was describing the general shape of training rather than this
-specific one. This Feature does not guess which; see Open Questions.
+**The number is settled: 12 seconds.** The founder first said this training
+defaults to 10 seconds — the same figure *ordinary* Engineer and Sergeant
+training already takes — while the version already running in the game
+defaulted to 15. Neither number stood: the founder's later call — "15 sounds
+like a lot. Maybe 12?" — settled it at 12 seconds. Ordinary Engineer/Sergeant
+training is untouched and stays 10 seconds; this ladder reads 10 seconds for
+the first training and 12 for the second.
 
 #### REQ: veteran-engineer-builds-wood-faster
 
@@ -336,11 +337,6 @@ client describe it.
 
 ## Open Questions
 
-- **Is Master Engineer training 10 seconds or 15?** The founder said 10; the
-  version of this training already in the game defaults to 15, and 10 is what
-  *ordinary* specialist training already takes. Needs a founder call on
-  whether the shipped duration changes or the 10-second figure was describing
-  the pattern rather than this specific channel.
 - **Does "builds... faster" ever extend to repairing?** This Feature reads it
   as building only, because that was the founder's specific word. Repair
   speed already has its own table, already gated at Master Engineer, and this

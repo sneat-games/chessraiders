@@ -178,15 +178,15 @@ training**. An earlier version of that correction said field service alone
 would make the top rung and this training would disappear; the founder
 specified the opposite — Veteran Engineer is the field-service rung, and this
 training is still the second visit to the base that turns a Veteran Engineer
-into a Master Engineer. Its shipped duration (15 seconds, below) and the
-founder's stated 10 seconds do not agree; see that Feature's Open
-Questions.*
+into a Master Engineer, and its duration (below).*
 
 Advanced Engineer Training is a second channelled action, available only to
 an eligible Engineer and only at its own pawn base rank, with a default
-duration of 15 seconds. It is not limited by morale — the Engineer is
-already a trained specialist, and advancing it does not add to the trained
-count. It is cancelled without effect by movement, death, capture, or
+duration of 12 seconds — down from the 15 seconds this channel originally
+shipped with; see [Veteran Progression](veteran-progression/README.md)'s
+`REQ: master-engineer-is-a-second-training`. It is not limited by morale —
+the Engineer is already a trained specialist, and advancing it does not add
+to the trained count. It is cancelled without effect by movement, death, capture, or
 transformation, exactly like ordinary training. Completing it grants
 Qualification II permanently, subject to the same capture-or-death loss
 rule as the profession itself.
