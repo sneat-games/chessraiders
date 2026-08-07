@@ -64,10 +64,16 @@ There are exactly two materials, and no further tiers:
 
 *Amended by
 [Veteran Progression](../pawn-specialisation/veteran-progression/README.md)
-(2026-08-07): stone requires a **Veteran Engineer** — an Engineer that has
-brought a prisoner home since it qualified — rather than a numbered
-qualification. Nothing else about either material changes, and a Veteran
-Engineer keeps the faster construction and repair the old grade carried.*
+(2026-08-07): stone still requires Qualification II exactly as stated above
+— that gate has not moved. What changes is the name: the Engineer holding it
+is now called a **Master Engineer**. One rung below, a **Veteran Engineer**
+(an Engineer that has brought a second prisoner home since it qualified, one
+mission short of Master Engineer) cannot build stone, but builds **wooden**
+walls faster — a new reward that rung did not carry before. Repair speed is
+unaffected and stays keyed to Qualification exactly as it already is; only
+building wood moved down a rung. An earlier draft of this correction proposed
+moving the stone gate itself down to Veteran Engineer; the founder's later,
+more specific word placed it back at the top rung, as it already was.*
 
 ### Building a wall
 

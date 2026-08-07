@@ -20,7 +20,7 @@ many you keep once trained.
 
 | Child | Description |
 |---|---|
-| [veteran-progression](veteran-progression/README.md) | A piece that captures an enemy, escorts the prisoner home and unloads it becomes a Veteran for life. Only Veterans can be trained as Engineers or Sergeants, and only a Veteran Engineer can build in stone. |
+| [veteran-progression](veteran-progression/README.md) | A pawn that captures an enemy, escorts the prisoner home and unloads it becomes a Veteran for life — a pawn-only status that promotion ends. Only Veterans can be trained as Engineers or Sergeants, a second mission as an Engineer earns Veteran Engineer (faster wooden walls), and a second training earns Master Engineer (stone walls). |
 
 ## Problem
 
@@ -129,12 +129,14 @@ training slot, and must be restarted from zero.
 
 #### REQ: engineer-qualifications
 
-*Superseded by [Veteran Progression](veteran-progression/README.md)
-(2026-08-07): the numbered qualifications are gone. An Engineer is either an
-ordinary Engineer, which builds in wood, or a **Veteran Engineer**, which has
-brought a prisoner home since qualifying and builds in stone. The two grades
-below survive as those two states; only the names and the way the second one
-is earned change.*
+*Renamed, not superseded, by [Veteran Progression](veteran-progression/README.md)
+(2026-08-07): the numbered qualifications are not gone — an earlier version
+of that correction said they would be, and the founder reversed it. The
+ordinary grade keeps its rule below exactly as written; the higher grade is
+renamed **Master Engineer**, still earned as described below, and still
+gating stone. A new rung sits between the two, **Veteran Engineer** — earned
+by a second prisoner mission, not a qualification at all, and worth a faster
+wooden-wall build rather than a new material.*
 
 The Engineer is a pawn-class specialist focused on battlefield fortification
 and logistics — it moves, fights, and gets captured exactly like an ordinary
@@ -152,10 +154,12 @@ There is no Qualification III and no further wall tier.
 
 #### REQ: advanced-eligibility-through-service
 
-*Superseded by [Veteran Progression](veteran-progression/README.md)
-(2026-08-07): the mission described below is unchanged and is exactly what
-makes an Engineer a Veteran Engineer. What it no longer does is unlock a trip
-back to the training ground — completing it is the promotion.*
+*Renamed, not superseded, by [Veteran Progression](veteran-progression/README.md)
+(2026-08-07): the mission described below is unchanged, still live, and is
+exactly what makes an Engineer a Veteran Engineer. It still unlocks a trip
+back to the training ground, same as always — that trip is now called Master
+Engineer training rather than Advanced Engineer Training, and completing it
+is a second promotion, not a replacement for this one.*
 
 An Engineer only becomes eligible for Advanced Engineer Training by
 personally completing the full prisoner mission: it must itself capture an
@@ -168,10 +172,15 @@ is captured or dies.
 
 #### REQ: advanced-engineer-training
 
-*Superseded by [Veteran Progression](veteran-progression/README.md)
-(2026-08-07): Advanced Engineer Training no longer exists. Field service alone
-makes a Veteran Engineer; there is no second visit to the base and no second
-channel to sit through.*
+*Renamed, not superseded, by [Veteran Progression](veteran-progression/README.md)
+(2026-08-07): this training still exists, under the name **Master Engineer
+training**. An earlier version of that correction said field service alone
+would make the top rung and this training would disappear; the founder
+specified the opposite — Veteran Engineer is the field-service rung, and this
+training is still the second visit to the base that turns a Veteran Engineer
+into a Master Engineer. Its shipped duration (15 seconds, below) and the
+founder's stated 10 seconds do not agree; see that Feature's Open
+Questions.*
 
 Advanced Engineer Training is a second channelled action, available only to
 an eligible Engineer and only at its own pawn base rank, with a default
