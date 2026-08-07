@@ -62,6 +62,13 @@ There are exactly two materials, and no further tiers:
   Higher maximum Integrity, harder to dismantle, and a longer base
   construction time.
 
+*Amended by
+[Veteran Progression](../pawn-specialisation/veteran-progression/README.md)
+(2026-08-07): stone requires a **Veteran Engineer** — an Engineer that has
+brought a prisoner home since it qualified — rather than a numbered
+qualification. Nothing else about either material changes, and a Veteran
+Engineer keeps the faster construction and repair the old grade carried.*
+
 ### Building a wall
 
 #### REQ: construction

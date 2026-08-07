@@ -16,6 +16,12 @@ profession is permanent — earned once, worn for life, lost only to capture
 or death — and morale limits how many pawns you can train at once, never how
 many you keep once trained.
 
+## Contents
+
+| Child | Description |
+|---|---|
+| [veteran-progression](veteran-progression/README.md) | A piece that captures an enemy, escorts the prisoner home and unloads it becomes a Veteran for life. Only Veterans can be trained as Engineers or Sergeants, and only a Veteran Engineer can build in stone. |
+
 ## Problem
 
 Every pawn in Chess Raiders was interchangeable: no way to invest in one,
@@ -91,6 +97,11 @@ rank 2, Black rank 7). The player must explicitly choose the profession
 being trained; there is no default. A convoy, a refitting piece, or any
 non-pawn cannot train.
 
+*Amended by [Veteran Progression](veteran-progression/README.md) (2026-08-07):
+the pawn must also already be a **Veteran** — it must have captured an enemy,
+escorted the prisoner home and unloaded it. Everything above still applies
+unchanged; that is one more requirement, not a replacement.*
+
 #### REQ: morale-limits-training
 
 The number of trained specialists a side may have is capped by its current
@@ -118,6 +129,13 @@ training slot, and must be restarted from zero.
 
 #### REQ: engineer-qualifications
 
+*Superseded by [Veteran Progression](veteran-progression/README.md)
+(2026-08-07): the numbered qualifications are gone. An Engineer is either an
+ordinary Engineer, which builds in wood, or a **Veteran Engineer**, which has
+brought a prisoner home since qualifying and builds in stone. The two grades
+below survive as those two states; only the names and the way the second one
+is earned change.*
+
 The Engineer is a pawn-class specialist focused on battlefield fortification
 and logistics — it moves, fights, and gets captured exactly like an ordinary
 pawn; its value is entirely in what it can build (see
@@ -134,6 +152,11 @@ There is no Qualification III and no further wall tier.
 
 #### REQ: advanced-eligibility-through-service
 
+*Superseded by [Veteran Progression](veteran-progression/README.md)
+(2026-08-07): the mission described below is unchanged and is exactly what
+makes an Engineer a Veteran Engineer. What it no longer does is unlock a trip
+back to the training ground — completing it is the promotion.*
+
 An Engineer only becomes eligible for Advanced Engineer Training by
 personally completing the full prisoner mission: it must itself capture an
 enemy piece, personally escort that convoy home, and personally unload a
@@ -144,6 +167,11 @@ earned, is kept until Advanced Engineer Training uses it up or the Engineer
 is captured or dies.
 
 #### REQ: advanced-engineer-training
+
+*Superseded by [Veteran Progression](veteran-progression/README.md)
+(2026-08-07): Advanced Engineer Training no longer exists. Field service alone
+makes a Veteran Engineer; there is no second visit to the base and no second
+channel to sit through.*
 
 Advanced Engineer Training is a second channelled action, available only to
 an eligible Engineer and only at its own pawn base rank, with a default
@@ -282,7 +310,11 @@ matches the non-informer's exactly.
 
 ## Open Questions
 
-None at this time.
+- **Does the morale limit on training still earn its keep** now that a pawn
+  must also have brought a prisoner home before it can train at all? Two
+  limits on the same action may make specialists rarer than intended.
+  Unchanged by [Veteran Progression](veteran-progression/README.md); flagged
+  for the next balance review.
 
 ---
 *This document follows the https://specscore.md/feature-specification*
