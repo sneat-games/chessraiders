@@ -24,15 +24,21 @@
 // Load Script into go/bots/runtime.Compile to get a callable Program; the
 // README walks the shortest path from there to a decision.
 //
-// Neither file originates here — this package is a read path, not a source
-// of truth for either file's content; a change to either lands upstream
-// first and is re-published here. tier.star is ported byte-for-byte from
-// the private implementation's server-go/starlarktier/tier.star.
+// BOTH FILES ORIGINATE HERE — this package is the one and only source of
+// truth for tier.star and params.json; a change to either is made HERE
+// first, never in the private implementation, and the private repository
+// republishes what this package already carries, never the other way
+// around.
 //
-// params.json is the OPPOSITE direction as of the private implementation's
-// plan publish-the-standard-bot (task-6, 2026-08-10): this file — not
-// anything hand-written in that other repository — is now the table's one
-// and only author. Before task-6, the causality ran the other way:
+// tier.star made that crossing first, in the private implementation's plan
+// publish-the-standard-bot (task-5, 2026-08-10): server-go/starlarktier/
+// recruit.go no longer `//go:embed`s a local tier.star at all — there is no
+// local tier.star left there to embed — and re-exports THIS package's own
+// Script symbol instead (that file's own doc comment has the full account).
+//
+// params.json made the SAME crossing one task later, in task-6: this file —
+// not anything hand-written in that other repository — is now the table's
+// one and only author. Before task-6, the causality ran the other way:
 // server-go/starlarktier/params.go hand-wrote RecruitParams/
 // LieutenantParams/CommanderParams/AdviserParams as Go struct literals, and
 // a generator there (bot_tier_params_fixture_test.go, since deleted) copied
@@ -41,10 +47,10 @@
 // never made that trip, which is the historical reason the two files
 // briefly were not byte-for-byte identical even though both traced back to
 // params.go. Task-6 collapsed that whole chain: params.go now DECODES this
-// very file's own bytes (fetched by module version, the same way this
-// package fetches tier.star from the private repository) instead of
-// hand-writing the numbers, so there is exactly one copy of the table
-// again, and it is HERE.
+// very file's own bytes (fetched by module version, the same way
+// server-go/starlarktier/recruit.go fetches tier.star FROM this package)
+// instead of hand-writing the numbers, so there is exactly one copy of the
+// table again, and it is HERE.
 package standardbot
 
 import _ "embed"
