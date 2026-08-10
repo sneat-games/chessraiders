@@ -147,6 +147,51 @@ is verified against the private implementation, which is also the one place
 `params.json` and `tier.star` are ever *edited* — this package is a read
 path, republished here whenever either file changes upstream.
 
+## The conformance corpus
+
+[`testdata/corpus`](testdata/corpus) closes most of that gap without needing
+the private implementation at all: 53 real `decide()` calls, each with a
+genuine board-and-legal-move observation, recorded from the private engine's
+own behavioural suite (`server-go/tests4bot`, `sneat-co/chessraiders`, plan
+task-8) and published here byte-for-byte — see
+[`testdata/corpus/README.md`](testdata/corpus/README.md) for exactly what
+each case is and why 53 decisions from 30 of that suite's 41 tests, not all
+41.
+
+[`corpus_replay_test.go`](corpus_replay_test.go)'s
+`TestCorpusReplayAgreesWithThePublishedScript` is the replayer plan task-9
+asks for: it feeds every one of those 53 cases' own recorded `{observation,
+memory, parameters, randomDraw, options}` into THIS checkout's own
+`runtime.Compile(Script)` and reports every decision that disagrees with what
+was recorded, naming the case and the field. It resolves which script
+version it is checking against from each case's own declared `script.version`
+— never from this module's `go.mod`, which has no version for a module that
+does not require itself — so a corpus that quietly mixed two recordings, or
+declared the wrong module, is caught before a single `decide()` call runs.
+[`corpus_replay_detects_disagreement_test.go`](corpus_replay_detects_disagreement_test.go)
+proves the detector itself: it perturbs a recorded intent, a parameter row
+and the declared script version, one at a time, and asserts each one is
+caught with a legible, case-naming error — a replayer that can only report
+agreement is not proven to detect disagreement.
+
+This still does not prove the bot plays well against a *live, moving*
+opponent, or that a change to `tier.star` was intentional rather than a
+regression the corpus happens not to cover — only that, for these 53
+recorded decisions, this checkout's script still decides exactly what the
+private engine's own tests once observed it decide.
+
+## Running the corpus replayer
+
+```sh
+go test ./bots/standardbot/... -run TestCorpusReplay
+```
+
+reports `N/N recorded decisions agree` on success, or one line per
+disagreeing case naming the file, the originating test/case and the
+mismatching field on failure. An empty or missing `testdata/corpus` is a
+hard failure here, not a skip — the corpus is supposed to ship 53 cases, so
+finding none is a regression in what shipped, not a reason to pass.
+
 To exercise the whole module, including the dependency-boundary check every
 package here is held to:
 

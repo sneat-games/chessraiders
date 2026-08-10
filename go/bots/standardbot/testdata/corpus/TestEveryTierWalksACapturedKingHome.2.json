@@ -1,0 +1,323 @@
+{
+  "format": "chess-bot-conformance-case/v1",
+  "paramsVersion": "chess-bot-tier-params/v1",
+  "script": {
+    "module": "github.com/sneat-games/chessraiders/go",
+    "version": "v0.0.2"
+  },
+  "test": "TestEveryTierWalksACapturedKingHome",
+  "case": 2,
+  "difficulty": "commander",
+  "parameters": {
+    "material": 1,
+    "safety": 1,
+    "tempo": 0.35,
+    "advance": 0.3,
+    "targetLock": 2,
+    "kingSafety": 4,
+    "moralePush": 1.2,
+    "delivery": 4,
+    "prisoner": 1,
+    "system": 1.4,
+    "candidateSpread": 28,
+    "passBelow": -7,
+    "breadth": 16,
+    "advancedTraining": true,
+    "contestEnemyWork": true,
+    "sergeantPreference": 0.5
+  },
+  "observation": {
+    "side": "white",
+    "lifecycle": "playing",
+    "nowMs": 1700000005001,
+    "revision": 1,
+    "own": [
+      {
+        "unitId": "escort",
+        "square": "a3",
+        "side": "white",
+        "rank": "rook",
+        "convoy": true,
+        "cargoCount": 1,
+        "kingCargo": true,
+        "ghost": false,
+        "refitting": false,
+        "recoveryUntil": 0,
+        "charging": false,
+        "training": false,
+        "attacksKing": false,
+        "profession": "",
+        "veteran": false,
+        "advanced": false,
+        "advancedEligible": false,
+        "forging": false
+      },
+      {
+        "unitId": "wk",
+        "square": "e2",
+        "side": "white",
+        "rank": "king",
+        "convoy": false,
+        "cargoCount": 0,
+        "kingCargo": false,
+        "ghost": false,
+        "refitting": false,
+        "recoveryUntil": 0,
+        "charging": false,
+        "training": false,
+        "attacksKing": false,
+        "profession": "",
+        "veteran": false,
+        "advanced": false,
+        "advancedEligible": false,
+        "forging": false
+      }
+    ],
+    "enemy": [
+      {
+        "unitId": "bp-h7",
+        "square": "h7",
+        "side": "black",
+        "rank": "pawn",
+        "convoy": false,
+        "cargoCount": 0,
+        "kingCargo": false,
+        "ghost": false,
+        "refitting": false,
+        "recoveryUntil": 0,
+        "charging": false,
+        "training": false,
+        "attacksKing": false,
+        "profession": "",
+        "veteran": false,
+        "advanced": false,
+        "advancedEligible": false,
+        "forging": false
+      }
+    ],
+    "legal": {
+      "escort": [
+        "a2",
+        "b2",
+        "b3"
+      ],
+      "wk": [
+        "d1",
+        "d2",
+        "d3",
+        "e1",
+        "e3",
+        "f1",
+        "f2",
+        "f3"
+      ]
+    },
+    "affordability": {},
+    "enPassant": {},
+    "danger": {
+      "d1": {
+        "threat": 0,
+        "cheapest": 0,
+        "guarded": 1
+      },
+      "d2": {
+        "threat": 0,
+        "cheapest": 0,
+        "guarded": 1
+      },
+      "d3": {
+        "threat": 0,
+        "cheapest": 0,
+        "guarded": 1
+      },
+      "e1": {
+        "threat": 0,
+        "cheapest": 0,
+        "guarded": 1
+      },
+      "e3": {
+        "threat": 0,
+        "cheapest": 0,
+        "guarded": 1
+      },
+      "f1": {
+        "threat": 0,
+        "cheapest": 0,
+        "guarded": 1
+      },
+      "f2": {
+        "threat": 0,
+        "cheapest": 0,
+        "guarded": 1
+      },
+      "f3": {
+        "threat": 0,
+        "cheapest": 0,
+        "guarded": 1
+      },
+      "g6": {
+        "threat": 1,
+        "cheapest": 1,
+        "guarded": 0
+      }
+    },
+    "convoyHome": {
+      "a1": 0,
+      "a2": 1,
+      "a3": 2,
+      "a4": 3,
+      "a5": 4,
+      "a6": 5,
+      "a7": 6,
+      "a8": 7,
+      "b1": 1,
+      "b2": 1,
+      "b3": 2,
+      "b4": 3,
+      "b5": 4,
+      "b6": 5,
+      "b7": 6,
+      "b8": 7,
+      "c1": 2,
+      "c2": 2,
+      "c3": 2,
+      "c4": 3,
+      "c5": 4,
+      "c6": 5,
+      "c7": 6,
+      "c8": 7,
+      "d1": 3,
+      "d2": 3,
+      "d3": 3,
+      "d4": 3,
+      "d5": 4,
+      "d6": 5,
+      "d7": 6,
+      "d8": 7,
+      "e1": 3,
+      "e3": 3,
+      "e4": 3,
+      "e5": 4,
+      "e6": 5,
+      "e7": 6,
+      "e8": 7,
+      "f1": 2,
+      "f2": 2,
+      "f3": 2,
+      "f4": 3,
+      "f5": 4,
+      "f6": 5,
+      "f7": 6,
+      "f8": 7,
+      "g1": 1,
+      "g2": 1,
+      "g3": 2,
+      "g4": 3,
+      "g5": 4,
+      "g6": 5,
+      "g7": 6,
+      "g8": 7,
+      "h1": 0,
+      "h2": 1,
+      "h3": 2,
+      "h4": 3,
+      "h5": 4,
+      "h6": 5,
+      "h8": 7
+    },
+    "deliverySquares": [
+      "a1",
+      "h1"
+    ],
+    "ownMorale": 1,
+    "ownManaged": 0,
+    "ownSpecialists": 0,
+    "enemyManaged": 0,
+    "rules": {
+      "cargoBasedDelivery": false,
+      "allowsKill": true,
+      "allowsCapture": false,
+      "moraleEnabled": true,
+      "moraleThresholds": {
+        "bishop": 3,
+        "king": 2,
+        "knight": 3,
+        "pawn": 1,
+        "queen": 5,
+        "rook": 4
+      },
+      "pieceChargeMs": {
+        "bishop": 3000,
+        "king": 1000,
+        "knight": 3000,
+        "pawn": 2000,
+        "queen": 5000,
+        "rook": 4000
+      },
+      "baseSquares": {
+        "bishop": [
+          "c1",
+          "f1"
+        ],
+        "king": [
+          "e1"
+        ],
+        "knight": [
+          "b1",
+          "g1"
+        ],
+        "pawn": [
+          "a2",
+          "b2",
+          "c2",
+          "d2",
+          "e2",
+          "f2",
+          "g2",
+          "h2"
+        ],
+        "queen": [
+          "d1"
+        ],
+        "rook": [
+          "a1",
+          "h1"
+        ]
+      },
+      "beaconKingStartsAsBearer": false,
+      "specialistsEnabled": true,
+      "woodWallsEnabled": true,
+      "stoneWallsEnabled": true,
+      "veteranProgression": false,
+      "beaconEnabled": true,
+      "beaconForgeEnabled": false,
+      "specialistCeiling": 1,
+      "permittedProfessions": [
+        "engineer",
+        "sergeant"
+      ]
+    },
+    "systems": {
+      "training": true,
+      "walls": true,
+      "beacon": true,
+      "prisoners": true,
+      "morale": true,
+      "espionage": true
+    },
+    "beacon": {
+      "lifecycle": "undeployed",
+      "bearerSquare": "",
+      "everHandedOff": false
+    },
+    "walls": []
+  },
+  "memory": {},
+  "randomDraw": "4141755984915622863",
+  "options": 0,
+  "intent": {
+    "kind": "move",
+    "from": "a3",
+    "to": "b2"
+  }
+}
