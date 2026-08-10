@@ -1,0 +1,59 @@
+{
+  "version": "chess-bot-tier-params/v1",
+  "tiers": {
+    "commander": {
+      "material": 1,
+      "safety": 1,
+      "tempo": 0.35,
+      "advance": 0.3,
+      "targetLock": 2,
+      "kingSafety": 4,
+      "moralePush": 1.2,
+      "delivery": 4,
+      "prisoner": 1,
+      "system": 1.4,
+      "candidateSpread": 28,
+      "passBelow": -7,
+      "breadth": 16,
+      "advancedTraining": true,
+      "contestEnemyWork": true,
+      "sergeantPreference": 0.5
+    },
+    "lieutenant": {
+      "material": 1,
+      "safety": 0.9,
+      "tempo": 0.25,
+      "advance": 0.25,
+      "targetLock": 1.5,
+      "kingSafety": 3,
+      "moralePush": 0,
+      "delivery": 3,
+      "prisoner": 0,
+      "system": 1,
+      "candidateSpread": 12,
+      "passBelow": -9,
+      "breadth": 8,
+      "advancedTraining": false,
+      "contestEnemyWork": false,
+      "sergeantPreference": 0
+    },
+    "recruit": {
+      "material": 1,
+      "safety": 0.5,
+      "tempo": 0,
+      "advance": 0.15,
+      "targetLock": 0,
+      "kingSafety": 0,
+      "moralePush": 0,
+      "delivery": 2,
+      "prisoner": 0,
+      "system": 0,
+      "candidateSpread": 6,
+      "passBelow": -30,
+      "breadth": 4,
+      "advancedTraining": false,
+      "contestEnemyWork": false,
+      "sergeantPreference": 0
+    }
+  }
+}
