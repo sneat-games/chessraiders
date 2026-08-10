@@ -236,10 +236,10 @@ name first.
 ## Dependencies
 
 - [Pawn Specialisation](../README.md)
-- [Prisoner Convoys](../prisoner-convoys/README.md)
-- [Fortifications](../fortifications/README.md)
-- [Capture Outcomes](../capture-outcomes/README.md)
-- [Morale](../morale/README.md)
+- [Prisoner Convoys](../../prisoner-convoys/README.md)
+- [Fortifications](../../fortifications/README.md)
+- [Capture Outcomes](../../capture-outcomes/README.md)
+- [Morale](../../morale/README.md)
 
 ## Acceptance Criteria
 

@@ -204,12 +204,47 @@ recovery works from anywhere on the board, while Forging is the alternative
 a side's own pawns can offer from their own territory. A side that has lost
 its Beacon always has both paths open to it.
 
+### Visibility under Fog of War
+
+#### REQ: fog-safe-beacon-projection
+
+Under Shared [Fog of War](../fog-of-war/README.md), each side's own Beacon
+status — its lifecycle (Deployed, Lost, Restoring, or Dormant), its due
+countdown, and whether its Chain of Command is currently active — is always
+visible to that side, exactly as in Classic visibility. The enemy's
+equivalent status is withheld outright: nothing about the enemy Beacon's
+lifecycle, chain state, or due countdown is sent to you at all, not even a
+downgraded or placeholder form of it.
+
+A piece that currently bears the Beacon, or a king currently restoring one,
+is marked as such only while that piece stands on a square your team's
+ordinary vision — Classic, patrol vision, the opening deployment reveal, or
+an active Informer's vision — already shows you; a bearer standing on a
+square you cannot currently see is unmarked, exactly like any other fact
+about a piece you cannot see, and the marker disappears the instant you
+lose sight of it rather than lingering as a stale ghost. The
+charge-reduction benefit (`charge-reduction`) an enemy piece is currently
+drawing from a nearby Beacon stays hidden even while that piece itself is
+visible, because the benefit's size alone would leak how close the —
+possibly still-hidden — bearer stands; your own side's pieces always show
+their true benefit.
+
+Beacon lifecycle events (deployment, passing, loss, restoration started,
+restoration cancelled, and restoration completed) follow the same
+event-visibility rule as any other match event: an event whose every
+involved square is currently out of sight is withheld entirely, and an
+event with only one visible endpoint keeps that endpoint and blanks the
+hidden one, rather than ever describing what happened out of sight. None of
+this changes what is legal — probing a move toward a hidden Beacon bearer
+is exactly as legitimate as probing toward any other hidden piece.
+
 ## Dependencies
 
 - [Real-Time Command](../real-time-command/README.md)
 - [Morale](../morale/README.md)
 - [Prisoner Convoys](../prisoner-convoys/README.md)
 - [Fortifications](../fortifications/README.md)
+- [Fog of War](../fog-of-war/README.md)
 
 ## Acceptance Criteria
 
@@ -294,6 +329,33 @@ starts providing its benefit the instant the Chain of Command reaches it;
 **when** the pawn instead moves, attacks, or acts before the channel
 completes
 **Then** the forging is cancelled and the Beacon remains Lost.
+
+### AC: fog-hides-enemy-beacon-status
+
+**Given** a Shared Fog of War match
+**When** either team's Beacon status is projected
+**Then** each team always sees its own Beacon's lifecycle, chain-active
+state, and due countdown, while the enemy's equivalent status is withheld
+entirely — not shown as unknown, simply absent.
+
+### AC: visible-bearer-shows-the-badge-but-not-the-benefit
+
+**Given** an enemy piece bearing the Beacon stands on a square your team can
+currently see through ordinary vision
+**When** the board is rendered
+**Then** that piece is marked as the bearer exactly like any other visible
+fact about it, but the charge-reduction benefit it is currently drawing
+stays hidden; **when** it later moves out of your team's sight
+**Then** the marker disappears immediately, with no stale trace left behind.
+
+### AC: beacon-events-redact-the-hidden-endpoint
+
+**Given** a Beacon lifecycle event whose two involved squares are only
+partly visible to a team
+**When** that event reaches the team
+**Then** the visible square is reported and the hidden one is blanked;
+**when** instead both squares are out of sight
+**Then** the event is withheld entirely.
 
 ## Open Questions
 

@@ -106,6 +106,43 @@ still double-step. Repeating the enter-and-leave pattern across free
 pawn-rank squares can unload several prisoners over a match — a side can end
 up with more than eight pawns.
 
+### Escort geometry for the final captive
+
+#### REQ: final-captive-escort-geometry
+
+Once a loaded convoy is down to exactly one captive pawn — no captured king
+aboard — and stands on its own pawn-starting rank, it may act, for that one
+command, using its escort's own full movement and attack geometry instead of
+the ordinary one-square sideways-or-homeward step every other loaded convoy
+is limited to: a Knight-escorted convoy may jump an L exactly like a free
+knight; a Bishop-, Rook-, or Queen-escorted convoy may slide along its own
+lines, subject to the same path-blocking and wall rules as that piece; and a
+Pawn-escorted convoy may advance one or two squares (subject to its own
+unmoved status, tracked continuously through however many ordinary convoy
+steps came before) or capture one square diagonally, exactly like an
+ordinary pawn. Ordinary one-square convoy movement remains available for
+whatever destinations it already reaches; this exception only opens up
+destinations the escort's own geometry newly reaches.
+
+A quiet destination finishes the unload in the very same command exactly as
+`pawn-unloading` describes — the departure square receives the freshly
+unloaded pawn, and the unit converts from convoy to a plain piece of the
+escort's own rank on the square it moved to, subject to the same refit rules
+as any other final unload (see `refit-lifecycle` and `refit-during-unload`
+below). An enemy-occupied destination is an ordinary attack through the same
+Kill/Capture/Recruit pipeline any other attacker of that rank uses: the
+cargo is untouched, the unit remains a convoy, and a successful outcome
+merges the newly captured piece into the still-loaded cargo rather than
+replacing it. Standing on the pawn-starting rank with two or more captives
+still aboard, or with a captured king aboard at all, does not qualify —
+those convoys stay confined to ordinary one-square movement regardless of
+escort rank, and so does any convoy that has not yet reached its own
+pawn-starting rank.
+
+This exception can never reach a promotion rank: the pawn-starting rank is
+at most two ranks from a Pawn escort's own promotion rank, farther than any
+single quiet-move step this exception permits.
+
 ### Refitting
 
 #### REQ: refit-lifecycle
@@ -117,8 +154,9 @@ teammate, unable to attack or capture, and still capturable by the enemy.
 There is no timer — refitting completes the instant the piece is standing on
 a free base square for its rank, and it becomes an ordinary active piece
 again. Because the final unload always happens on the pawn-starting rank, a
-pawn escort finishing its unload refits instantly and never has to travel.
-Base squares are:
+pawn escort finishing its unload refits instantly and never has to travel
+(see `refit-during-unload` below for why that is true only for a pawn
+escort). Base squares are:
 
 | Piece | Base square (White) |
 |---|---|
@@ -139,6 +177,36 @@ standing on a base square.
 These base squares govern only an *emptied* escort's own return to active
 play. A *loaded* convoy — one still carrying cargo — delivers that cargo
 somewhere else entirely; see `cargo-based-delivery` below.
+
+#### REQ: refit-during-unload
+
+Refit eligibility is checked, in the very same command that performs the
+final unload, against the square where that unload itself happened — the
+convoy's departure square — not only against wherever the escort ends up
+afterward. In practice this only ever benefits a Pawn escort: a Pawn's own
+base squares are its entire pawn-starting rank, and every final unload —
+whether through ordinary one-square convoy movement or through
+`final-captive-escort-geometry` above — departs from exactly that rank, so a
+Pawn escort's departure square is always, unconditionally, an eligible base
+square. A Pawn escort therefore always refits, active, in the very same
+command as its last unload — it never separately travels home first. Every
+other escort rank's base squares sit on the back rank, never the
+pawn-starting rank a final unload departs from, so a Knight, Bishop, Rook,
+Queen, or King escort still has to walk to its own base square afterward,
+exactly as the general case above describes.
+
+#### REQ: refitting-capture
+
+A refitting piece cannot attack — it may only move, per `refit-lifecycle` —
+but the enemy may still capture it exactly as it would an active piece: the
+match's ordinary capture mode decides the outcome, Kill in a kill-only
+match, a new convoy with the refitting piece reduced to one neutral captive
+pawn in a capture-only match, or the attacker's choice between the two when
+both are enabled. A refitting king is the one apparent exception, and it is
+not a new rule for refitting specifically: a king is always captured, never
+killed, in every match and every state (see `king-is-always-captured`
+below), so a refitting king becomes captured-king cargo exactly like an
+active king would, with no Kill/Capture choice ever offered for it.
 
 ### The captured king
 
@@ -183,11 +251,17 @@ stands on either of the delivering side's royal squares (per
 directly by an interception landing on one. This is the highest-priority
 objective in the game: any captive pawns still riding along do not delay or
 prevent the win, and are simply recorded as undelivered. Only the *enemy's*
-captured king counts this way — if a team recaptures a convoy carrying its
-own king, that king is just protected cargo; reaching a royal square with it
-triggers nothing. The moment victory is won, the match ends immediately: the
-winning side, the final board, and the full match history are preserved,
-and nothing further can be commanded.
+captured king ever counts this way. A convoy's king cargo always belongs to
+the opponent of whoever currently escorts it, so a side's own king can never
+sit in its own convoy's cargo waiting to be delivered: capturing the enemy
+king is what puts him in your cargo in the first place, and recapturing a
+convoy that is escorting your own previously captured king is a rescue (see
+[Convoy Clears Its Path](convoy-clears-its-path/README.md)'s
+`rescuing-your-own-king`) that releases him straight onto the board as an
+ordinary active piece rather than leaving him as cargo — so that state never
+arises for a royal square to matter to. The moment victory is won, the match
+ends immediately: the winning side, the final board, and the full match
+history are preserved, and nothing further can be commanded.
 
 ## Dependencies
 
@@ -237,6 +311,36 @@ same convoy legally departs that square
 **Then** the departure square receives a new active pawn and the convoy
 continues carrying one fewer captive.
 
+### AC: final-captive-may-use-escort-geometry
+
+**Given** a Knight-escorted convoy stands on its own pawn-starting rank
+carrying exactly one captive pawn
+**When** the escort's player commands a move reachable only by knight
+geometry, not by the ordinary one-square convoy step
+**Then** the move is accepted, the captive unloads onto the departure square
+as a new active pawn, and the escort converts to a plain Knight on the
+destination square.
+
+### AC: final-captive-attack-keeps-the-convoy-loaded
+
+**Given** a Pawn-escorted convoy stands on its own pawn-starting rank
+carrying exactly one captive pawn, with an enemy piece one square diagonally
+ahead
+**When** the escort's player commands a move onto that square
+**Then** the attack resolves through the ordinary capture pipeline, the
+captive stays aboard — an attack never unloads — and the escort remains a
+convoy whose cargo now also holds the newly captured piece.
+
+### AC: two-or-more-captives-get-no-escort-geometry
+
+**Given** the same pawn-starting-rank convoy instead carries two captive
+pawns, or one captive pawn plus a captured king
+**When** the escort's player commands a move reachable only by the escort's
+own piece geometry, not by the ordinary one-square convoy step
+**Then** the command is rejected exactly as ordinary convoy geometry would
+reject it, because this exception never applies with more than one captive
+aboard, or with any captured king aboard at all.
+
 ### AC: interception-transfers-everything
 
 **Given** a convoy carrying one captive pawn is escorted by a piece of one
@@ -253,6 +357,39 @@ was ever offered.
 **Then** the unit becomes a refitting piece with its original movement rules,
 unable to attack, and becomes fully active the instant it reaches a free
 base square for its rank.
+
+### AC: pawn-escort-refits-instantly-on-its-last-unload
+
+**Given** a Pawn-escorted convoy carrying exactly one captive pawn steps
+sideways along its own pawn-starting rank, unloading that last captive on
+departure
+**When** the step completes
+**Then** the escort becomes an active Pawn immediately, in the same command,
+and can attack right away without first re-entering a base square.
+
+### AC: other-escort-ranks-still-travel-home-after-unloading
+
+**Given** a Knight-escorted convoy carrying exactly one captive pawn departs
+its pawn-starting rank on its final unload, landing off any Knight base
+square
+**When** the departure completes
+**Then** the escort is left refitting exactly as `final-unload-starts-a-refit`
+describes, and must still separately reach a Knight base square before it
+can attack.
+
+### AC: refitting-king-is-still-always-captured
+
+**Given** a refitting enemy king, in a match using any capture mode
+**When** a piece attacks it, with or without submitting a Kill choice
+**Then** the king becomes captured-king cargo exactly as it would if it were
+active, and the match continues.
+
+### AC: refitting-piece-follows-ordinary-capture-mode
+
+**Given** a refitting non-king piece, in a kill-only match
+**When** an enemy piece attacks it
+**Then** it is killed and removed from the board exactly as an active piece
+would be, with no special allowance for its refitting state.
 
 ### AC: king-is-captured-never-killed
 
@@ -292,13 +429,6 @@ capture — the second royal square exists for exactly this reason, so a
 Bishop of either colour can capture-and-deliver the king in one move, even
 though a single Bishop can never capture a king standing on the opposite
 colour
-
-### AC: own-king-recapture-is-just-protected-cargo
-
-**Given** a side recaptures a convoy carrying its own captured king
-**When** that convoy later reaches a royal square
-**Then** nothing special happens — the king remains protected cargo, and the
-match does not end.
 
 ## Open Questions
 
