@@ -19,6 +19,12 @@ a route plan; an attack is readable to the threatened side as an anonymous
 warning. Classical movement, castling, en passant, and promotion continue to
 work exactly as in ordinary chess.
 
+## Contents
+
+| Child | Description |
+|---|---|
+| [pre-planned-attacks](pre-planned-attacks/README.md) | Chaining a further move onto a piece that is already charging can target an enemy square too: the Kill/Capture/Recruit choice is asked at planning time and travels with the queued step instead of being lost. |
+
 ## Problem
 
 Alternating turns do not fit a group commanding one army together, and simply
@@ -109,10 +115,28 @@ only that the piece is threatened. It never reveals who is attacking, where
 the attack is coming from, its charge progress, or its route. Your own team
 still gets its ordinary route marker on the attacker in addition to this.
 
-If the threatened piece manages to escape before the charge completes, the
-warning ends — but the attacker's committed move is not cancelled by the
-escape. When the charge completes, the attacker still advances onto the
-targeted square if it is empty by then.
+#### REQ: changed-target-cancels-route
+
+An attack is committed against the exact piece it targeted at the moment it
+was accepted — never against whichever piece later happens to occupy the
+destination square. The instant that exact piece moves away, is captured,
+or is replaced by any other piece on that square — even one of the same
+rank and side — the warning ends and the attacker's entire route is
+cancelled immediately, at that same instant. This is never deferred to the
+attacker's own charge completion: the attacker does **not** advance onto the
+vacated square once its charge finishes, and every step queued behind the
+cancelled attack is cancelled with it. A step already completed before the
+cancellation, and any step ordered before it, are unaffected.
+
+#### REQ: occupied-destination-cancels-route
+
+An ordinary planned move — one with no attack target of its own — fails at
+the moment it would resolve if its destination has since become occupied,
+by an ally, a different enemy, or another unit whose own simultaneous move
+settled there first. The charging piece stays on its current square, its
+live charge indicator ends, and its complete remaining route is cancelled
+along with it, exactly as `changed-target-cancels-route` cancels an
+attacker's route when its specific target changes.
 
 #### REQ: alerted-flee-discount
 
@@ -177,6 +201,21 @@ bishop, or knight — as part of the same command; there is no separate
 "awaiting promotion" state. The promoted piece keeps its history, and from
 that point on it moves, charges, and counts for every rank-based rule as its
 new rank.
+
+#### REQ: declining-promotion
+
+A pawn reaching the last rank by taking a prisoner may instead choose to
+decline promotion and stay a pawn. This choice exists only for a
+prisoner-taking capture: that capture already turns the pawn into a
+[convoy](../prisoner-convoys/README.md) escort, and a loaded convoy can
+travel sideways and back toward its own home rank — so a pawn that declines
+still has somewhere to go, can unload its cargo, and remains a trainable
+pawn afterward with any [Pawn Specialisation](../pawn-specialisation/README.md)
+trade and veteran status intact. An ordinary quiet push onto the last rank,
+an explicit Kill, or a Recruit Informer — none of which creates a convoy —
+offer no such choice: a pawn declining there would be left standing on the
+last rank with no legal move ever again, so promotion stays mandatory for
+every case but a prisoner-taking capture.
 
 ## Acceptance Criteria
 
@@ -259,12 +298,25 @@ and the new move becomes step 1 of a fresh route.
 **Then** both see that the piece is under attack, but neither the identity of
 the attacker, its origin, nor its route is ever revealed by that warning.
 
-### AC: escape-does-not-cancel-the-advance
+### AC: changed-target-cancels-the-route-immediately
 
 **Given** an attack is charging toward a square
-**When** the threatened piece legally moves away before the charge completes
-**Then** the warning ends, and the attacker still advances onto that square
-once its charge completes, if the square is empty.
+**When** the exact targeted piece legally moves away, is captured, or is
+replaced by a different piece before the charge completes — even a piece of
+the same rank and side
+**Then** the warning ends and the attacker's entire route is cancelled at
+that same instant; the attacker remains on its current square and never
+advances onto the square, even once its charge would otherwise have
+completed and even if the square is empty by then.
+
+### AC: occupied-destination-cancels-an-ordinary-move
+
+**Given** a piece is charging toward a square with no attack target of its
+own, and later route steps are queued behind it
+**When** an ally, a different enemy, or a simultaneous arrival occupies that
+square before the charge resolves
+**Then** the move fails, the piece remains on its current square, and its
+complete remaining route is cancelled.
 
 ### AC: king-can-stand-under-attack
 
@@ -295,6 +347,16 @@ en-passant capture is no longer available.
 **When** the move is committed
 **Then** it carries its promotion choice in the same command, and the
 resulting piece immediately moves, charges, and counts as its new rank.
+
+### AC: declining-promotion-only-works-on-a-capture
+
+**Given** a pawn takes a prisoner in a move that lands it on the last rank
+**When** its player declines promotion
+**Then** the pawn stays a pawn, becomes a convoy escort carrying that
+prisoner, and can move sideways or back toward its own home rank; **given**
+instead the same pawn reaches the last rank by a quiet push, a Kill, or a
+Recruit Informer
+**Then** no decline option is offered and a promotion choice is required.
 
 ## Open Questions
 

@@ -141,17 +141,33 @@ is never influenced by either piece's fatigue, on or off.
 #### REQ: capture-estimate-display
 
 Whenever an explicit Capture or Recruit attempt is currently available, the
-action shows its estimated success percentage in this exact form:
-`Capture - 73%` (or `Recruit Informer - 73%`). The estimate is calculated
-for the moment the attack's charge would finish, using both pieces'
-projected fatigue at that time — it updates as fatigue, timing, or material
-change, and it is an estimate, not a guarantee: the actual roll happens at
-the moment of contact, using the real state at that instant. Deterministic
+action shows its estimated success percentage in this exact form, with a
+**tilde**, not a hyphen (founder, 2026-08-01): `[ Capture ~ 73% ]` (or
+`[ Recruit Informer ~ 73% ]`). The tilde is load-bearing — it reads as
+"approximately," which is the honest truth: the estimate is calculated for
+the moment the attack's charge would finish, using both pieces' projected
+fatigue at that time, and it updates as fatigue, timing, or material change.
+It is never a guarantee — the actual roll happens at the moment of contact,
+using the real state at that instant.
+
+One rule governs the whole button: render `Label ~ NN%` when an estimate is
+present and below 100; render the bare `Label` otherwise. Deterministic
 actions (a default-mode Kill, an automatic Raid-mode capture, king capture,
-and convoy interception) never show a percentage, because they never roll.
-When a match has Probabilistic Kill turned on, Kill shows its own estimate
-in the same `Kill - 90%` form, using that setting's configured rate rather
-than the Capture/Recruit formula.
+and convoy interception) never show a percentage, because they never roll,
+and a computed estimate of exactly 100% is shown bare rather than dressed in
+a tilde — a certainty is not an estimate. When a match has Probabilistic
+Kill turned on, Kill shows its own estimate the same way, `[ Kill ~ 90% ]`,
+using that setting's configured rate rather than the Capture/Recruit
+formula. An outcome that is offered but currently cannot be performed — an
+attacker still resting under `kill-waits-for-rest`, for instance — shows its
+reason in place of the percentage instead, such as `[ Capture — too tired ]`,
+never both: the tilde and the em dash are deliberately different marks, so a
+player can tell "I might not" from "I can't" at a glance.
+
+Kill, Capture, and Recruit Informer each derive their own estimate from
+their own formula — Capture and Recruit happen to use the same one today,
+but that is a fact about their current tuning, not a guarantee a future
+rules preset must preserve.
 
 ### Outcomes in play
 
@@ -209,7 +225,7 @@ to rest.
 
 **Given** a match has turned the Probabilistic Kill setting on
 **When** a piece commits an explicit Kill against an enemy piece
-**Then** the action shows a `Kill - NN%` estimate beforehand, and the server
+**Then** the action shows a `Kill ~ NN%` estimate beforehand, and the server
 resolves it as either success (the defender is eliminated exactly like a
 deterministic Kill) or repelled (neither piece moves, both survive, and
 both take the configured recovery penalty) — never as a third "defender
@@ -245,7 +261,7 @@ part of the same command, and the board never shows an intermediate
 defender that will have decayed to 8 fatigue points by the time the attack's
 charge completes
 **When** the action button is shown
-**Then** it reads `Capture - 73%`, matching `65 + 8 − 0`.
+**Then** it reads `Capture ~ 73%`, matching `65 + 8 − 0`.
 
 ### AC: fatigue-shifts-the-odds-both-ways
 

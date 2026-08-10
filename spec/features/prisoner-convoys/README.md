@@ -21,6 +21,12 @@ prisoner too, and delivering him to one of your two royal squares — for
 king cargo specifically, regardless of which piece is escorting him — is
 how the match is won.
 
+## Contents
+
+| Child | Description |
+|---|---|
+| [convoy-clears-its-path](convoy-clears-its-path/README.md) | A loaded convoy is not defenceless: it may attack whatever blocks its one legal step home, choosing Kill, Capture, or Recruit Informer exactly like any other piece. |
+
 ## Problem
 
 A capture that simply removes a piece from the board treats every capture as
@@ -49,19 +55,28 @@ only take the capturing side's colour once they are unloaded.
 A loaded convoy — one carrying at least one captive or the captured enemy
 king — is a first-class piece on the board: it occupies exactly one square,
 blocks movement through that square, can be moved by any teammate, and can
-be attacked by the enemy. It cannot attack or capture anything itself.
+be attacked by the enemy. Whether — and how — it can strike back is covered
+in [Convoy Clears Its Path](convoy-clears-its-path/README.md).
 
 ### Moving a convoy
 
 #### REQ: convoy-movement
 
-A loaded convoy moves exactly one square per move, only onto a free square,
-and only sideways or toward its own side's home — straight or diagonally,
-never toward the enemy. Dead ends are legal and intended: nothing rescues a
-trapped convoy. There is no escape action, no teleport, and no relief for
+A loaded convoy moves exactly one square per move, and only sideways or
+toward its own side's home — straight or diagonally, never toward the
+enemy. Dead ends are legal and intended: nothing rescues a trapped convoy by
+movement alone. There is no escape action, no teleport, and no relief for
 congestion. A loaded convoy charges its one-square move in 2 seconds — quick
-for logistics, but slow enough to give a defender a real chance to catch it,
-and it can never defend itself either way.
+for logistics, but slow enough to give a defender a real chance to catch it.
+
+A loaded convoy may not enter its own back rank — rank 1 for White, rank 8
+for Black — unless that exact step delivers the captured enemy king onto
+one of the two royal squares there and wins the match outright (see
+`cargo-based-delivery` below); every other loaded convoy is held to its own
+pawn-starting rank as a floor. A loaded convoy may also dismantle — but
+never repair — a wall on an edge touching its own square, at its escort's
+own rate, exactly like any other piece; see
+[Fortifications](../fortifications/README.md).
 
 ### Interception
 
@@ -178,6 +193,7 @@ and nothing further can be commanded.
 
 - [Real-Time Command](../real-time-command/README.md)
 - [Morale](../morale/README.md)
+- [Fortifications](../fortifications/README.md)
 
 ## Acceptance Criteria
 
@@ -193,6 +209,23 @@ captive pawn as cargo, standing on the capture square.
 **Given** a loaded convoy of either side stands in open space
 **When** it attempts a straight or diagonal move toward the enemy side
 **Then** the move is rejected, while sideways and homeward moves succeed.
+
+### AC: back-rank-is-closed-except-for-king-delivery
+
+**Given** a loaded convoy stands one homeward step from its own back rank
+**When** entering that square would not deliver the captured enemy king onto
+a royal square
+**Then** the move is rejected; **when** instead that same step delivers the
+captured enemy king onto a royal square
+**Then** the move succeeds and wins the match immediately.
+
+### AC: convoy-dismantles-but-never-repairs-a-wall
+
+**Given** a loaded convoy stands adjacent to a wall on either side's team
+**When** its player commands it to dismantle that wall
+**Then** the action is accepted at the escort's own work rate; **when**
+instead the player commands it to repair a wall
+**Then** the action is rejected regardless of which side built the wall.
 
 ### AC: unloading-only-happens-on-departure
 

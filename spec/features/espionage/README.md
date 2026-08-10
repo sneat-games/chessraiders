@@ -13,22 +13,22 @@ status: Stable
 
 In Conquest, an attack can Recruit Informer instead of Kill or Capture: the
 target stays exactly where it is, under its own side's control, looking
-completely unchanged — but it secretly shares its battlefield vision with
-the recruiting side, and secretly slows down its own side's plans. Only the
-recruiting team ever knows which enemy piece it turned. The only way to
-expose one is to catch it: a king can interrogate an adjacent piece of its
-own side to find out.
+completely unchanged — but it secretly shares its battlefield vision with the
+recruiting side, and secretly slows down its own side's plans. Only the
+recruiting team ever knows which enemy piece it turned. The only way to expose
+one is to catch it: a king can interrogate an adjacent piece of its own side
+to find out.
 
 ## Problem
 
-[Fog of War](../fog-of-war/README.md) creates missing information, but
-without Espionage there is no way to fight over that missing information —
-no way to buy a look behind the fog, and no way to suspect and root out a
-leak. Espionage adds bluffing and counterplay around hidden information
-using the same [Morale](../morale/README.md) capacity, the same fatigue and
+[Fog of War](../fog-of-war/README.md) creates missing information, but without
+Espionage there is no way to fight over that missing information — no way to
+buy a look behind the fog, and no way to suspect and root out a leak.
+Espionage adds bluffing and counterplay around hidden information using the
+same [Morale](../morale/README.md) capacity, the same fatigue and
 capture-risk model, and the same board you already see — without a separate
-currency or a randomised "discovery" roll that would make the information
-war itself unreliable.
+currency or a randomised "discovery" roll that would make the information war
+itself unreliable.
 
 ## Behavior
 
@@ -39,29 +39,37 @@ war itself unreliable.
 Recruit Informer is a covert, non-displacing outcome of an attack, available
 wherever Kill or Capture is offered in Conquest (see
 [Capture Outcomes](../capture-outcomes/README.md) for the shared risk-roll
-model — Recruit uses the exact same fatigue-adjusted success estimate,
-shown as `Recruit Informer - 73%`). On success, the attacker stays on its
-own square, and the target stays on its own square, under its own side's
-control, unchanged in appearance — nothing about the board looks different.
-An enemy king can never be recruited: attacking a king is always Capture in
-every mode.
+model — Recruit uses the exact same fatigue-adjusted success estimate, shown
+with the same tilde separator as `[ Recruit ~ 73% ]`). On success, the
+attacker stays on its own square and completes its own charge with no extra
+delay left behind, and the target stays on its own square, under its own
+side's control, unchanged in appearance — nothing about the board looks
+different. Recruiting an already-active informer is rejected. An enemy king
+can never be recruited: attacking a king is always Capture, in every mode,
+and the client never offers Recruit or Kill against one.
 
 #### REQ: informer-vision
 
-The recruiting side continuously receives the same [Fog of War](../fog-of-war/README.md)
-vision that the informer itself generates, following the informer as it
-moves. This is sight only: the recruiter cannot move it, attack with it, or
-otherwise direct it — it is still entirely the other side's piece. Informer
-vision can reveal a piece that has already used up its
+The recruiting side continuously receives the same
+[Fog of War](../fog-of-war/README.md) vision that the informer itself
+generates, following the informer as it moves. This is sight only: the
+recruiter cannot move it, attack with it, rename it, or otherwise direct it —
+it is still entirely the other side's piece. Informer vision can reveal a
+piece that has already used up its
 [opening deployment reveal](../fog-of-war/README.md), but it never restores
-that one-time exception.
+that one-time exception. Any piece revealed this way also shows its live
+fatigue bar to the recruiting side, per
+[Real-Time Command](../real-time-command/README.md) — aggregate fatigue only,
+never individual timing.
 
 An active informer also reveals live charge progress — for itself, and for
 any active piece currently inside the patrol-vision footprint the informer
-generates — even in a Classic match where the board would otherwise be
-fully visible anyway. This never reveals the target square, the route, or
-which piece is attacking which; it only shows that a piece is charging and
-how far along it is.
+generates — even in a Classic match where the board would otherwise be fully
+visible anyway. This never reveals the target square, the route, or which
+piece is attacking which; it only shows that a piece is charging and how far
+along it is. That extra charge intelligence ends the instant the observed
+piece leaves the informer's footprint, or the informer itself is released,
+exposed, or removed.
 
 #### REQ: informer-secrecy
 
@@ -75,8 +83,8 @@ only to the side running that interrogation.
 #### REQ: public-command-totals
 
 Both sides always see current morale, current captive-pawn counts, and
-current active-informer counts for both White and Black, including a count
-of zero — but never which specific enemy pieces are informers.
+current active-informer counts for both White and Black, including a count of
+zero — but never which specific enemy pieces are informers.
 
 ### Capacity and release
 
@@ -100,9 +108,11 @@ falling through to the prisoner-execution order in
 
 A side may release any informer it has recruited at any time. Release is
 immediate — it consumes only the acting player's ordinary command interval,
-never a piece's move charge — and it stops that piece's vision-sharing and
-sabotage right away, frees one capacity slot, and reveals nothing to the
-informer's own side.
+never a piece's move charge, and does not disturb any move already charging
+for that piece — and it stops that piece's vision-sharing and sabotage right
+away, frees one capacity slot, and reveals nothing to the informer's own
+side. Killing, capturing, or otherwise removing an active informer has the
+same immediate effect on vision and capacity.
 
 ### Sabotage
 
@@ -147,26 +157,26 @@ Interrogation is a 3-second channel. While it runs, both the king and the
 suspect are visibly engaged and cannot complete another action without
 cancelling it first — this is public information, so the opposing side can
 see the channel and knows exactly how long it has to disrupt it. Only the
-interrogating side can cancel it voluntarily.
+interrogating side can cancel it voluntarily. The opposing side has no direct
+way to cancel it, since it isn't running the interrogation; its only lever is
+to threaten the immobilised king or suspect and force the interrogating side
+to choose between finishing the channel and protecting its pieces.
 
 #### REQ: interrogation-outcome
 
 If the channel completes uninterrupted, a loyal suspect simply produces a
 loyal result, known only to the interrogating side. An informer is instead
 exposed — its own side and its recruiter both learn the truth, the
-recruitment relationship ends immediately (vision and sabotage stop), and
-the recruiting side gets its capacity slot back. No other informer's
-identity is affected.
+recruitment relationship ends immediately (vision and sabotage stop), and the
+recruiting side gets its capacity slot back. No other informer's identity is
+affected.
 
 #### REQ: interrogation-cancellation
 
 The channel cancels immediately, with no result and no capacity change, the
 instant either the king or the suspect completes any other action — moving,
 attacking, being captured, or anything else that changes their state. An
-illegal or rejected attempt does not cancel it. The opposing side has no
-direct way to cancel an interrogation it isn't running; its only lever is to
-threaten the immobilised king or suspect and force the interrogating side to
-choose between finishing the channel and protecting its pieces.
+illegal or rejected attempt does not cancel it.
 
 ## Dependencies
 
@@ -199,7 +209,9 @@ the informer's own side and any spectator see no marker identifying it.
 footprint are both charging
 **When** the recruiting side views the board
 **Then** they see live charge progress for both pieces but no target square,
-route, or which-piece-is-attacking-which information.
+route, or which-piece-is-attacking-which information, and that extra state
+disappears the moment the observed piece leaves the footprint or the
+informer relationship ends.
 
 ### AC: capacity-is-shared-and-caps-recruitment
 
@@ -262,7 +274,7 @@ learn the truth, and the recruiting side regains one capacity slot.
 **When** either the king or the suspect completes a legal move, attack, or
 any other state-changing action
 **Then** the interrogation cancels immediately with no result revealed and no
-capacity change.
+capacity change; an illegal or rejected attempt does not cancel it.
 
 ## Open Questions
 

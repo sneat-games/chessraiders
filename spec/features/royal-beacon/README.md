@@ -11,14 +11,17 @@ status: Stable
 
 ## Summary
 
-The Royal Beacon carries the king's authority to the front. It starts on the
-king, and any adjacent friendly piece can ask to carry it forward, forming a
-living chain of neighbouring friendly units back to the king. While that
-chain holds, every friendly piece near the Beacon's carrier charges its
-moves a little faster, scaled by the army's own morale and by how close a
-piece stands to the carrier. Break the chain and the benefit stops at once;
-reconnect it and the benefit returns immediately — there is no timer, no
-stored path, and no separate resource spent to use it.
+The Royal Beacon carries the king's authority to the front. A match starts
+with the king already carrying it — visible from the first move — and any
+adjacent friendly piece can ask to carry it forward, forming a living chain
+of neighbouring friendly units back to the king. While that chain holds,
+every friendly piece near the Beacon's carrier charges its moves a little
+faster, scaled by the army's own morale and by how close a piece stands to
+the carrier. Break the chain and the benefit stops at once; reconnect it and
+the benefit returns immediately — there is no timer, no stored path, and no
+separate resource spent to use it. The Beacon moves hand to hand only: there
+is no recall and no self-abandon, only Take, Restore, and — for a side whose
+own pawns hold their own ground — Forging a new one from scratch.
 
 ## Problem
 
@@ -26,9 +29,8 @@ Classical chess rewards where you stand. Chess Raiders wanted to also reward
 whether your army can still act *as* an army — whether the king's orders can
 actually reach the fighting. Without something like the Beacon, a formation
 that gets cut off from its king suffers no consequence beyond the pieces
-already lost; with it, keeping a supply line of adjacent friendly pieces
-back to the king becomes a real, visible, fightable objective in its own
-right.
+already lost; with it, keeping a supply line of adjacent friendly pieces back
+to the king becomes a real, visible, fightable objective in its own right.
 
 ## Vision
 
@@ -36,17 +38,16 @@ Chess Raiders already gives an army leadership through
 [Morale](../morale/README.md), logistics through
 [Prisoner Convoys](../prisoner-convoys/README.md), and intelligence through
 [Espionage](../espionage/README.md) and [Fog of War](../fog-of-war/README.md).
-The Royal Beacon is the fourth pillar: communication and command. It asks
-one more strategic question of every position — *can the king's will still
-reach the front?* — on top of the classical question of where each piece
-stands.
+The Royal Beacon is the fourth pillar: communication and command. It asks one
+more strategic question of every position — *can the king's will still reach
+the front?* — on top of the classical question of where each piece stands.
 
 Without the Beacon, pieces still move, fight, and hold their ground; they
 simply act on their own initiative rather than as a coordinated force. A
 lowly pawn holding the one square that keeps the chain intact can matter
 more, for a moment, than a queen standing just outside the network. A king
-may need to step forward — not to attack, but to shorten the distance his
-own orders have to travel.
+may need to step forward — not to attack, but to shorten the distance his own
+orders have to travel.
 
 The Royal Beacon is deliberately never described or shown as a generic
 "buff" — it is a position on the board that has to be built, carried,
@@ -59,27 +60,19 @@ defended, and sometimes sacrificed.
 #### REQ: one-beacon-per-side
 
 Each side has exactly one Royal Beacon, owned by its king. At any moment it
-is in one of five states: **Dormant** (not yet deployed), **Deployed** (on a
-bearer, possibly connected), **Recalling**, **Lost**, or **Restoring**. It is
-not a combat unit, has no square of its own separate from its bearer, cannot
-be captured on its own, and spends no morale or other resource to use.
+is in one of four states: **Deployed** (on a bearer, possibly connected),
+**Lost**, **Restoring**, or, before the match resolves it, briefly
+**Dormant**. It is not a combat unit, has no square of its own separate from
+its bearer, cannot be captured on its own, and spends no morale or other
+resource to use.
 
-#### REQ: deploy-and-abandon
+#### REQ: king-starts-as-bearer
 
-Only the active king may deploy a Dormant Beacon — this places it on the
-king itself, who becomes its first bearer. A side may also explicitly
-abandon a Deployed Beacon from its current bearer at any time, which
-immediately removes all of its benefit and sends it to Lost. Both actions
-use only the acting player's ordinary command interval; neither starts a
-move charge.
-
-#### REQ: bearer-cannot-relocate
-
-While a piece or convoy is carrying the Beacon, it cannot move, attack,
-capture, escort, intercept, or castle — it must first have the Beacon taken
-by an adjacent ally, recalled by the king, or abandoned. This applies
-equally to an ordinary piece, a king, or a convoy currently serving as
-bearer.
+A match starts with the Beacon already Deployed on the king — visible to
+both sides from the first move, rather than waiting for a deliberate
+deployment action. This is how a new player is meant to discover the
+mechanic in the first place: the badge is already on the board before either
+side has done anything else.
 
 ### Passing the Beacon
 
@@ -91,7 +84,32 @@ eight neighbouring squares — and choose to take the Beacon. The king can
 receive it the exact same way, by an adjacent piece choosing to hand it to
 him. Taking the Beacon uses only the acting player's ordinary command
 interval; it starts no move charge on either the giver or the receiver, and
-does not disturb either piece's existing charge or plans.
+does not disturb either piece's existing charge or plans. An existing charge
+on either side of the exchange never blocks a Take; only the acting player's
+own command interval can delay or reject it.
+
+#### REQ: king-rooted-until-first-pass
+
+A king who is currently carrying the Beacon and has never yet passed it to
+an ally cannot move, attack, capture, escort, intercept, or castle — a
+commander who has never delegated has not learned that he can, and the game
+teaches him before anything is at risk. He must first let an adjacent
+friendly piece take the Beacon from him. Once he has passed it to an ally at
+least once in the match, he is permanently free to relocate with it for the
+rest of the match, even after later regaining it — the lesson, once learned,
+is not relearned.
+
+Every other bearer — an ordinary piece or a convoy — is never rooted by
+carrying the Beacon; it moves, fights, and is captured exactly as it would
+without it. The chain of command, not the identity of whoever is holding the
+Beacon, is the real constraint on a non-king bearer: carry it too far from
+the king and the chain simply stops delivering its benefit — see
+`chain-breaks-and-restores-live` below.
+
+There is no recall and no self-abandon: the Beacon changes hands only by
+being carried, hand to hand, or by being lost and later restored or forged
+anew. Retreating it from danger by any other means would be a magic jump,
+not a logistical challenge, and the game does not offer one.
 
 ### The chain of command
 
@@ -103,13 +121,19 @@ other are linked. A live Chain of Command exists exactly when the active
 king and the current bearer sit in the same connected chain of such links —
 diagonal neighbours count exactly like orthogonal ones. There is no chosen
 path and nothing is remembered between moments: if the board can connect
-them, they are connected, however many alternate routes exist.
+them, they are connected, however many alternate routes exist. A wall
+severs a link across its edge exactly like it severs movement — see
+[Fortifications](../fortifications/README.md).
 
 An on-board convoy can relay or carry the Beacon under the same rules as any
 other friendly piece; its cargo cannot. A captured enemy king riding as
 cargo is off the board for this purpose and cannot relay or bear anything. A
 recruited informer still relays for its own original side only —
 recruitment never changes who it fights for.
+
+A match may additionally cap how many links long the chain is allowed to be,
+measured from the king to the bearer; left unset, the chain has no length
+limit and only needs to exist at all.
 
 #### REQ: chain-breaks-and-restores-live
 
@@ -139,16 +163,12 @@ normal base charge time, however high morale climbs. This is evaluated the
 moment a piece's move is accepted — a relay piece that then breaks the chain
 by moving still keeps the reduction it already locked in for that move.
 Neither the player's command interval nor any channelled action (training,
-interrogation, and the like) is ever reduced by the Beacon.
+interrogation, and the like) is ever reduced by the Beacon. An informer
+under [Espionage](../espionage/README.md)'s sabotage still gets its own
+side's Beacon reduction first, with sabotage added on top of that result,
+never the other way round.
 
-### Recall, loss, and restoration
-
-#### REQ: king-recall
-
-Only the active king may recall a Deployed Beacon, even through a currently
-broken chain — this is the recovery action. Recall uses only the player's
-ordinary command interval and does not stop the king from acting normally.
-After a 2-second delay, the Beacon redeploys on the king's current square.
+### Loss, restoration, and forging
 
 #### REQ: bearer-loss
 
@@ -161,24 +181,44 @@ that way.
 #### REQ: king-restore
 
 Only the active king can restore a Lost Beacon, by channelling for 7
-uninterrupted seconds. The king is visibly engaged for that whole time and
-cannot act without cancelling the restoration; completing another action
-cancels it and leaves the Beacon Lost, while an illegal attempted action
-does not. Once restoration completes, the Beacon redeploys on the king.
+uninterrupted seconds, from anywhere on the board. The king is visibly
+engaged for that whole time and cannot act without cancelling the
+restoration; completing another action cancels it and leaves the Beacon
+Lost, while an illegal attempted action does not. Once restoration completes,
+the Beacon redeploys on the king.
+
+#### REQ: beacon-forging
+
+Restoring through the king is not the only way back. While a side's Beacon
+is Lost, any of that side's own active, ordinary pawns — trained specialist
+or not — standing on its own pawn base rank may instead channel a
+replacement for 5 seconds. It is interrupted the instant that pawn moves,
+attacks, or takes any other action, exactly like the king's own restoration.
+The newly forged Beacon starts Deployed on the forging pawn itself, never on
+the king — carrying it home to the king is the same Take everyone else uses
+— and needs no separate activation: it is active the instant the Chain of
+Command reaches it, exactly like any other Beacon.
+
+Forging sits beside King Restore rather than replacing it: the king's own
+recovery works from anywhere on the board, while Forging is the alternative
+a side's own pawns can offer from their own territory. A side that has lost
+its Beacon always has both paths open to it.
 
 ## Dependencies
 
 - [Real-Time Command](../real-time-command/README.md)
 - [Morale](../morale/README.md)
+- [Prisoner Convoys](../prisoner-convoys/README.md)
+- [Fortifications](../fortifications/README.md)
 
 ## Acceptance Criteria
 
-### AC: king-deploys-first
+### AC: king-starts-with-the-beacon
 
-**Given** a side's Beacon is Dormant
-**When** the active king deploys it
-**Then** the king becomes its bearer and the Beacon becomes Deployed, using
-only the king's ordinary command interval.
+**Given** a fresh match
+**When** the opening board is shown, before either side has moved
+**Then** each king already bears its own side's Deployed Beacon, visible to
+both players.
 
 ### AC: receiver-takes-without-a-move-charge
 
@@ -188,13 +228,19 @@ piece stands adjacent to it
 **Then** it becomes the new bearer, no move charge begins on either piece,
 and only the acting player's command interval is spent.
 
-### AC: bearer-must-transfer-recall-or-abandon-before-moving
+### AC: king-must-pass-before-relocating
 
-**Given** a piece currently bears the Beacon
-**When** its player attempts to move, attack, capture, escort, intercept, or
-castle with it
-**Then** the action is rejected until the Beacon has been taken by an
-adjacent ally, recalled by the king, or abandoned.
+**Given** the king currently bears a Beacon he has never passed to an ally
+**When** he attempts to move, attack, capture, escort, intercept, or castle
+**Then** the action is rejected until an adjacent ally takes the Beacon from
+him; once he has passed it at least once, the same actions succeed for him
+even after he later regains the Beacon.
+
+### AC: non-king-bearer-is-never-rooted
+
+**Given** an ordinary piece or a loaded convoy currently bears the Beacon
+**When** it attempts to move, attack, capture, escort, intercept, or castle
+**Then** the action succeeds exactly as it would without the Beacon.
 
 ### AC: chain-breaks-and-restores-immediately
 
@@ -222,13 +268,6 @@ an active bearer, all at the same current morale
 respectively, and none of their charge times drops below half of their
 normal base charge.
 
-### AC: recall-redeploys-on-the-king
-
-**Given** a Deployed Beacon with a currently broken chain
-**When** the king recalls it
-**Then** the Beacon provides no benefit for 2 seconds and then redeploys on
-the king's current square.
-
 ### AC: removed-bearer-loses-the-beacon
 
 **Given** a piece currently bears the Beacon
@@ -239,10 +278,22 @@ providing ends in the same instant.
 ### AC: king-restores-over-seven-seconds
 
 **Given** a Lost Beacon
-**When** the king channels an uninterrupted 7-second restoration
+**When** the king channels an uninterrupted 7-second restoration from
+anywhere on the board
 **Then** the Beacon redeploys on the king; **when** the king instead
 completes another action during that channel
 **Then** the restoration cancels and the Beacon remains Lost.
+
+### AC: a-pawn-can-forge-a-replacement-on-home-ground
+
+**Given** a side's Beacon is Lost and one of its own active pawns stands on
+its own pawn base rank
+**When** that pawn channels for 5 uninterrupted seconds
+**Then** a new Beacon becomes Deployed on that pawn, not on the king, and
+starts providing its benefit the instant the Chain of Command reaches it;
+**when** the pawn instead moves, attacks, or acts before the channel
+completes
+**Then** the forging is cancelled and the Beacon remains Lost.
 
 ## Open Questions
 

@@ -17,7 +17,7 @@ Feature specifications for this project.
 | [Prisoner Convoys](prisoner-convoys/README.md) | Stable | A successful capture does not just clear a square — it hands you a logistics |
 | [Capture Outcomes](capture-outcomes/README.md) | Stable | Every match is set to one battle mode, and the mode decides what your |
 | [Espionage](espionage/README.md) | Stable | In Conquest, an attack can Recruit Informer instead of Kill or Capture: the |
-| [Royal Beacon](royal-beacon/README.md) | Stable | The Royal Beacon carries the king's authority to the front. It starts on the |
+| [Royal Beacon](royal-beacon/README.md) | Stable | The Royal Beacon carries the king's authority to the front. A match starts |
 | [Pawn Specialisation](pawn-specialisation/README.md) | Implementing | A pawn can earn a trade at your own base rank: Engineer or Sergeant. The |
 | [Fortifications](fortifications/README.md) | Implementing | Engineers build on the edges between squares, not on the squares themselves. |
 | [Standard Bot](standard-bot/README.md) | Draft | The built-in Recruit, Lieutenant and Commander opponents: what each difficulty does differently and what stays the same for all three. |
