@@ -1,0 +1,164 @@
+# standardbot
+
+The standard Chess Raiders bot, published as the two files it actually is:
+
+- **[`tier.star`](tier.star)** — one Starlark script, defining one function,
+  `decide()`. This is the entire brain of every built-in opponent.
+- **[`params.json`](params.json)** — a table of three rows, `recruit`,
+  `lieutenant` and `commander`. Each row is a set of numbers `decide()` reads
+  by name. There is no other difference between the three difficulties: same
+  script, same rules, different numbers.
+
+[`script.go`](script.go) embeds both files verbatim (`Script` and `Params`)
+so a Go program can load them without touching the filesystem; see
+[go/bots/runtime](../runtime) for the interpreter that actually runs `Script`.
+Everything below assumes no access to Chess Raiders' private implementation
+and no goal beyond reading this bot, changing it, and running `go test`.
+
+## What the bot is
+
+Every command a bot issues — move, capture, charge, train a specialist, work
+a wall — goes through the exact same legality and pacing rules a human
+player's click would, under the same Fog of War: a bot never sees the true
+board, only its own side's projection, and it never acts faster than its own
+difficulty's reaction pace allows. See
+[`spec/features/standard-bot`](../../../spec/features/standard-bot/README.md)
+for the full behavioral contract (what a bot may do, how the three
+difficulties differ, how convoy escort and advice work) and
+[`bot-script-contract`](../../../spec/features/standard-bot/bot-script-contract/README.md)
+for exactly what `decide()` is handed each turn and what it may return.
+
+`decide()` is called once per decision with five arguments — the bot's own
+view of the board (`observation`), whatever it chose to remember last turn
+(`memory`), its difficulty's row from `params.json` (`params`), one random
+draw for breaking ties (`host_random_draw`), and how many ranked alternatives
+to explain (`options`, 0 when just playing) — and it scores every legal
+`(piece, destination)` pair the host has already worked out, plays the best
+one, or passes if nothing clears the bar. It never invents a square, never
+computes whether a move is legal, and never sees anything Fog of War would
+hide from a human on the same side: every fact it weighs (danger, routes to
+deliver a captured king, which squares are safe) arrives as plain data on
+`observation`, computed by the host.
+
+## What a single tier row means
+
+A row is sixteen named values, in three groups:
+
+**Ten score weights** — each scales one whole category of `decide()`'s
+scoring, and each is a *gate*, not just a multiplier: `tier.star` checks
+`if params["X"] > 0` before scoring that category at all, so a weight of `0`
+does not merely make that term worth nothing — it turns the whole category
+off. This is what makes Recruit "moves and captures only": every weight
+below except `material`, `safety`, `advance` and `delivery` is zero on its
+row, so `tier.star` never even considers a tempo, prisoner, or system
+(training/wall/beacon) action for it.
+
+| Key | What it weighs |
+|---|---|
+| `material` | The value of a piece captured or put at risk. |
+| `safety` | Danger to the piece making the move — a weight of 0 means the bot never avoids a risky square for its own sake. |
+| `tempo` | The cost of a move that costs real charge time relative to one that doesn't. |
+| `advance` | Progress toward the enemy end of the board, and pawn promotion. |
+| `targetLock` | Dodging a piece the enemy has target-locked. |
+| `kingSafety` | Escaping or guarding a threatened king. |
+| `moralePush` | The morale gain from advancing the king (Chess Raiders' king can safely advance further than in traditional chess — see the [Standard Bot spec](../../../spec/features/standard-bot/README.md)). |
+| `delivery` | Escorting a captured enemy king home, and clearing a blocked delivery lane. |
+| `prisoner` | Taking and holding prisoners, independent of delivering the king itself. |
+| `system` | Every non-move action: training, wall repair/dismantle, Beacon deploy/restore/forge/hand-off, interrogation. |
+
+**Three scheduling knobs** — bound how much of the board one decision looks
+at, not what it values:
+
+| Key | What it bounds |
+|---|---|
+| `breadth` | How many of the bot's own units get a proposal considered at all, out of every actionable unit, ranked by priority. |
+| `candidateSpread` | How many destinations of *one* chosen unit get scored, out of its legal moves. |
+| `passBelow` | The score floor: a proposal scoring below this is never played — the bot passes instead. |
+
+**Three doctrine switches** — the only place a difficulty's *behavior*
+branches, rather than its scoring:
+
+| Key | What it switches |
+|---|---|
+| `advancedTraining` | Whether this tier ever pursues Advanced Engineer Training (Commander only, today). |
+| `contestEnemyWork` | Whether this tier ever proposes dismantling an *enemy* wall — repairing its own is always open regardless. |
+| `sergeantPreference` | The score bonus for wall work an adjacent Sergeant is speeding up. Must be `0` on any row where `contestEnemyWork` is `false` — `tier.star`'s dismantle branch applies this bonus unconditionally *inside* code that only runs when `contestEnemyWork` already fired, so a nonzero value on a row that doesn't contest enemy work is a live inconsistency, not a no-op. |
+
+No difficulty ever raises a *new* wall — that decision was removed outright
+(see `tier.star`'s own `wall_proposals` comment) and there is no parameter
+that brings it back.
+
+## Changing one number
+
+Say you want a braver Recruit — one that stops flinching from every risky
+square. Recruit's row has `"safety": 0.5`. Raise it toward `1.0` (Lieutenant
+and Commander's own value) and Recruit will start declining more of the
+captures and advances it currently takes, specifically the ones that leave
+the moving piece somewhere dangerous — nothing else about it changes,
+because `safety` only ever scales the risk term `score_move` already
+computes. Drop it to `0` instead and Recruit stops weighing danger to itself
+at all: it will walk pieces into obvious losses whenever doing so scores well
+on material or advance alone.
+
+Widening `breadth` (say, Recruit's `4` toward Lieutenant's `8`) makes Recruit
+consider more of its own pieces per decision — a stronger, slower bot, not a
+differently-behaved one, because the scoring itself hasn't changed. Widening
+`candidateSpread` does the same for how many destinations of *each*
+considered piece get scored.
+
+Every other row follows the same rule: a score weight changes *how much a
+category matters* without touching what triggers it; a scheduling knob
+changes *how much of the board gets looked at*; a doctrine switch changes
+*whether a whole category of action is available at all*. Change one number,
+re-run the conformance suite below, and read the diff in `decide()`'s
+behavior against the empty-board smoke test or your own richer observation —
+there is nothing else to recompile or regenerate, because `params.json` is
+data `tier.star` reads at call time, not something baked into the script.
+
+## Running the conformance suite
+
+From this module's root (`go/`):
+
+```sh
+go test ./bots/standardbot/...
+```
+
+This proves, in order:
+
+1. `params.json` parses as JSON, its `version` field matches the
+   `ParamsVersion` constant `script.go` exports, and it carries exactly the
+   three rows (`recruit`, `lieutenant`, `commander`) the private
+   implementation's own fixture generates it from — no tier silently
+   dropped in the copy.
+2. `tier.star` compiles under [go/bots/runtime](../runtime)'s dialect and
+   binds a callable `decide`.
+3. `decide()` actually runs, once per difficulty, each with that
+   difficulty's own row from `params.json`, on the smallest observation
+   `tier.star`'s own `build_board()` accepts (an empty board, no legal
+   moves) — proving every field a row declares is one `decide()` can
+   actually consume, not just one that happens to parse.
+4. `decide()`'s lifecycle gate still passes cleanly outside an active match.
+
+What this suite does **not** prove is that the bot plays *well*, or that a
+richer position scores the way the design intends — that needs the full
+board-and-legal-move observation [`bot-script-contract`](../../../spec/features/standard-bot/bot-script-contract/README.md)
+describes, which only the real game engine emits. That end-to-end behavior
+is verified against the private implementation, which is also the one place
+`params.json` and `tier.star` are ever *edited* — this package is a read
+path, republished here whenever either file changes upstream.
+
+To exercise the whole module, including the dependency-boundary check every
+package here is held to:
+
+```sh
+go build ./...
+go vet ./...
+go test ./...
+```
+
+## License
+
+Everything in this directory is [Apache-2.0](../../LICENSE), like the rest of
+`go/` — see the repository's [top-level README](../../../README.md) for why
+the license boundary runs at that directory rather than covering the whole
+repository.
