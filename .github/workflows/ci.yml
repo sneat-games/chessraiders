@@ -74,26 +74,49 @@ jobs:
       # enforces the same rule over the MANIFEST, which a source walk cannot
       # see: a module can be required without yet being imported.
       #
-      # The allowlist is go.starlark.net and nothing else. It is not empty —
-      # runtime/ wraps that interpreter, and it is the ONE Starlark
-      # implementation permitted anywhere in Chess Raiders. Everything else is
-      # a dependency a forker would have to obtain, which is the cost
-      # go/bots/doc.go explains.
+      # Reads go.mod's OWN declared requirements (go mod edit -json), not
+      # `go list -m all`: the latter reports the FULL module graph, which for
+      # a go1.17+-declared dependency includes that dependency's own sibling
+      # requirements even when nothing here imports them — verified while
+      # wiring go.starlark.net in (task-3, 2026-08-10): `go list -m all`
+      # surfaces github.com/chzyer/readline, github.com/google/go-cmp,
+      # golang.org/x/term and google.golang.org/protobuf purely because
+      # go.starlark.net's own go.mod requires them for its REPL and its own
+      # test suite, neither of which this module ever builds or imports
+      # (confirmed against `go list -deps ./...`, which shows none of the
+      # four). Gating on that full graph would reject dependencies nobody
+      # here actually has, which is not what this check is for. go.mod's own
+      # require block, in contrast, only lists what THIS module actually
+      # needs to build.
+      #
+      # The allowlist is go.starlark.net plus golang.org/x/sys, and nothing
+      # else. Neither is empty: runtime/ wraps go.starlark.net, the ONE
+      # Starlark implementation permitted anywhere in Chess Raiders, and
+      # go.starlark.net's own starlark/int_posix64.go (build-tag-gated to
+      # every POSIX platform go test/build runs on here, though NOT
+      # GOOS=js GOARCH=wasm, which falls back to its dependency-free
+      # int_generic.go) imports golang.org/x/sys/unix directly — a real,
+      # unavoidable transitive package dependency, not a choice made here.
+      # Recorded as a decision, not added to make a build go green: a forker
+      # obtains it the same automatic way they obtain go.starlark.net itself.
       - name: Reject any dependency outside the allowlist
         working-directory: go
         run: |
-          offenders=$(go list -m -f '{{if not .Main}}{{.Path}}{{end}}' all 2>/dev/null \
+          offenders=$(go mod edit -json | jq -r '.Require[]?.Path' 2>/dev/null \
             | grep -v '^$' \
             | grep -v '^go\.starlark\.net$' \
+            | grep -v '^golang\.org/x/sys$' \
             || true)
           if [ -n "$offenders" ]; then
             echo "These modules are outside the allowlist:"
             echo "$offenders" | sed 's/^/  /'
             echo
-            echo "Only go.starlark.net may be depended on here. Every other"
-            echo "dependency is something a forker must also obtain — see"
-            echo "go/bots/doc.go. Adding one is a decision to record, not a"
-            echo "line to add so a build goes green."
+            echo "Only go.starlark.net and golang.org/x/sys (its own"
+            echo "int_posix64.go dependency on every POSIX platform) may be"
+            echo "depended on here. Every other dependency is something a"
+            echo "forker must also obtain — see go/bots/doc.go. Adding one is"
+            echo "a decision to record, not a line to add so a build goes"
+            echo "green."
             exit 1
           fi
           echo "dependencies: within the allowlist"
