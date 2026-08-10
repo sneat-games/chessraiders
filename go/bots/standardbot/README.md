@@ -133,8 +133,10 @@ This proves, in order:
 1. `params.json` parses as JSON, its `version` field matches the
    `ParamsVersion` constant `script.go` exports, and it carries exactly the
    four rows (`recruit`, `lieutenant`, `commander`, `adviser`) the private
-   implementation's own params.go produces it from — no row silently
-   dropped in the copy.
+   implementation's own `params.go` decodes it INTO (as of that
+   implementation's plan `publish-the-standard-bot` task-6, this file is the
+   table's one author — `params.go` reads it, rather than the other way
+   around) — no row silently dropped in either direction.
 2. `tier.star` compiles under [go/bots/runtime](../runtime)'s dialect and
    binds a callable `decide`.
 3. `decide()` actually runs, once per difficulty, each with that
@@ -147,10 +149,17 @@ This proves, in order:
 What this suite does **not** prove is that the bot plays *well*, or that a
 richer position scores the way the design intends — that needs the full
 board-and-legal-move observation [`bot-script-contract`](../../../spec/features/standard-bot/bot-script-contract/README.md)
-describes, which only the real game engine emits. That end-to-end behavior
-is verified against the private implementation, which is also the one place
-`params.json` and `tier.star` are ever *edited* — this package is a read
-path, republished here whenever either file changes upstream.
+describes, which only the real game engine emits, so that end-to-end
+behavior is verified against the private implementation instead (its own
+`server-go/tests4bot` suite, replayed here byte-for-byte by the conformance
+corpus below). **Both files are edited HERE now, not there:** `tier.star`
+and `params.json` are this module's own source — the private implementation
+requires this module at a released tag (`go.mod`) and reads both through it,
+never the other way around. A `git diff` in this package IS the diff a
+released tag ships; the private repository's own `go.work`-based local
+iteration (its `CLAUDE.md`) points a checkout at an unreleased edit here
+for testing, but publishing that edit still means landing it in this
+package first.
 
 ## The conformance corpus
 
