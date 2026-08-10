@@ -4,10 +4,15 @@ The standard Chess Raiders bot, published as the two files it actually is:
 
 - **[`tier.star`](tier.star)** — one Starlark script, defining one function,
   `decide()`. This is the entire brain of every built-in opponent.
-- **[`params.json`](params.json)** — a table of three rows, `recruit`,
-  `lieutenant` and `commander`. Each row is a set of numbers `decide()` reads
-  by name. There is no other difference between the three difficulties: same
-  script, same rules, different numbers.
+- **[`params.json`](params.json)** — a table of four rows: `recruit`,
+  `lieutenant` and `commander`, the three playing difficulties, plus
+  `adviser`, a fourth row the same script scores candidate moves against to
+  produce explain-mode advice rather than a move to play. Each row is a set
+  of numbers `decide()` reads by name. There is no other difference between
+  the three difficulties: same script, same rules, different numbers. The
+  Adviser's row is deliberately its own — not inherited from, or shared
+  with, any playing difficulty's row (see `params.json`'s own `adviser`
+  entry and the private implementation's `AdviserParams` for why).
 
 [`script.go`](script.go) embeds both files verbatim (`Script` and `Params`)
 so a Go program can load them without touching the filesystem; see
@@ -127,8 +132,8 @@ This proves, in order:
 
 1. `params.json` parses as JSON, its `version` field matches the
    `ParamsVersion` constant `script.go` exports, and it carries exactly the
-   three rows (`recruit`, `lieutenant`, `commander`) the private
-   implementation's own fixture generates it from — no tier silently
+   four rows (`recruit`, `lieutenant`, `commander`, `adviser`) the private
+   implementation's own params.go produces it from — no row silently
    dropped in the copy.
 2. `tier.star` compiles under [go/bots/runtime](../runtime)'s dialect and
    binds a callable `decide`.

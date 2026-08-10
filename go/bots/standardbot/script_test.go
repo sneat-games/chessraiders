@@ -11,14 +11,15 @@ import (
 	"github.com/sneat-games/chessraiders/go/bots/standardbot"
 )
 
-// expectedTiers is the exact set of difficulty rows the private
-// implementation's own fixture (server-go/starlarktier/
-// bot_tier_params_fixture_test.go's liveBotTierParams, generated from
-// RecruitParams/LieutenantParams/CommanderParams) produces params.json from.
-// A row added or removed there without a matching change to this list is
-// exactly the "one list beside the thing it mirrors" drift CLAUDE.md warns
-// about, just on this side of the publish boundary instead of that one.
-var expectedTiers = []string{"commander", "lieutenant", "recruit"}
+// expectedTiers is the exact set of rows the private implementation's own
+// params.go produces params.json from — RecruitParams/LieutenantParams/
+// CommanderParams, the three PLAYING difficulties, plus AdviserParams, the
+// Adviser's own row (params.go's own doc comment: deliberately not derived
+// from, or shared with, any playing tier's row). A row added or removed
+// there without a matching change to this list is exactly the "one list
+// beside the thing it mirrors" drift CLAUDE.md warns about, just on this
+// side of the publish boundary instead of that one.
+var expectedTiers = []string{"adviser", "commander", "lieutenant", "recruit"}
 
 // paramsFile is params.json's own envelope shape: {"version": ...,
 // "tiers": {name: {...fields...}}}. Tier rows decode as json.RawMessage,

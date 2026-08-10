@@ -1,6 +1,24 @@
 {
   "version": "chess-bot-tier-params/v1",
   "tiers": {
+    "adviser": {
+      "material": 1,
+      "safety": 1,
+      "tempo": 0.25,
+      "advance": 0.3,
+      "targetLock": 1.5,
+      "kingSafety": 3,
+      "moralePush": 0.5,
+      "delivery": 3,
+      "prisoner": 1,
+      "system": 1,
+      "candidateSpread": 6,
+      "passBelow": -2,
+      "breadth": 0,
+      "advancedTraining": true,
+      "contestEnemyWork": true,
+      "sergeantPreference": 0.5
+    },
     "commander": {
       "material": 1,
       "safety": 1,
