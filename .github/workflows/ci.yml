@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# This is the OPEN job: it needs no credentials, so it runs on every push and
+# every pull request INCLUDING one opened from a fork. That is the point — this
+# repository is published so outsiders can fork the bot, and a fork whose CI
+# cannot run is a fork nobody can review.
+#
+# A second, ENGINE-BACKED job arrives later (spec/plans/publish-the-standard-bot.md
+# Task 10 in sneat-co/chess): it checks out the private engine with an
+# organisation token and runs the real behavioural suite against the published
+# bot. It cannot run on a fork PR, and when it cannot it must report a NAMED
+# SKIP rather than a pass — a green tick standing for a suite that did not run
+# is worse than a visibly missing one.
+jobs:
+  go:
+    name: go build + vet + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+      # Deliberately no private-module authentication step. This module's whole
+      # purpose is that it needs none: a person who has never seen the private
+      # implementation must be able to build it. If a dependency ever arrives
+      # that requires a token, this job fails — which is the alarm working, not
+      # an oversight to fix by adding credentials here.
+      - name: Build
+        working-directory: go
+        run: go build ./...
+      - name: Vet
+        working-directory: go
+        run: go vet ./...
+      - name: Test
+        working-directory: go
+        run: go test ./...
+
+  spec:
+    name: spec lint
+    runs-on: ubuntu-latest
+    # The specs ARE the product here — this repository is the authoritative
+    # public statement of Chess Raiders' rules. Until now nothing checked them
+    # on push, and all ten feature-index rows had silently gone stale. That is
+    # the same failure shape as sneat-co/backstage's lesson L157: a published
+    # artifact no CI job reads is an artifact that drifts.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SpecScore
+        env:
+          SPECSCORE_INSTALL_DIR: ${{ runner.temp }}/specscore/bin
+        run: |
+          curl --fail --silent --show-error \
+            https://specscore.md/install/get-cli \
+            --output "${RUNNER_TEMP}/install-specscore.sh"
+          sh "${RUNNER_TEMP}/install-specscore.sh"
+          echo "${SPECSCORE_INSTALL_DIR}" >> "${GITHUB_PATH}"
+      - name: Lint the spec tree
+        run: specscore spec lint --no-telemetry
+
+  dependency_free:
+    name: dependency allowlist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+      # go/bots/dependencies_test.go enforces the rule over the SOURCE. This
+      # enforces the same rule over the MANIFEST, which a source walk cannot
+      # see: a module can be required without yet being imported.
+      #
+      # The allowlist is go.starlark.net and nothing else. It is not empty —
+      # runtime/ wraps that interpreter, and it is the ONE Starlark
+      # implementation permitted anywhere in Chess Raiders. Everything else is
+      # a dependency a forker would have to obtain, which is the cost
+      # go/bots/doc.go explains.
+      - name: Reject any dependency outside the allowlist
+        working-directory: go
+        run: |
+          offenders=$(go list -m -f '{{if not .Main}}{{.Path}}{{end}}' all 2>/dev/null \
+            | grep -v '^$' \
+            | grep -v '^go\.starlark\.net$' \
+            || true)
+          if [ -n "$offenders" ]; then
+            echo "These modules are outside the allowlist:"
+            echo "$offenders" | sed 's/^/  /'
+            echo
+            echo "Only go.starlark.net may be depended on here. Every other"
+            echo "dependency is something a forker must also obtain — see"
+            echo "go/bots/doc.go. Adding one is a decision to record, not a"
+            echo "line to add so a build goes green."
+            exit 1
+          fi
+          echo "dependencies: within the allowlist"
