@@ -49,14 +49,13 @@ deliver a captured king, which squares are safe) arrives as plain data on
 
 A row is seventeen named values, in three groups:
 
-**Ten score weights** — each scales one whole category of `decide()`'s
+**Eleven score weights** — each scales one whole category of `decide()`'s
 scoring, and each is a *gate*, not just a multiplier: `chess-raiders-bot.star` checks
 `if params["X"] > 0` before scoring that category at all, so a weight of `0`
 does not merely make that term worth nothing — it turns the whole category
-off. This is what makes Recruit "moves and captures only": every weight
-below except `material`, `safety`, `advance` and `delivery` is zero on its
-row, so `chess-raiders-bot.star` never even considers a tempo, prisoner, or system
-(training/wall/beacon) action for it.
+off. Recruit's 0.3 `moralePush` and 0.3 `beaconAggression` are intentional:
+it can make covered leader moves and use the match-enabled Beacon, while its
+other systems remain disabled because `system` is zero.
 
 | Key | What it weighs |
 |---|---|

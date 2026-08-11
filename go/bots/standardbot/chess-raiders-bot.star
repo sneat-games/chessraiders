@@ -1716,13 +1716,11 @@ def system_proposals(observation, board, params):
     rooted for the rest of the match, and skipping Forge leaves a Lost
     Beacon lost PERMANENTLY once the king's own Restore is also unavailable
     (see those two functions' own doc comments for the full accounting).
-    Each Beacon case is gated exactly like every other system case would be
-    — behind systems["beacon"], mirroring bot4chess's own `systems.Beacon &&
-    obs.Rules.Beacon.Enabled` double gate (the second half is enforced for
-    free by each function's own lifecycle check, per their own doc
-    comments, so it is not repeated here); beacon_forge_proposals
-    additionally needs rules["beaconForgeEnabled"], mirroring bot4chess's
-    own systemProposals' third-clause gate on forgeProposals alone.
+    Current rows use beaconAggression itself as the Beacon permission: a
+    positive value enables Beacon proposals subject to the match rules,
+    independently of systems["beacon"]. Legacy recorded rows without that
+    additive field retain the old systems["beacon"] gate. Forge additionally
+    needs rules["beaconForgeEnabled"].
     espionage_proposals is gated on systems["espionage"] alone (see its own
     doc comment for the enemyManaged trigger it reads instead of Go's
     narrower Captives-only read) — so Recruit's empty systems gate, and
