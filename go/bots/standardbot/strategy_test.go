@@ -244,6 +244,27 @@ func TestCurrentStrategyFitsRecruitStepBudgetOnRepresentativeBoard(t *testing.T)
 		"wr": map[string]any{"a2": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 1}, "a3": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 1}},
 		"wp": map[string]any{"d3": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0}, "d4": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0}},
 	}
+	// A full side still has legal/current facts for every active piece. This
+	// forces unit_priority to inspect sixteen candidates before Recruit narrows
+	// to breadth and each retained unit to exercise candidate spread.
+	for _, extra := range []struct{ id, from, to, rank string }{
+		{"pa", "a2", "a3", "pawn"}, {"pb", "b2", "b3", "pawn"},
+		{"pc", "c3", "c4", "pawn"}, {"pe", "e4", "e5", "pawn"},
+		{"pf", "f2", "f3", "pawn"}, {"pg", "g2", "g3", "pawn"},
+		{"ph", "h2", "h3", "pawn"}, {"wq", "d1", "d3", "queen"},
+		{"rb", "b1", "b3", "rook"}, {"ng", "g1", "f3", "knight"},
+		{"bc", "c1", "b2", "bishop"},
+	} {
+		observation["own"] = append(observation["own"].([]any), strategyCell(extra.id, extra.from, "white", extra.rank))
+		observation["legal"].(map[string]any)[extra.id] = []any{extra.to}
+		observation["moveFacts"].(map[string]any)[extra.id] = map[string]any{extra.to: map[string]any{
+			"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0,
+			"cheapestThreatAfter": 0, "patrolGain": 1,
+		}}
+	}
+	if got := len(observation["own"].([]any)); got != 16 {
+		t.Fatalf("representative side has %d pieces, want 16", got)
+	}
 	outcomes := map[string]any{
 		"kill":    map[string]any{"affordable": true, "oddsKnown": false, "odds": map[string]any{"success": 1, "defenderKilled": 1, "repelled": 0}},
 		"capture": map[string]any{"affordable": true, "oddsKnown": false, "odds": map[string]any{"success": 1, "defenderKilled": 1, "repelled": 0}},
@@ -263,7 +284,7 @@ func TestCurrentStrategyFitsRecruitStepBudgetOnRepresentativeBoard(t *testing.T)
 	} else if steps == 0 {
 		t.Fatal("current strategy reported zero interpreter steps")
 	} else {
-		t.Logf("current strategy beacon scenario used %d interpreter steps", steps)
+		t.Logf("current strategy representative board used %d interpreter steps", steps)
 	}
 }
 
