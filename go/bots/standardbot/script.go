@@ -69,7 +69,7 @@ var Script string
 // own format (ParamsVersion below) around one row per difficulty
 // ("recruit", "lieutenant", "commander") plus the Adviser's own non-playing
 // row ("adviser" — this file's own package doc above), each row exactly the
-// fields Script reads off its `params` argument by name — the ten score
+// fields Script reads off its `params` argument by name — the eleven score
 // weights, the three scheduling knobs (candidateSpread, passBelow, breadth)
 // and the three doctrine switches (advancedTraining, contestEnemyWork,
 // sergeantPreference). A caller that wants a typed row rather than raw JSON

@@ -41,8 +41,9 @@ construction, which is the whole point: a hint that disagreed with the
 engine would be the exact drift this repository has spent its lessons
 deleting. The script produces NUMBERS AND TERM NAMES ONLY — no English, no
 Russian, no user-facing sentence appears anywhere in this file. The client
-turns ten term names plus a small closed set of details into prose, which is
-what makes the translation surface ten words rather than a prose catalogue.
+turns fifteen term names plus a small closed set of details into prose, which
+keeps the translation surface a closed vocabulary rather than a prose
+catalogue.
 
 Compile-once, decide() called directly: server-go/starlarkbot.Compile
 parses and runs this whole module's top level exactly ONCE per session
@@ -75,7 +76,7 @@ those tests actually still run.
 """
 
 # =============================================================================
-# Constants shared by every tier. A tier's OWN numbers — the ten weights,
+# Constants shared by every tier. A tier's OWN numbers — the eleven weights,
 # candidateSpread, passBelow, breadth — arrive as `params`, never here. What
 # follows is everything bot4chess/score.go and observe.go hold FIXED across
 # Recruit/Lieutenant/Commander: material values, fixed bonuses and discounts,
