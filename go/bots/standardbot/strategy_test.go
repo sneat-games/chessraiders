@@ -619,7 +619,9 @@ func TestOnlyQuietNonPromotionLeaderMovesArmGuard(t *testing.T) {
 func TestDevelopmentAndKingHuntRequireKnownProtectedQuietMove(t *testing.T) {
 	makeDevelopment := func() map[string]any {
 		o := strategyObservation(t, strategyCell("wn", "c2", "white", "knight"))
-		o["enemy"] = []any{strategyCell("bk", "h8", "black", "king")}
+		// d3 is within the approved Chebyshev pursuit horizon; this test
+		// deliberately no longer claims that any merely-closer square hunts.
+		o["enemy"] = []any{strategyCell("bk", "e5", "black", "king")}
 		return o
 	}
 	base := makeDevelopment()
@@ -722,6 +724,345 @@ func TestKingCaptureIsPrioritizedWithinBreadth(t *testing.T) {
 	}
 }
 
+func TestFormationLeaderPriorityLetsRecruitBuildNeededMoraleButNotExcess(t *testing.T) {
+	makeObservation := func(kingSquare string, requiredMorale int) map[string]any {
+		units := []map[string]any{
+			strategyCell("wk", kingSquare, "white", "king"),
+			strategyCell("near1", "g7", "white", "queen"), strategyCell("near2", "g8", "white", "queen"),
+			strategyCell("near3", "h7", "white", "queen"), strategyCell("near4", "f7", "white", "queen"),
+		}
+		o := strategyObservation(t, units...)
+		o["enemy"] = []any{strategyCell("bk", "h8", "black", "king")}
+		o["legal"] = map[string]any{
+			"wk": []any{"e2"}, "near1": []any{"g6"}, "near2": []any{"f8"}, "near3": []any{"h6"}, "near4": []any{"f6"},
+		}
+		o["moveFacts"] = map[string]any{
+			"wk":    map[string]any{"e2": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0}},
+			"near1": map[string]any{"g6": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0}},
+			"near2": map[string]any{"f8": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0}},
+			"near3": map[string]any{"h6": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0}},
+			"near4": map[string]any{"f6": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0}},
+		}
+		o["affordability"] = map[string]any{"probe": map[string]any{"x": map[string]any{
+			"capture": map[string]any{"affordable": false, "requiredMorale": requiredMorale},
+		}}}
+		return o
+	}
+	t.Run("high need still breaks Recruit breadth", func(t *testing.T) {
+		o := makeObservation("e1", 5)
+		intent, _, options := decision(t, o, nil)
+		if intent == nil || intent["from"] != "e1" || intent["to"] != "e2" {
+			t.Fatalf("safe king advance stayed outside Recruit breadth at high morale need: intent=%#v options=%#v", intent, options)
+		}
+	})
+	t.Run("zero morale weight disables the scheduler", func(t *testing.T) {
+		o := makeObservation("e1", 5)
+		params := decodedRecruitParams(t)
+		params["moralePush"] = 0.0
+		got, err := decideJSON(t, o, params)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(got, `"from":"e1"`) {
+			t.Fatalf("zero moralePush still scheduled king through Recruit breadth: %s", got)
+		}
+	})
+	t.Run("one point reserve stops the scheduling boost", func(t *testing.T) {
+		o := makeObservation("e7", 5)
+		o["legal"].(map[string]any)["wk"] = []any{"e8"}
+		o["moveFacts"].(map[string]any)["wk"] = map[string]any{"e8": map[string]any{
+			"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0,
+		}}
+		intent, _, options := decision(t, o, nil)
+		if intent != nil && intent["from"] == "e7" || optionFor(options, "e7", "e8") != nil {
+			t.Fatalf("king kept its shallow-breadth privilege after reserve was achieved: intent=%#v options=%#v", intent, options)
+		}
+	})
+	t.Run("three point excess schedules safe retreat", func(t *testing.T) {
+		o := makeObservation("e6", 2)
+		o["ownMorale"] = 5
+		o["legal"].(map[string]any)["wk"] = []any{"e5"}
+		o["moveFacts"].(map[string]any)["wk"] = map[string]any{"e5": map[string]any{
+			"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0,
+		}}
+		intent, _, options := decision(t, o, nil)
+		if intent == nil || intent["from"] != "e6" || intent["to"] != "e5" || !hasTerm(optionFor(options, "e6", "e5"), "moralePush", "excessRetreat") {
+			t.Fatalf("excess morale did not bring safe retreat through Recruit breadth: intent=%#v options=%#v", intent, options)
+		}
+	})
+}
+
+func TestUnaffordableKingContactsDoNotConsumeRecruitBreadth(t *testing.T) {
+	// At the passive-opponent stall, promoted queens could geometrically reach
+	// the final king but lacked morale to take it. They must not receive the
+	// +KING_VALUE scheduling bump for a move move_proposals will later reject.
+	attackers := []map[string]any{
+		strategyCell("wk", "e1", "white", "king"),
+		strategyCell("a1", "g7", "white", "queen"), strategyCell("a2", "g8", "white", "queen"),
+		strategyCell("a3", "h7", "white", "queen"), strategyCell("a4", "f7", "white", "queen"),
+		strategyCell("a5", "f8", "white", "queen"),
+	}
+	o := strategyObservation(t, attackers...)
+	o["enemy"] = []any{strategyCell("bk", "h8", "black", "king")}
+	o["legal"] = map[string]any{
+		"wk": []any{"e2"}, "a1": []any{"h8"}, "a2": []any{"h8"}, "a3": []any{"h8"}, "a4": []any{"h8"}, "a5": []any{"h8"},
+	}
+	o["moveFacts"] = map[string]any{"wk": map[string]any{"e2": map[string]any{
+		"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0,
+	}}}
+	unaffordable := map[string]any{"capture": map[string]any{"affordable": false, "requiredMorale": 1}}
+	o["affordability"] = map[string]any{
+		"a1": map[string]any{"h8": unaffordable}, "a2": map[string]any{"h8": unaffordable}, "a3": map[string]any{"h8": unaffordable},
+		"a4": map[string]any{"h8": unaffordable}, "a5": map[string]any{"h8": unaffordable},
+	}
+	if got := len(attackers) - 1; got <= int(decodedRecruitParams(t)["breadth"].(float64)) {
+		t.Fatalf("fixture needs more unaffordable contacts than Recruit breadth, got %d", got)
+	}
+	intent, _, _ := decision(t, o, nil)
+	if intent == nil || intent["from"] != "e1" || intent["to"] != "e2" {
+		t.Fatalf("unaffordable king contacts crowded out safe morale advance: %#v", intent)
+	}
+	for _, byDestination := range o["affordability"].(map[string]any) {
+		byDestination.(map[string]any)["h8"].(map[string]any)["capture"].(map[string]any)["affordable"] = true
+	}
+	intent, _, _ = decision(t, o, nil)
+	if intent == nil || intent["from"] == "e1" || intent["to"] != "h8" {
+		t.Fatalf("affordable king contact did not take priority after morale transition: %#v", intent)
+	}
+}
+
+func TestVisibleKingPursuitBandsAdmitAndChooseSafeDestination(t *testing.T) {
+	// These bands are deliberately Chebyshev proximity, not a reimplementation
+	// of rank-specific attack geometry. The host still owns legal moves.
+	units := []map[string]any{
+		strategyCell("hunter", "a1", "white", "rook"),
+		strategyCell("near1", "f7", "white", "queen"), strategyCell("near2", "g8", "white", "queen"),
+		strategyCell("near3", "h7", "white", "queen"), strategyCell("near4", "f8", "white", "queen"),
+		strategyCell("near5", "e7", "white", "queen"),
+	}
+	o := strategyObservation(t, units...)
+	o["enemy"] = []any{strategyCell("bk", "h8", "black", "king")}
+	o["legal"] = map[string]any{"hunter": []any{"g7", "e5"}}
+	o["moveFacts"] = map[string]any{"hunter": map[string]any{
+		"g7": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0},
+		"e5": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0},
+	}}
+	intent, _, options := decision(t, o, nil)
+	if intent == nil || intent["from"] != "a1" || intent["to"] != "g7" {
+		t.Fatalf("near pursuit destination was not admitted and selected: intent=%#v options=%#v", intent, options)
+	}
+	if got, ok := termValue(requireOption(t, options, "a1", "g7"), "kingHunt", "visible"); !ok || got != 30*0.15*0.5 {
+		t.Fatalf("near pursuit band = %v (present=%v), want %v: %#v", got, ok, 30*0.15*0.5, options)
+	}
+}
+
+func TestFormationLeaderPriorityNeverSchedulesTacticalMoves(t *testing.T) {
+	nearQueens := []map[string]any{
+		strategyCell("near1", "g7", "white", "queen"), strategyCell("near2", "g8", "white", "queen"),
+		strategyCell("near3", "h7", "white", "queen"), strategyCell("near4", "f7", "white", "queen"),
+		strategyCell("near5", "f8", "white", "queen"),
+	}
+	legalAndFacts := func(o map[string]any, leaderID, leaderTo string) {
+		legal := map[string]any{leaderID: []any{leaderTo}}
+		moveFacts := map[string]any{leaderID: map[string]any{leaderTo: map[string]any{
+			"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0,
+		}}}
+		for index := range nearQueens {
+			id := nearQueens[index]["unitId"].(string)
+			to := []string{"g6", "f8", "h6", "f6", "e8"}[index]
+			legal[id] = []any{to}
+			moveFacts[id] = map[string]any{to: map[string]any{
+				"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0,
+			}}
+		}
+		o["legal"], o["moveFacts"] = legal, moveFacts
+	}
+	t.Run("king capture", func(t *testing.T) {
+		units := append([]map[string]any{strategyCell("wk", "e1", "white", "king")}, nearQueens...)
+		o := strategyObservation(t, units...)
+		o["enemy"] = []any{strategyCell("victim", "e8", "black", "pawn")}
+		legalAndFacts(o, "wk", "e8")
+		intent, _, options := decision(t, o, nil)
+		if intent != nil && intent["from"] == "e1" || optionFor(options, "e1", "e8") != nil {
+			t.Fatalf("king capture received formation breadth boost: intent=%#v options=%#v", intent, options)
+		}
+	})
+	t.Run("Beacon promotion", func(t *testing.T) {
+		bearer := strategyCell("bearer", "b7", "white", "pawn")
+		units := append([]map[string]any{bearer}, nearQueens...)
+		o := strategyObservation(t, units...)
+		o["rules"].(map[string]any)["beaconEnabled"] = true
+		o["beacon"] = map[string]any{"lifecycle": "deployed", "bearerSquare": "b7", "everHandedOff": true}
+		legalAndFacts(o, "bearer", "b8")
+		intent, _, options := decision(t, o, nil)
+		if intent != nil && intent["from"] == "b7" || optionFor(options, "b7", "b8") != nil {
+			t.Fatalf("Beacon promotion received formation breadth boost: intent=%#v options=%#v", intent, options)
+		}
+	})
+}
+
+func TestRecentVacatedSquaresBreakObservedMultiPieceCycle(t *testing.T) {
+	// This is Recruit's observed loose-layout failure at tick 61: qa returning
+	// b8→a8 recreates tick 55 even though qa and qb exchanged the queen role.
+	// The ring records a8 as vacated two quiet moves ago, rather than treating
+	// unit identity as board identity.
+	qa := strategyCell("qa", "b8", "white", "queen")
+	o := strategyObservation(t,
+		qa, strategyCell("qb", "g7", "white", "queen"), strategyCell("qc", "g8", "white", "queen"),
+		strategyCell("qd", "h8", "white", "queen"), strategyCell("qhome", "d1", "white", "queen"),
+	)
+	o["legal"] = map[string]any{"qa": []any{"a8"}, "qhome": []any{"d2"}}
+	o["moveFacts"] = map[string]any{
+		"qa":    map[string]any{"a8": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0}},
+		"qhome": map[string]any{"d2": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0}},
+	}
+	memory := map[string]int64{"quietVacated0": 6, "quietVacated1": 7, "quietVacated2": 23} // a7, a8, c8
+	intent, _, options := decision(t, o, memory)
+	if intent == nil || intent["from"] != "d1" || intent["to"] != "d2" || optionFor(options, "b8", "a8") != nil {
+		t.Fatalf("multi-piece cycle was not excluded in favour of viable queen move: intent=%#v options=%#v", intent, options)
+	}
+	t.Run("forced return remains legal", func(t *testing.T) {
+		forced := strategyObservation(t, qa)
+		forced["legal"] = map[string]any{"qa": []any{"a8"}}
+		forced["moveFacts"] = facts("qa", "a8", true, 1, 0, 0)
+		intent, _, options := decision(t, forced, memory)
+		if intent == nil || intent["from"] != "b8" || intent["to"] != "a8" || optionFor(options, "b8", "a8") == nil {
+			t.Fatalf("forced cycle return was incorrectly filtered: intent=%#v options=%#v", intent, options)
+		}
+	})
+	t.Run("promotion is not a quiet-cycle return", func(t *testing.T) {
+		pawn := strategyCell("pawn", "b7", "white", "pawn")
+		promotion := strategyObservation(t, pawn, strategyCell("other", "d1", "white", "queen"))
+		promotion["legal"] = map[string]any{"pawn": []any{"b8"}, "other": []any{"d2"}}
+		promotion["moveFacts"] = map[string]any{
+			"pawn":  map[string]any{"b8": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0}},
+			"other": map[string]any{"d2": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0}},
+		}
+		promotionMemory := map[string]int64{"quietVacated0": 15} // b8
+		_, _, options := decision(t, promotion, promotionMemory)
+		if option := requireOption(t, options, "b7", "b8"); option["intent"].(map[string]any)["promotion"] != "queen" {
+			t.Fatalf("promotion was filtered as an ordinary cycle move: %#v", option)
+		}
+	})
+}
+
+func TestRecentVacatedSquaresBreakMeasuredRookAndQueenCycles(t *testing.T) {
+	t.Run("Lieutenant h7-g7-h7 does not close", func(t *testing.T) {
+		makeState := func(rookSquare string, releaseAlternative bool) map[string]any {
+			o := strategyObservation(t, strategyCell("rook", rookSquare, "white", "rook"), strategyCell("other", "a1", "white", "bishop"))
+			legal := map[string]any{"rook": []any{"h7"}}
+			if rookSquare == "h7" {
+				legal["rook"] = []any{"g7"}
+			}
+			if rookSquare == "g7" {
+				legal["rook"] = []any{"h7"}
+			}
+			if releaseAlternative {
+				legal["other"] = []any{"b2"}
+			}
+			o["legal"] = legal
+			factsByUnit := map[string]any{"rook": map[string]any{legal["rook"].([]any)[0].(string): map[string]any{
+				"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0,
+			}}}
+			if releaseAlternative {
+				factsByUnit["other"] = map[string]any{"b2": map[string]any{
+					"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0,
+				}}
+			}
+			o["moveFacts"] = factsByUnit
+			return o
+		}
+		intent, memory, _ := decision(t, makeState("h4", false), nil)
+		if intent == nil || intent["from"] != "h4" || intent["to"] != "h7" {
+			t.Fatalf("first rook leg = %#v", intent)
+		}
+		intent, memory, _ = decision(t, makeState("h7", false), memory)
+		if intent == nil || intent["from"] != "h7" || intent["to"] != "g7" {
+			t.Fatalf("second rook leg = %#v", intent)
+		}
+		intent, _, options := decision(t, makeState("g7", true), memory)
+		if intent == nil || intent["from"] != "a1" || intent["to"] != "b2" || optionFor(options, "g7", "h7") != nil {
+			t.Fatalf("rook reverse closed measured h7-g7-h7 cycle: intent=%#v options=%#v", intent, options)
+		}
+	})
+	t.Run("Recruit promoted queens cannot restore earlier rank layout", func(t *testing.T) {
+		makeState := func(qa, qb, actor string, final bool) map[string]any {
+			o := strategyObservation(t,
+				strategyCell("qa", qa, "white", "queen"), strategyCell("qb", qb, "white", "queen"),
+				strategyCell("qc", "g8", "white", "queen"), strategyCell("qd", "h8", "white", "queen"),
+				strategyCell("qhome", "d1", "white", "queen"),
+			)
+			sequence := map[string]string{"g7": "b7", "b7": "c8", "c8": "b8", "b8": "a8", "a8": "a7", "a7": "g7"}
+			from := qa
+			if actor == "qb" {
+				from = qb
+			}
+			legal := map[string]any{actor: []any{sequence[from]}}
+			if final {
+				legal = map[string]any{"qa": []any{"a8"}, "qhome": []any{"d2"}}
+			}
+			o["legal"] = legal
+			moveFacts := map[string]any{}
+			for id, destinations := range legal {
+				to := destinations.([]any)[0].(string)
+				moveFacts[id] = map[string]any{to: map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0}}
+			}
+			o["moveFacts"] = moveFacts
+			return o
+		}
+		states := []struct{ qa, qb, actor, from, to string }{
+			{"g7", "b8", "qa", "g7", "b7"}, {"b7", "b8", "qa", "b7", "c8"}, {"c8", "b8", "qb", "b8", "a8"},
+			{"c8", "a8", "qa", "c8", "b8"}, {"b8", "a8", "qb", "a8", "a7"}, {"b8", "a7", "qb", "a7", "g7"},
+		}
+		var memory map[string]int64
+		for _, state := range states {
+			intent, next, _ := decision(t, makeState(state.qa, state.qb, state.actor, false), memory)
+			if intent == nil || intent["from"] != state.from || intent["to"] != state.to {
+				t.Fatalf("queen setup leg %s→%s chose %#v", state.from, state.to, intent)
+			}
+			memory = next
+		}
+		intent, _, options := decision(t, makeState("b8", "g7", "qa", true), memory)
+		if intent == nil || intent["from"] != "d1" || intent["to"] != "d2" || optionFor(options, "b8", "a8") != nil {
+			t.Fatalf("promoted queens restored prior loose layout: intent=%#v options=%#v memory=%#v", intent, options, memory)
+		}
+	})
+}
+
+func TestQuietCycleRingPreservesPlacementOnlyActionsAndFitsLeaderMemory(t *testing.T) {
+	t.Run("action preserves placement history", func(t *testing.T) {
+		o := decodeBeaconScenario(t)
+		intent, next, _ := decision(t, o, map[string]int64{"quietVacated0": 7, "quietVacated1": 6, "quietVacated2": 23})
+		if intent == nil || intent["kind"] != "action" {
+			t.Fatalf("fixture did not take a system action: %#v", intent)
+		}
+		for key, want := range map[string]int64{"quietVacated0": 7, "quietVacated1": 6, "quietVacated2": 23} {
+			if next[key] != want {
+				t.Fatalf("%s changed although action leaves piece placement intact: %#v", key, next)
+			}
+		}
+	})
+	t.Run("leader guard plus quiet ring stays within Recruit limit", func(t *testing.T) {
+		first := strategyObservation(t, strategyCell("wk", "e1", "white", "king"), strategyCell("wp", "d2", "white", "pawn"))
+		first["legal"] = map[string]any{"wk": []any{"e2"}}
+		first["moveFacts"] = facts("wk", "e2", true, 1, 0, 0)
+		_, guarded, _ := decision(t, first, nil)
+		second := strategyObservation(t, strategyCell("wk", "e2", "white", "king"), strategyCell("wp", "d2", "white", "pawn"))
+		second["legal"] = map[string]any{"wp": []any{"d3"}}
+		second["moveFacts"] = facts("wp", "d3", true, 1, 0, 0)
+		intent, next, _ := decision(t, second, guarded)
+		if intent == nil || intent["from"] != "d2" || intent["to"] != "d3" {
+			t.Fatalf("fixture did not append quiet-cycle state: %#v", intent)
+		}
+		if len(next) > 32 {
+			t.Fatalf("leader guard plus quiet cycle ring has %d entries, Recruit allows at most 32: %#v", len(next), next)
+		}
+		if next["quietVacated0"] == -1 {
+			t.Fatalf("ordinary quiet move did not record vacated source: %#v", next)
+		}
+	})
+}
+
 func TestRepeatPenaltyNeedsViableAlternativeAndExemptsExceptionalMoves(t *testing.T) {
 	makeRepeat := func(t *testing.T) map[string]any {
 		t.Helper()
@@ -739,9 +1080,9 @@ func TestRepeatPenaltyNeedsViableAlternativeAndExemptsExceptionalMoves(t *testin
 	_, memory, _ := decision(t, seed, nil) // real persisted lastQuietTo for e3
 	t.Run("viable other ordinary move", func(t *testing.T) {
 		o := makeRepeat(t)
-		_, _, options := decision(t, o, memory)
-		if !hasTerm(optionFor(options, "e3", "e2"), "repeatPenalty", "quiet") {
-			t.Fatalf("repeat was not penalized despite viable alternative: %#v", options)
+		intent, _, options := decision(t, o, memory)
+		if intent == nil || intent["from"] != "a2" || intent["to"] != "b3" || optionFor(options, "e3", "e2") != nil {
+			t.Fatalf("recently-vacated return was not excluded in favour of viable alternative: intent=%#v options=%#v", intent, options)
 		}
 	})
 	for _, tc := range []struct {

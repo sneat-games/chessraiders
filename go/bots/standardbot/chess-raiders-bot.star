@@ -142,13 +142,16 @@ DEVELOP_FIRST_FORWARD_VALUE = 1.0  # first forward officer move puts a dormant u
 PATROL_GAIN_VALUE = 0.5  # one host-reported patrol square is useful, but never material-sized
 PATROL_GAIN_CAP = 4  # broad vision is useful, not an unbounded material substitute
 KING_HUNT_VALUE = 1.0
+KING_PURSUIT_NEAR = 30.0  # Chebyshev proximity only, deliberately NOT a claim about this rank's next attack move
+KING_PURSUIT_MID = 20.0
+KING_PURSUIT_FAR = 10.0
 UNKNOWN_QUIET_PENALTY = 1.0  # a positional guess cannot tie a known, supported move
 UNSUPPORTED_QUIET_PENALTY = 0.75  # forward pressure needs friendly cover after the move
 
 # ---- king and Beacon leadership --------------------------------------------
 LEADER_SUPPORT_SATURATION = 2.0  # two weighted nearby supporters count as full cover
 LEADER_EXCESS_MORALE = 3  # enough spare morale: stop turning the king into a hero
-MORALE_PUSH_VALUE = 1.5  # named base keeps the 0.3/0.6/0.9 rows readable as dials
+MORALE_PUSH_VALUE = 14.0  # a covered leader move must outscore ordinary pursuit while morale is needed; the .3/.6/.9 rows remain the permission and dial
 LEADER_RETREAT_VALUE = 0.5  # excessive morale makes a measured regroup half as valuable as an advance
 
 # ---- reacting to a public threat --------------------------------------------
@@ -161,6 +164,7 @@ UNIT_PRIORITY_KING_CARGO = 100.0  # a king-carrying convoy is always considered 
 UNIT_PRIORITY_PRISONER_CARGO = 20.0  # a captive-carrying convoy is considered early when the tier values prisoners
 UNIT_PRIORITY_LOCKED_BONUS = 5.0  # a publicly target-locked piece is considered early so it can dodge
 UNIT_PRIORITY_KING_ITSELF = 8.0  # the king itself, when it is under threat
+UNIT_PRIORITY_FORMATION_LEADER = 120.0  # scaled by .3/.6/.9, puts a permitted formation enabler above the +30 near-king pursuit band without making it a tactical move score
 UNIT_PRIORITY_NEAR_KING = 3.0  # a piece standing near a threatened king
 UNIT_PRIORITY_KING_HUNT = 2.0  # lets a visible-king pursuer enter shallow breadth
 NEAR_KING_RADIUS = 2  # how close counts as "near" the king for the bump above
@@ -205,6 +209,7 @@ NO_SQUARE_INDEX = -1  # mirrors the host's own chess.NoSquare: "nothing here"
 MAX_SQUARE_INDEX = 63  # the highest valid board index (an 8x8 board, 0-indexed)
 BOARD_FILES = 8  # files per rank, for packing (file, rank) into one 0..63 index
 REFUSED_SET_SIZE = 4  # drop_refused's own small ring buffer size — see that function's own doc comment for why ONE remembered square was not enough
+QUIET_VACATED_SQUARES = 3  # enough to break the observed queen shuffle without turning Recruit's tiny memory into a board history
 MILLISECONDS_PER_SECOND = 1000.0  # unit conversion for the Tempo term's charge duration
 BITBOARD_SIGN_BIT = 1 << 63
 BITBOARD_MODULUS = 1 << 64
@@ -490,7 +495,7 @@ def add_term(terms, term, value, detail):
     terms.append(entry)
     return value
 
-def unit_priority(observation, board, params, cell):
+def unit_priority(observation, board, params, cell, king_capture_blocked = False):
     """Orders units before any move is scored: pieces near the action
     first, a king-carrying convoy always (delivery wins the match), and a
     publicly-locked piece early so it can dodge."""
@@ -506,19 +511,23 @@ def unit_priority(observation, board, params, cell):
             priority += UNIT_PRIORITY_KING_ITSELF
         elif board["king_cell"] and chebyshev_distance(cell["square"], board["king_cell"]["square"]) <= NEAR_KING_RADIUS:
             priority += UNIT_PRIORITY_NEAR_KING
+    priority += formation_leader_priority(observation, board, params, cell)
     if has_current_move_facts(observation) and not cell["convoy"] and cell["rank"] != "king" and not is_current_beacon_bearer(observation, cell):
         for enemy in observation["enemy"]:
             if enemy["rank"] != "king" or enemy["ghost"]:
                 continue
-            if enemy["square"] in observation["legal"].get(cell["unitId"], []):
+            if (enemy["square"] in observation["legal"].get(cell["unitId"], []) and
+                    capture_choice_available(observation, board, cell, enemy["square"])):
                 priority += KING_VALUE
                 break
-            for destination in observation["legal"].get(cell["unitId"], []):
-                fact = move_fact_at(observation, cell["unitId"], destination)
-                if (fact["destinationKnown"] and fact["protectedAfter"] > 0 and
-                        chebyshev_distance(destination, enemy["square"]) < chebyshev_distance(cell["square"], enemy["square"])):
-                    priority += UNIT_PRIORITY_KING_HUNT
-                    break
+            if not king_capture_blocked:
+                for destination in observation["legal"].get(cell["unitId"], []):
+                    fact = move_fact_at(observation, cell["unitId"], destination)
+                    pursuit = king_pursuit_band(destination, enemy["square"])
+                    if (is_quiet_move(observation, board, cell, destination) and fact["destinationKnown"] and
+                            fact["protectedAfter"] > 0 and fact["threatenedAfter"] <= 0 and pursuit > 0):
+                        priority += pursuit
+                        break
     priority += rank_value(cell["rank"]) / RANK_PRIORITY_SCALE  # stable, tiny rank preference
     return priority
 
@@ -658,6 +667,81 @@ def is_current_beacon_bearer(observation, cell):
 def is_leader(observation, cell):
     return cell["rank"] == "king" or is_current_beacon_bearer(observation, cell)
 
+def king_pursuit_band(destination, king_square):
+    """A coarse Chebyshev proximity band after a SAFE move. It deliberately
+    does not claim that every rank can attack in this many turns: the host is
+    still the only authority on actual legal geometry."""
+    distance = chebyshev_distance(destination, king_square)
+    if distance <= 1:
+        return KING_PURSUIT_NEAR
+    if distance == 2:
+        return KING_PURSUIT_MID
+    if distance == 3:
+        return KING_PURSUIT_FAR
+    return 0.0
+
+def visible_king_capture_blocked(observation, board):
+    """True when a friendly piece already reaches a visible enemy king but
+    the host says its morale-gated capture cannot be submitted. In that
+    state the king is the enabler: do not let ordinary approach bonuses fill
+    shallow breadth before the morale move can be considered."""
+    for enemy in observation["enemy"]:
+        if enemy["rank"] != "king" or enemy["ghost"]:
+            continue
+        for cell in board["actionable_units"]:
+            if enemy["square"] in observation["legal"].get(cell["unitId"], []) and not capture_choice_available(observation, board, cell, enemy["square"]):
+                return True
+    return False
+
+def formation_leader_priority(observation, board, params, cell):
+    """Lets a leader whose current weight permits formation work enter a
+    shallow tier's breadth only while it has a known, covered, safe move that
+    improves the formation. This is scheduling, not an extra move score: the
+    usual morale/Beacon terms still choose the destination. A king stops
+    receiving this consideration once it has the one-to-two morale reserve;
+    a Beacon bearer needs real support gain, so neither becomes a hero."""
+    if not has_current_move_facts(observation) or cell["convoy"]:
+        return 0.0
+    destinations = observation["legal"].get(cell["unitId"], [])
+    if cell["rank"] == "king":
+        if params["moralePush"] <= 0:
+            return 0.0
+        needed = current_morale_need(observation)
+        current = post_move_morale(observation, board, cell["square"], cell["square"])
+        # An excessive reserve is the one case where a leader should get
+        # breadth preference to step BACK: score_move already awards this
+        # same regroup, but shallow tiers must first get to consider it.
+        if observation.get("ownMorale", 0) - needed >= LEADER_EXCESS_MORALE:
+            for destination in destinations:
+                fact = move_fact_at(observation, cell["unitId"], destination)
+                after = post_move_morale(observation, board, cell["square"], destination)
+                if (is_quiet_move(observation, board, cell, destination) and fact["destinationKnown"] and
+                        fact["protectedAfter"] > 0 and fact["threatenedAfter"] <= 0 and
+                        after < current and after >= needed + 1):
+                    return UNIT_PRIORITY_FORMATION_LEADER * params["moralePush"]
+            return 0.0
+        # Once the king already holds the first reserve point, it no longer
+        # gets breadth preference merely for being a king.
+        if current >= needed + 1:
+            return 0.0
+        for destination in destinations:
+            fact = move_fact_at(observation, cell["unitId"], destination)
+            after = post_move_morale(observation, board, cell["square"], destination)
+            if (is_quiet_move(observation, board, cell, destination) and fact["destinationKnown"] and fact["protectedAfter"] > 0 and fact["threatenedAfter"] <= 0 and
+                    after > current and after <= needed + 2):
+                return UNIT_PRIORITY_FORMATION_LEADER * params["moralePush"]
+        return 0.0
+    if not is_current_beacon_bearer(observation, cell) or params["beaconAggression"] <= 0:
+        return 0.0
+    current_support = leader_support(observation, board, cell, cell["square"])
+    for destination in destinations:
+        fact = move_fact_at(observation, cell["unitId"], destination)
+        if (not (cell["rank"] == "pawn" and is_promotion_square(board["side"], destination)) and is_quiet_move(observation, board, cell, destination) and
+                fact["destinationKnown"] and fact["protectedAfter"] > 0 and fact["threatenedAfter"] <= 0 and
+                leader_support(observation, board, cell, destination) > current_support):
+            return UNIT_PRIORITY_FORMATION_LEADER * params["beaconAggression"]
+    return 0.0
+
 def has_other_ordinary_choice(observation, board, current_cell):
     for cell in board["actionable_units"]:
         if cell["unitId"] == current_cell["unitId"] or cell["convoy"] or cell["rank"] == "king" or is_current_beacon_bearer(observation, cell):
@@ -667,7 +751,7 @@ def has_other_ordinary_choice(observation, board, current_cell):
                 return True
     return False
 
-def score_move(observation, board, params, memory, cell, destination):
+def score_move(observation, board, params, memory, cell, destination, king_capture_blocked = False):
     """Scores one (own unit, legal destination) pair, AND builds the named
     breakdown of that score. `destination` always comes from
     observation.legal — this function only ever weighs a move the host
@@ -857,12 +941,12 @@ def score_move(observation, board, params, memory, cell, destination):
             score += add_term(terms, "develop", DEVELOP_FIRST_FORWARD_VALUE * params["advance"] * protection_factor(move_fact), "firstForward")
         if current_move_facts and quiet_move and positional_known_and_supported and ordinary_piece and move_fact["patrolGain"] > 0:
             score += add_term(terms, "coverage", min(move_fact["patrolGain"], PATROL_GAIN_CAP) * PATROL_GAIN_VALUE * params["advance"] * protection_factor(move_fact), "patrol")
-        if current_move_facts and quiet_move and positional_known_and_supported and ordinary_piece:
+        if current_move_facts and quiet_move and positional_known_and_supported and ordinary_piece and not king_capture_blocked:
             for enemy in observation["enemy"]:
                 if enemy["rank"] == "king" and not enemy["ghost"]:
-                    closer = chebyshev_distance(cell["square"], enemy["square"]) - chebyshev_distance(destination, enemy["square"])
-                    if closer > 0:
-                        score += add_term(terms, "kingHunt", closer * KING_HUNT_VALUE * params["advance"] * protection_factor(move_fact), "visible")
+                    pursuit = king_pursuit_band(destination, enemy["square"])
+                    if pursuit > 0:
+                        score += add_term(terms, "kingHunt", pursuit * params["advance"] * protection_factor(move_fact), "visible")
 
     # Dodge a target lock: the enemy has publicly committed to striking
     # this piece, so moving it is worth real value.
@@ -1022,6 +1106,35 @@ def apply_repeat_penalty(observation, board, params, memory, proposals):
     remain exempt; pawns still avoid needless repetition."""
     if not has_current_move_facts(observation):
         return proposals
+    # A quiet move that returns to a recently-vacated square closes a real
+    # board-layout cycle even if a *different* promoted queen now occupies
+    # the source. Keep only three squares: it catches the observed multi-queen
+    # loop and the rook backtrack while preserving Recruit's 32-entry ceiling.
+    recently_vacated = {}
+    for slot in range(QUIET_VACATED_SQUARES):
+        square = memory.get("quietVacated" + str(slot), NO_SQUARE_INDEX)
+        if square >= 0:
+            recently_vacated[square] = True
+    cycle_keys = {}
+    for proposal in proposals:
+        cell = board["own_by_square"].get(proposal["intent"]["from"])
+        destination = proposal["intent"].get("to")
+        if (proposal["intent"]["kind"] == "move" and not proposal["intent"].get("promotion") and cell and destination and not cell["convoy"] and cell["rank"] != "king" and
+                not is_current_beacon_bearer(observation, cell) and
+                is_quiet_move(observation, board, cell, destination) and
+                danger_at(observation, cell["square"])["threat"] <= 0 and
+                square_index(destination) in recently_vacated):
+            cycle_keys[proposal["key"]] = True
+    if cycle_keys:
+        other_viable = False
+        for proposal in proposals:
+            candidate = board["own_by_square"].get(proposal["intent"]["from"])
+            if (proposal["key"] not in cycle_keys and candidate and not candidate["convoy"] and candidate["rank"] != "king" and
+                    not is_current_beacon_bearer(observation, candidate) and proposal["score"] >= params["passBelow"]):
+                other_viable = True
+                break
+        if other_viable:
+            proposals = [proposal for proposal in proposals if proposal["key"] not in cycle_keys]
     last_to = memory.get("lastQuietTo", NO_SQUARE_INDEX)
     if last_to < 0:
         return proposals
@@ -1054,9 +1167,10 @@ def move_proposals(observation, board, params, memory):
     if not board["actionable_units"]:
         return []
 
+    king_capture_blocked = visible_king_capture_blocked(observation, board)
     ranked_units = []
     for cell in board["actionable_units"]:
-        ranked_units.append({"cell": cell, "priority": unit_priority(observation, board, params, cell)})
+        ranked_units.append({"cell": cell, "priority": unit_priority(observation, board, params, cell, king_capture_blocked)})
     ranked_units = sorted(ranked_units, key=_unit_priority_key)
 
     breadth = params["breadth"]
@@ -1076,7 +1190,7 @@ def move_proposals(observation, board, params, memory):
                 continue
             if leader_reverse_forbidden(observation, leader_guard, cell, destination):
                 continue
-            candidates.append(score_move(observation, board, params, memory, cell, destination))
+            candidates.append(score_move(observation, board, params, memory, cell, destination, king_capture_blocked))
         # A shallow tier keeps only its narrow spread of that unit's best
         # destinations — that, plus breadth, is what "shallow evaluation"
         # means.
@@ -1969,6 +2083,17 @@ def build_memory(observation, memory, intent):
             updated_memory["leaderBoard" + str(slot)] = bitboards[slot]
     quiet_ordinary = quiet_ordinary_intent(observation, intent)
     updated_memory["lastQuietTo"] = to_index if quiet_ordinary else NO_SQUARE_INDEX
+    if quiet_ordinary:
+        for slot in range(QUIET_VACATED_SQUARES - 1, 0, -1):
+            updated_memory["quietVacated" + str(slot)] = memory.get("quietVacated" + str(slot - 1), NO_SQUARE_INDEX)
+        updated_memory["quietVacated0"] = from_index
+    elif intent and intent["kind"] == "move":
+        # Captures, promotions, convoys and leaders change piece placement,
+        # rank or cargo; do not let a stale quiet shuffle constrain the new
+        # layout. A None/charging pass and every system action preserve it:
+        # neither changes the acceptance rule's piece placement.
+        for slot in range(QUIET_VACATED_SQUARES):
+            updated_memory["quietVacated" + str(slot)] = NO_SQUARE_INDEX
     return updated_memory
 
 def intn(random_draw, count):
