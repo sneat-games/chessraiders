@@ -10,6 +10,7 @@ Pre-spec one-pagers. Each Idea is a lint-clean problem-direction-MVP one-pager t
 
 | Idea | Status | Date | Owner | Promotes To |
 |------|--------|------|-------|-------------|
+| [king-beacon-advance-under-cover](../features/standard-bot/proposals/king-beacon-advance-under-cover.md) | Draft | 2026-08-11 | alex | — |
 
 ## Open Questions
 
