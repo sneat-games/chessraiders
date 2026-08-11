@@ -97,6 +97,20 @@ func TestScriptUsesTargetOnlyInterrogationActivity(t *testing.T) {
 	}
 }
 
+func TestScriptTreatsPiecesObjectOrderAsNonSemantic(t *testing.T) {
+	if !strings.Contains(standardbot.Script, `sorted(observation["pieces"].keys(), key = square_index)`) {
+		t.Fatal("script does not explicitly recover engine square order from the unordered pieces object")
+	}
+	for _, forbidden := range []string{
+		`for square in observation["pieces"]`,
+		`for occupied_square in observation["pieces"]`,
+	} {
+		if strings.Contains(standardbot.Script, forbidden) {
+			t.Fatalf("script behavior depends on pieces object member order: %s", forbidden)
+		}
+	}
+}
+
 // emptyBoardObservation is the smallest observation build_board() (chess-raiders-bot.star)
 // accepts: a "playing" match with no pieces on either side and no legal
 // moves. It deliberately never reaches move_proposals/score_move — proving

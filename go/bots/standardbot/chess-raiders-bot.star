@@ -332,6 +332,12 @@ def projected_cell(observation, square):
     cell["square"] = square
     return cell
 
+def piece_squares(observation):
+    """Projected-piece object order is non-semantic. Always recover the
+    engine's file-major square order explicitly before a decision depends on
+    iteration order."""
+    return sorted(observation["pieces"].keys(), key = square_index)
+
 def beacon_aggression(observation, params):
     """The positive weight is both Beacon permission and preference."""
     return params["beaconAggression"]
@@ -360,7 +366,7 @@ def build_board(observation):
     own_by_square = {}
     enemy_by_square = {}
     all_by_square = {}
-    for square in sorted(observation["pieces"].keys()):
+    for square in piece_squares(observation):
         cell = projected_cell(observation, square)
         all_by_square[square] = cell
         if cell["side"] == observation["side"]:
@@ -2034,7 +2040,7 @@ def signed_bitboard(value):
 
 def placement_bitboards(observation, moved_unit_id = "", moved_to = ""):
     bitboards = [0] * 12
-    for occupied_square in sorted(observation["pieces"].keys()):
+    for occupied_square in piece_squares(observation):
         cell = observation["pieces"][occupied_square]
         rank_slot = RANK_BIT_SLOTS.get(cell["rank"])
         if rank_slot == None:
@@ -2117,7 +2123,7 @@ def quiet_leader_intent(observation, intent):
         cell = None
     if not cell or cell["convoy"] or not leader_kind(observation, cell):
         return None
-    board = {"enemy_by_square": {square: projected_cell(observation, square) for square in observation["pieces"] if observation["pieces"][square]["side"] != observation["side"]}}
+    board = {"enemy_by_square": {square: projected_cell(observation, square) for square in piece_squares(observation) if observation["pieces"][square]["side"] != observation["side"]}}
     if not is_quiet_move(observation, board, cell, intent["to"]):
         return None
     return cell
@@ -2130,7 +2136,7 @@ def quiet_ordinary_intent(observation, intent):
         cell = None
     if not cell or cell["convoy"] or leader_kind(observation, cell):
         return None
-    board = {"enemy_by_square": {square: projected_cell(observation, square) for square in observation["pieces"] if observation["pieces"][square]["side"] != observation["side"]}}
+    board = {"enemy_by_square": {square: projected_cell(observation, square) for square in piece_squares(observation) if observation["pieces"][square]["side"] != observation["side"]}}
     return cell if is_quiet_move(observation, board, cell, intent["to"]) else None
 
 def build_memory(observation, memory, intent):
