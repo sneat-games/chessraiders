@@ -456,7 +456,7 @@ TERM_DETAILS = {
     "targetLock": ["dodge", "safeDodge"],
     "kingSafety": ["escape", "guard"],
     "moralePush": ["push", "coveredAdvance", "excessAdvance", "excessRetreat"],
-    "beaconAggression": ["handOff", "deploy", "restore", "forge", "coveredAdvance"],
+    "beaconAggression": ["handOff", "deploy", "restore", "forge", "coveredAdvance", "regroup"],
     "develop": ["firstForward"],
     "coverage": ["patrol"],
     "kingHunt": ["visible"],
@@ -912,7 +912,8 @@ def score_move(observation, board, params, memory, cell, destination):
         if move_fact["destinationKnown"] and move_fact["protectedAfter"] > 0 and move_fact["threatenedAfter"] <= 0:
             support_gain = leader_support(observation, board, cell, destination) - leader_support(observation, board, cell, cell["square"])
             if support_gain > 0:
-                score += add_term(terms, "beaconAggression", support_gain * params["beaconAggression"] * protection_factor(move_fact), "coveredAdvance")
+                detail = "coveredAdvance" if gain > 0 else "regroup"
+                score += add_term(terms, "beaconAggression", support_gain * params["beaconAggression"] * protection_factor(move_fact), detail)
 
     intent = {"kind": "move", "from": cell["square"], "to": destination}
     if cell["rank"] == "pawn" and not cell["convoy"] and is_promotion_square(board["side"], destination):

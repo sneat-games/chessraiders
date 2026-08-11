@@ -4,6 +4,7 @@ package standardbot_test
 
 import (
 	"encoding/json"
+	"math"
 	"strings"
 	"testing"
 
@@ -187,7 +188,7 @@ func TestExplanationDetailsDeclareEveryNewStrategyTerm(t *testing.T) {
 	for _, needle := range []string{
 		`"develop": ["firstForward"]`, `"coverage": ["patrol"]`,
 		`"kingHunt": ["visible"]`, `"repeatPenalty": ["quiet"]`,
-		`"beaconAggression": ["handOff", "deploy", "restore", "forge", "coveredAdvance"]`,
+		`"beaconAggression": ["handOff", "deploy", "restore", "forge", "coveredAdvance", "regroup"]`,
 	} {
 		if !strings.Contains(standardbot.Script, needle) {
 			t.Errorf("TERM_DETAILS does not declare %s", needle)
@@ -417,6 +418,21 @@ func hasTerm(option map[string]any, term, detail string) bool {
 	return false
 }
 
+func termValue(option map[string]any, term, detail string) (float64, bool) {
+	if option == nil {
+		return 0, false
+	}
+	terms, _ := option["terms"].([]any)
+	for _, raw := range terms {
+		entry, _ := raw.(map[string]any)
+		if entry["term"] == term && entry["detail"] == detail {
+			value, ok := entry["value"].(float64)
+			return value, ok
+		}
+	}
+	return 0, false
+}
+
 func TestLeaderReverseGuardBothDirectionsAndPlacementRelease(t *testing.T) {
 	for _, tc := range []struct {
 		name, rank, firstFrom, firstTo string
@@ -490,6 +506,70 @@ func TestLeaderGuardThreatAndChargingExceptions(t *testing.T) {
 	}
 }
 
+func TestKingLeaderSupportUsesNumberDistanceDirectionAndSaturation(t *testing.T) {
+	coveredAdvance := func(t *testing.T, supporters ...string) float64 {
+		t.Helper()
+		own := []map[string]any{strategyCell("wk", "e1", "white", "king")}
+		for i, square := range supporters {
+			own = append(own, strategyCell("s"+string(rune('a'+i)), square, "white", "pawn"))
+		}
+		o := strategyObservation(t, own...)
+		o["legal"] = map[string]any{"wk": []any{"e2"}}
+		o["moveFacts"] = facts("wk", "e2", true, 1, 0, 0)
+		_, _, options := decision(t, o, nil)
+		value, _ := termValue(requireOption(t, options, "e1", "e2"), "moralePush", "coveredAdvance")
+		return value
+	}
+
+	one := coveredAdvance(t, "d3")
+	two := coveredAdvance(t, "d3", "f3")
+	if !(two > one && math.Abs(two-2*one) < 1e-9) {
+		t.Fatalf("two close supporters should double one before saturation: one=%v two=%v", one, two)
+	}
+	near := coveredAdvance(t, "e3")
+	far := coveredAdvance(t, "e4")
+	if !(near > far && math.Abs(near-2*far) < 1e-9) {
+		t.Fatalf("near supporter should count twice distance-two supporter: near=%v far=%v", near, far)
+	}
+	ahead := coveredAdvance(t, "d3")
+	abreast := coveredAdvance(t, "d2")
+	behind := coveredAdvance(t, "d1")
+	if !(ahead > abreast && math.Abs(ahead-2*abreast) < 1e-9 && behind == 0) {
+		t.Fatalf("support direction weights wrong: ahead=%v abreast=%v behind=%v", ahead, abreast, behind)
+	}
+	saturated := coveredAdvance(t, "d3", "f3")
+	overfilled := coveredAdvance(t, "d3", "e3", "f3")
+	if math.Abs(saturated-overfilled) > 1e-9 {
+		t.Fatalf("support must saturate after two full nearby supporters: saturated=%v overfilled=%v", saturated, overfilled)
+	}
+}
+
+func TestBeaconBearerRewardsCoveredAdvanceAndRegroup(t *testing.T) {
+	for _, tc := range []struct {
+		name, from, to, supporter, detail string
+	}{
+		{"advance", "e2", "e3", "e4", "coveredAdvance"},
+		{"regroup", "e4", "d3", "c3", "regroup"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bearer := strategyCell("bearer", tc.from, "white", "knight")
+			o := strategyObservation(t, bearer, strategyCell("support", tc.supporter, "white", "pawn"))
+			o["rules"].(map[string]any)["beaconEnabled"] = true
+			o["beacon"] = map[string]any{"lifecycle": "deployed", "bearerSquare": tc.from, "everHandedOff": true}
+			o["legal"] = map[string]any{"bearer": []any{tc.to}}
+			o["moveFacts"] = facts("bearer", tc.to, true, 1, 0, 0)
+			intent, _, options := decision(t, o, nil)
+			if intent == nil || intent["from"] != tc.from || intent["to"] != tc.to {
+				t.Fatalf("Beacon %s was not selected: %#v", tc.name, intent)
+			}
+			value, ok := termValue(requireOption(t, options, tc.from, tc.to), "beaconAggression", tc.detail)
+			if !ok || value <= 0 {
+				t.Fatalf("Beacon %s lacks positive formation reward: %#v", tc.name, options)
+			}
+		})
+	}
+}
+
 func TestOnlyQuietNonPromotionLeaderMovesArmGuard(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -537,41 +617,76 @@ func TestOnlyQuietNonPromotionLeaderMovesArmGuard(t *testing.T) {
 }
 
 func TestDevelopmentAndKingHuntRequireKnownProtectedQuietMove(t *testing.T) {
-	base := strategyObservation(t, strategyCell("wn", "c2", "white", "knight"))
-	base["enemy"] = []any{strategyCell("bk", "h8", "black", "king")}
+	makeDevelopment := func() map[string]any {
+		o := strategyObservation(t, strategyCell("wn", "c2", "white", "knight"))
+		o["enemy"] = []any{strategyCell("bk", "h8", "black", "king")}
+		return o
+	}
+	base := makeDevelopment()
 	base["legal"] = map[string]any{"wn": []any{"d3"}}
 	base["moveFacts"] = facts("wn", "d3", true, 1, 0, 2)
-	_, _, options := decision(t, base, nil)
-	option := optionFor(options, "c2", "d3")
+	intent, _, options := decision(t, base, nil)
+	if intent == nil || intent["to"] != "d3" {
+		t.Fatalf("known protected development was not selected: %#v", intent)
+	}
+	option := requireOption(t, options, "c2", "d3")
 	if !hasTerm(option, "develop", "firstForward") || !hasTerm(option, "coverage", "patrol") || !hasTerm(option, "kingHunt", "visible") {
 		t.Fatalf("known protected first development did not receive all strategic terms: %#v", option)
 	}
 
 	for _, tc := range []struct {
-		name   string
-		mutate func(map[string]any)
-		forbid []string
+		name, detail string
+		known        bool
+		protected    int
 	}{
-		{"moved back", func(o map[string]any) { o["own"].([]any)[0].(map[string]any)["moved"] = true }, []string{"develop"}},
-		{"pawn", func(o map[string]any) { o["own"].([]any)[0].(map[string]any)["rank"] = "pawn" }, []string{"develop"}},
-		{"unknown", func(o map[string]any) { o["moveFacts"] = facts("wn", "d3", false, 1, 0, 2) }, []string{"develop", "coverage", "kingHunt"}},
-		{"unprotected", func(o map[string]any) { o["moveFacts"] = facts("wn", "d3", true, 0, 0, 2) }, []string{"develop", "coverage", "kingHunt"}},
+		{"unknown", "unknownQuiet", false, 1},
+		{"unprotected", "unsupportedQuiet", true, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			o := strategyObservation(t, strategyCell("wn", "c2", "white", "knight"))
-			o["enemy"] = []any{strategyCell("bk", "h8", "black", "king")}
-			o["legal"] = map[string]any{"wn": []any{"d3"}}
-			o["moveFacts"] = facts("wn", "d3", true, 1, 0, 2)
-			tc.mutate(o)
-			_, _, options := decision(t, o, nil)
-			option := optionFor(options, "c2", "d3")
-			details := map[string]string{"develop": "firstForward", "coverage": "patrol", "kingHunt": "visible"}
-			bad := false
-			for _, term := range tc.forbid {
-				bad = bad || hasTerm(option, term, details[term])
+			// With both destinations legal, the known protected square must beat
+			// the equally-forward unknown/unprotected choice.
+			o := makeDevelopment()
+			o["legal"] = map[string]any{"wn": []any{"d3", "b3"}}
+			o["moveFacts"] = map[string]any{"wn": map[string]any{
+				"d3": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 2},
+				"b3": map[string]any{"destinationKnown": tc.known, "protectedAfter": tc.protected, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 2},
+			}}
+			intent, _, _ := decision(t, o, nil)
+			if intent == nil || intent["to"] != "d3" {
+				t.Fatalf("known protected square did not beat %s choice: %#v", tc.name, intent)
 			}
-			if bad {
-				t.Fatalf("%s received protected-development terms: %#v", tc.name, option)
+
+			// Isolate the rejected choice so its executable safety reason remains
+			// observable instead of disappearing behind per-unit option dedupe.
+			o["legal"] = map[string]any{"wn": []any{"b3"}}
+			_, _, options := decision(t, o, nil)
+			option := requireOption(t, options, "c2", "b3")
+			if !hasTerm(option, "safety", tc.detail) {
+				t.Fatalf("%s choice lacks its safety penalty: %#v", tc.name, option)
+			}
+			if hasTerm(option, "develop", "firstForward") || hasTerm(option, "coverage", "patrol") || hasTerm(option, "kingHunt", "visible") {
+				t.Fatalf("%s choice received protected-development rewards: %#v", tc.name, option)
+			}
+		})
+	}
+
+	for _, tc := range []struct {
+		name, rank string
+		moved      bool
+	}{
+		{"moved back", "knight", true},
+		{"pawn", "pawn", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cell := strategyCell("unit", "c2", "white", tc.rank)
+			cell["moved"] = tc.moved
+			o := strategyObservation(t, cell)
+			o["legal"] = map[string]any{"unit": []any{"d3"}}
+			o["moveFacts"] = facts("unit", "d3", true, 1, 0, 1)
+			_, _, options := decision(t, o, nil)
+			option := requireOption(t, options, "c2", "d3")
+			if hasTerm(option, "develop", "firstForward") {
+				t.Fatalf("%s received first-development bonus: %#v", tc.name, option)
 			}
 		})
 	}
@@ -583,12 +698,17 @@ func TestKingCaptureIsPrioritizedWithinBreadth(t *testing.T) {
 	// priority bump and become the selected real decision.
 	units := []map[string]any{
 		strategyCell("near1", "a2", "white", "pawn"), strategyCell("near2", "b2", "white", "pawn"),
-		strategyCell("near3", "c2", "white", "pawn"), strategyCell("hunter", "h1", "white", "rook"),
+		strategyCell("near3", "c2", "white", "pawn"), strategyCell("near4", "d2", "white", "pawn"),
+		strategyCell("hunter", "h1", "white", "rook"),
 	}
 	observation := strategyObservation(t, units...)
 	observation["enemy"] = []any{
 		strategyCell("noise1", "a3", "black", "pawn"), strategyCell("noise2", "b3", "black", "pawn"),
-		strategyCell("noise3", "c3", "black", "pawn"), strategyCell("king", "h8", "black", "king"),
+		strategyCell("noise3", "c3", "black", "pawn"), strategyCell("noise4", "d3", "black", "pawn"),
+		strategyCell("king", "h8", "black", "king"),
+	}
+	if len(units) <= int(decodedRecruitParams(t)["breadth"].(float64)) {
+		t.Fatal("fixture must place the hunter beyond Recruit breadth before its king-capture priority bump")
 	}
 	observation["legal"] = map[string]any{"hunter": []any{"h8"}}
 	observation["moveFacts"] = map[string]any{}
@@ -649,6 +769,10 @@ func TestRepeatPenaltyNeedsViableAlternativeAndExemptsExceptionalMoves(t *testin
 			o["danger"] = map[string]any{"e3": map[string]any{"threat": 1, "guarded": 0, "cheapest": 1}}
 		}},
 		{"leader", func(o map[string]any) { o["own"].([]any)[0].(map[string]any)["rank"] = "king" }},
+		{"Beacon bearer", func(o map[string]any) {
+			o["rules"].(map[string]any)["beaconEnabled"] = true
+			o["beacon"] = map[string]any{"lifecycle": "deployed", "bearerSquare": "e3", "everHandedOff": true}
+		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			o := makeRepeat(t)
@@ -676,44 +800,55 @@ func TestRepeatPenaltyNeedsViableAlternativeAndExemptsExceptionalMoves(t *testin
 
 func TestMoraleReserveExcessRetreatAndIncursionPenalty(t *testing.T) {
 	makeKing := func(from string) map[string]any {
-		o := strategyObservation(t, strategyCell("wk", from, "white", "king"), strategyCell("support", "e5", "white", "pawn"))
+		o := strategyObservation(t, strategyCell("wk", from, "white", "king"), strategyCell("support", "e7", "white", "pawn"))
+		// This visible capture threshold is deliberately unrelated to the king's
+		// legal move. It makes current_morale_need, rather than a zero default,
+		// determine the desired reserve band.
+		o["affordability"] = map[string]any{"probe": map[string]any{"x": map[string]any{
+			"capture": map[string]any{"affordable": false, "requiredMorale": 2},
+		}}}
 		return o
 	}
-	t.Run("one to two morale reserve advances", func(t *testing.T) {
-		o := makeKing("e1")
-		o["legal"] = map[string]any{"wk": []any{"e2"}}
-		o["moveFacts"] = facts("wk", "e2", true, 1, 0, 0)
-		_, _, options := decision(t, o, nil)
-		if !hasTerm(optionFor(options, "e1", "e2"), "moralePush", "coveredAdvance") {
-			t.Fatalf("safe covered reserve advance was not rewarded: %#v", options)
-		}
-	})
-	t.Run("three excess morale penalizes advance", func(t *testing.T) {
-		o := makeKing("e3")
-		o["legal"] = map[string]any{"wk": []any{"e4"}}
-		o["moveFacts"] = facts("wk", "e4", true, 1, 0, 0)
-		_, _, options := decision(t, o, nil)
-		if !hasTerm(optionFor(options, "e3", "e4"), "moralePush", "excessAdvance") {
-			t.Fatalf("three excess morale did not penalize advance: %#v", options)
-		}
-	})
+	for _, tc := range []struct {
+		name, destination, detail string
+	}{
+		{"exact plus one reserve", "e4", "coveredAdvance"},
+		{"exact plus two reserve", "e5", "coveredAdvance"},
+		{"exact plus three excess", "e6", "excessAdvance"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			o := makeKing("e2")
+			o["legal"] = map[string]any{"wk": []any{tc.destination}}
+			o["moveFacts"] = facts("wk", tc.destination, true, 1, 0, 0)
+			_, _, options := decision(t, o, nil)
+			option := requireOption(t, options, "e2", tc.destination)
+			value, ok := termValue(option, "moralePush", tc.detail)
+			if !ok {
+				t.Fatalf("requiredMorale=2 did not produce %s at %s: %#v", tc.detail, tc.destination, option)
+			}
+			if tc.detail == "coveredAdvance" && value <= 0 || tc.detail == "excessAdvance" && value >= 0 {
+				t.Fatalf("%s has wrong sign %v: %#v", tc.detail, value, option)
+			}
+		})
+	}
 	t.Run("three excess morale rewards retreat", func(t *testing.T) {
-		o := makeKing("e5")
-		o["ownMorale"] = 4
-		o["legal"] = map[string]any{"wk": []any{"e4"}}
-		o["moveFacts"] = facts("wk", "e4", true, 1, 0, 0)
+		o := makeKing("e6")
+		o["ownMorale"] = 5
+		o["legal"] = map[string]any{"wk": []any{"e5"}}
+		o["moveFacts"] = facts("wk", "e5", true, 1, 0, 0)
 		_, _, options := decision(t, o, nil)
-		if !hasTerm(optionFor(options, "e5", "e4"), "moralePush", "excessRetreat") {
+		value, ok := termValue(requireOption(t, options, "e6", "e5"), "moralePush", "excessRetreat")
+		if !ok || value <= 0 {
 			t.Fatalf("excess morale did not reward retreat: %#v", options)
 		}
 	})
 	t.Run("rank one incursion penalty prevents false excess", func(t *testing.T) {
 		o := makeKing("e3")
 		o["ownMoralePenalty"] = 1
-		o["legal"] = map[string]any{"wk": []any{"e4"}}
-		o["moveFacts"] = facts("wk", "e4", true, 1, 0, 0)
+		o["legal"] = map[string]any{"wk": []any{"e6"}}
+		o["moveFacts"] = facts("wk", "e6", true, 1, 0, 0)
 		_, _, options := decision(t, o, nil)
-		option := optionFor(options, "e3", "e4")
+		option := requireOption(t, options, "e3", "e6")
 		if !hasTerm(option, "moralePush", "coveredAdvance") || hasTerm(option, "moralePush", "excessAdvance") {
 			t.Fatalf("ownMoralePenalty was not applied to post-move morale: %#v", option)
 		}
