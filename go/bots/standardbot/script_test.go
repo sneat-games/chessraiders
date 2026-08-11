@@ -85,7 +85,7 @@ func TestScriptCompiles(t *testing.T) {
 	}
 }
 
-// emptyBoardObservation is the smallest observation build_board() (tier.star)
+// emptyBoardObservation is the smallest observation build_board() (chess-raiders-bot.star)
 // accepts: a "playing" match with no pieces on either side and no legal
 // moves. It deliberately never reaches move_proposals/score_move — proving
 // those needs the full board-and-legal-move schema bot-script-contract

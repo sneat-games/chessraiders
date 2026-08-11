@@ -50,7 +50,7 @@ output = json.encode(_run())
 // syntax error." canarySource and recursionProbeSource are the two dialect-
 // canary scripts this package itself owns.
 //
-// server-go/starlarktier/tier.star — the first REAL tier script this
+// server-go/starlarktier/chess-raiders-bot.star — the first REAL tier script this
 // repository ships — is NOT in this table: it cannot be, since
 // starlarktier imports this package (CompileTier -> starlarkbot.Compile),
 // so an internal test file here importing starlarktier.Script back would
@@ -58,7 +58,7 @@ output = json.encode(_run())
 // `package starlarkbot_test`, a separate compilation unit) is where a
 // tier's own script joins this same build-time gate instead — see that
 // file's own doc comment for the full reasoning and for why compiling
-// tier.star at wasm MODULE LOAD (bots_entry.go) makes this gate matter
+// chess-raiders-bot.star at wasm MODULE LOAD (bots_entry.go) makes this gate matter
 // even more there than it does here. A syntax error in ANY shipped script,
 // in either file, fails `go test ./...` — this repository's own "build"
 // gate for exactly this class of check (dialect_lint_test.go and

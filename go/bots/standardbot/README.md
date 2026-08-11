@@ -2,7 +2,7 @@
 
 The standard Chess Raiders bot, published as the two files it actually is:
 
-- **[`tier.star`](tier.star)** — one Starlark script, defining one function,
+- **[`chess-raiders-bot.star`](chess-raiders-bot.star)** — one Starlark script, defining one function,
   `decide()`. This is the entire brain of every built-in opponent.
 - **[`params.json`](params.json)** — a table of four rows: `recruit`,
   `lieutenant` and `commander`, the three playing difficulties, plus
@@ -50,12 +50,12 @@ deliver a captured king, which squares are safe) arrives as plain data on
 A row is sixteen named values, in three groups:
 
 **Ten score weights** — each scales one whole category of `decide()`'s
-scoring, and each is a *gate*, not just a multiplier: `tier.star` checks
+scoring, and each is a *gate*, not just a multiplier: `chess-raiders-bot.star` checks
 `if params["X"] > 0` before scoring that category at all, so a weight of `0`
 does not merely make that term worth nothing — it turns the whole category
 off. This is what makes Recruit "moves and captures only": every weight
 below except `material`, `safety`, `advance` and `delivery` is zero on its
-row, so `tier.star` never even considers a tempo, prisoner, or system
+row, so `chess-raiders-bot.star` never even considers a tempo, prisoner, or system
 (training/wall/beacon) action for it.
 
 | Key | What it weighs |
@@ -87,10 +87,10 @@ branches, rather than its scoring:
 |---|---|
 | `advancedTraining` | Whether this tier ever pursues Advanced Engineer Training (Commander only, today). |
 | `contestEnemyWork` | Whether this tier ever proposes dismantling an *enemy* wall — repairing its own is always open regardless. |
-| `sergeantPreference` | The score bonus for wall work an adjacent Sergeant is speeding up. Must be `0` on any row where `contestEnemyWork` is `false` — `tier.star`'s dismantle branch applies this bonus unconditionally *inside* code that only runs when `contestEnemyWork` already fired, so a nonzero value on a row that doesn't contest enemy work is a live inconsistency, not a no-op. |
+| `sergeantPreference` | The score bonus for wall work an adjacent Sergeant is speeding up. Must be `0` on any row where `contestEnemyWork` is `false` — `chess-raiders-bot.star`'s dismantle branch applies this bonus unconditionally *inside* code that only runs when `contestEnemyWork` already fired, so a nonzero value on a row that doesn't contest enemy work is a live inconsistency, not a no-op. |
 
 No difficulty ever raises a *new* wall — that decision was removed outright
-(see `tier.star`'s own `wall_proposals` comment) and there is no parameter
+(see `chess-raiders-bot.star`'s own `wall_proposals` comment) and there is no parameter
 that brings it back.
 
 ## Changing one number
@@ -118,7 +118,7 @@ changes *how much of the board gets looked at*; a doctrine switch changes
 re-run the conformance suite below, and read the diff in `decide()`'s
 behavior against the empty-board smoke test or your own richer observation —
 there is nothing else to recompile or regenerate, because `params.json` is
-data `tier.star` reads at call time, not something baked into the script.
+data `chess-raiders-bot.star` reads at call time, not something baked into the script.
 
 ## Running the conformance suite
 
@@ -137,11 +137,11 @@ This proves, in order:
    implementation's plan `publish-the-standard-bot` task-6, this file is the
    table's one author — `params.go` reads it, rather than the other way
    around) — no row silently dropped in either direction.
-2. `tier.star` compiles under [go/bots/runtime](../runtime)'s dialect and
+2. `chess-raiders-bot.star` compiles under [go/bots/runtime](../runtime)'s dialect and
    binds a callable `decide`.
 3. `decide()` actually runs, once per difficulty, each with that
    difficulty's own row from `params.json`, on the smallest observation
-   `tier.star`'s own `build_board()` accepts (an empty board, no legal
+   `chess-raiders-bot.star`'s own `build_board()` accepts (an empty board, no legal
    moves) — proving every field a row declares is one `decide()` can
    actually consume, not just one that happens to parse.
 4. `decide()`'s lifecycle gate still passes cleanly outside an active match.
@@ -152,7 +152,7 @@ board-and-legal-move observation [`bot-script-contract`](../../../spec/features/
 describes, which only the real game engine emits, so that end-to-end
 behavior is verified against the private implementation instead (its own
 `server-go/tests4bot` suite, replayed here byte-for-byte by the conformance
-corpus below). **Both files are edited HERE now, not there:** `tier.star`
+corpus below). **Both files are edited HERE now, not there:** `chess-raiders-bot.star`
 and `params.json` are this module's own source — the private implementation
 requires this module at a released tag (`go.mod`) and reads both through it,
 never the other way around. A `git diff` in this package IS the diff a
@@ -189,7 +189,7 @@ caught with a legible, case-naming error — a replayer that can only report
 agreement is not proven to detect disagreement.
 
 This still does not prove the bot plays well against a *live, moving*
-opponent, or that a change to `tier.star` was intentional rather than a
+opponent, or that a change to `chess-raiders-bot.star` was intentional rather than a
 regression the corpus happens not to cover — only that, for these 53
 recorded decisions, this checkout's script still decides exactly what the
 private engine's own tests once observed it decide.

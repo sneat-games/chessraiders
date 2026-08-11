@@ -24,7 +24,7 @@ decisions they just changed. It is also, potentially, the reader who matters
 most for this corpus's own design: if the standard bot's Starlark runtime is
 ever replaced by a plain JavaScript implementation for the trusted/common
 case (the bot is a pure function of its five `decide()` arguments — the host
-already resolves every legal move, so `tier.star` contains zero legality
+already resolves every legal move, so `chess-raiders-bot.star` contains zero legality
 logic of its own), this corpus is the equivalence proof between the two
 language implementations, not merely a creator's regression check. Every
 design decision below is made with THAT reader in mind, not only a Go one.
@@ -115,7 +115,7 @@ Fields:
 |---|---|
 | `format` | This corpus's own format tag — pin against it before trusting the shape below. |
 | `paramsVersion` | `go/bots/standardbot`'s own `ParamsVersion` constant (`"chess-bot-tier-params/v1"`) — the envelope format `parameters` was resolved from, not this file's own version. |
-| `script` | `{module, version}` — the exact published Go module and version (`github.com/sneat-games/chessraiders/go`, `v0.0.2` as of this writing) this case's `intent` was decided against. `go get $module@$version`, or read `https://pkg.go.dev/$module@$version`, and that release's own `go/bots/standardbot` is what ran this decision. Recorded per case, not only once for the whole corpus, so a single downloaded file stays fully informative on its own — and so a mismatch between an implementation's own replay and this file can be diagnosed as "the implementation disagrees with `$version`" rather than an open question of which `tier.star` produced the recording in the first place. |
+| `script` | `{module, version}` — the exact published Go module and version (`github.com/sneat-games/chessraiders/go`, `v0.0.2` as of this writing) this case's `intent` was decided against. `go get $module@$version`, or read `https://pkg.go.dev/$module@$version`, and that release's own `go/bots/standardbot` is what ran this decision. Recorded per case, not only once for the whole corpus, so a single downloaded file stays fully informative on its own — and so a mismatch between an implementation's own replay and this file can be diagnosed as "the implementation disagrees with `$version`" rather than an open question of which `chess-raiders-bot.star` produced the recording in the first place. |
 | `test` | The `server-go/tests4bot` Go test function this decision came from — provenance, not a replay input. |
 | `case` | This decision's 0-based sequence within `test` — provenance, not a replay input. |
 | `difficulty` | `"recruit"`, `"lieutenant"`, `"commander"` or `"custom"` — which row of `parameters` was in play, and which of `go/bots/standardbot`'s three named rows this corresponds to (`"custom"` is Commander's own row with `breadth` overlaid from the match). |
@@ -129,7 +129,7 @@ Fields:
 ### Why `intent` is sometimes `null`
 
 `decide()` returns Starlark's `None` as its chosen intent whenever there is
-nothing worth doing this tick — `tier.star`'s own `decide()` has four such
+nothing worth doing this tick — `chess-raiders-bot.star`'s own `decide()` has four such
 `return None, memory, []` branches, and "pass" is an ordinary, recurring
 decision, not an edge case. That `None` crosses the JSON boundary as a bare
 `null` — `go/bots/runtime`'s own `Program.Call` encodes it that way — so

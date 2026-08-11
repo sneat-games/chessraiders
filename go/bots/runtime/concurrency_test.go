@@ -68,7 +68,7 @@ type decideResult struct {
 // AC:one-fresh-thread-serves-a-whole-call's own proof, run against THIS
 // package's real, shipped Program: one COMPILED Program (compiled exactly
 // ONCE, exactly like server-go/starlarkbot4chess's own package-level
-// sync.Once compiles the real tier.star exactly once and shares it across
+// sync.Once compiles the real chess-raiders-bot.star exactly once and shares it across
 // every match), called from 64 goroutines making 200 calls each — 12,800
 // calls total — must produce zero errors and zero result mismatches when
 // run under `go test -race`.

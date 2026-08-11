@@ -55,7 +55,7 @@ type scriptRef struct {
 // deliberately: they cross into decide() (Parameters/Observation/Memory) or
 // get compared against decide()'s own raw JSON output (Intent) exactly as
 // recorded, never round-tripped through a Go struct of this package's own
-// invention that could silently drop a field tier.star gains later — the
+// invention that could silently drop a field chess-raiders-bot.star gains later — the
 // same reasoning script.go's own doc comment gives for shipping no Params
 // struct.
 type corpusCase struct {
@@ -280,7 +280,7 @@ func replayCase(program *runtime.Program, path string, c corpusCase) error {
 
 // canonicalJSON decodes raw into a plain interface{} tree (map[string]any /
 // []any / string / float64 / bool / nil) rather than a hand-declared intent
-// struct, so a field tier.star's decide() starts returning tomorrow — one
+// struct, so a field chess-raiders-bot.star's decide() starts returning tomorrow — one
 // this package's own author never enumerated in a struct — cannot be
 // silently dropped on either side of the comparison in replayCase. An empty
 // RawMessage (an absent JSON field, never actually produced by json.Marshal
