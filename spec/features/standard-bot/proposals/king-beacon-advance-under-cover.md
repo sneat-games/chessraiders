@@ -19,7 +19,7 @@ The standard bot cannot beat a passive opponent: Recruit and Lieutenant won 0 of
 
 ## Recommended Direction
 
-Scale the king-advance reward by a saturating measure of friendly cover ahead of the king, so advancing into empty space earns nothing. Apply the same discipline to the Beacon bearer.
+Scale the king-advance reward by a saturating measure of friendly cover ahead of the king, so advancing into empty space earns nothing. Apply the same discipline to the current Beacon bearer, including regrouping when a move increases its formation support. Beacon aggression itself is the bot permission: `0` disables all Beacon actions and a positive value enables and scores them, always beneath the match's Beacon rule gates.
 
 The founder's model, in his own four statements:
 
@@ -54,9 +54,11 @@ A property worth keeping: if the retreat penalty is scaled by the same `coverFac
 
 ## MVP Scope
 
-Cover-scaling of the king's advance term alone, measured against the existing 75-seed × 3-tier passive-opponent sweep, with the 53-case decision corpus as the regression gate.
-
-Deliberately excluded from the MVP: the Beacon bearer's own cover discipline, and any second factor. Get one piece's behaviour right and measurable first — the Beacon bearer follows the same rule and can adopt it once the shape is proven.
+Cover-scaled king and current-Beacon-bearer movement, using host-projected
+post-move support/threat facts, an exact one-ply anti-reversal guard, and the
+0.3/0.6/0.9 Recruit/Lieutenant/Commander aggression dials (Adviser 1.0 for
+Beacon, its existing 0.5 for morale). The old 0.2/0.4/0.8 proposal values are
+superseded by this founder decision.
 
 ## Not Doing (and Why)
 
@@ -82,6 +84,5 @@ Deliberately excluded from the MVP: the Beacon bearer's own cover discipline, an
 
 ## Open Questions
 
-- **Can a bot win without the Beacon system at all?** No, and this bounds the whole proposal. `deliverKingIfEligible` is the only function in the engine that sets a winner, so king delivery is the sole terminal condition; capturing a king needs morale ≥ 2, morale is the king's own rank, and the king stays rooted until a never-passed Beacon is handed off — which requires `Systems.Beacon`. Recruit and Lieutenant hold at 0/75 with zero king moves under every weight combination when the capability is withheld. The founder's stated constraint is *"even without it a bot should be able to win"*, which weights cannot deliver. **He must choose:** grant the capability to every tier, change the rooting rule, decouple morale from king rank, or add a second terminal condition.
-- **Do Recruit and Lieutenant keep their intended character once their king advances?** Recruit's published description promises moves and captures only, with no command-chain action. Granting the Beacon capability to reach a winnable state sits in tension with that, unless a near-zero Beacon weight keeps its play as plain as the description claims.
+- **Do Recruit and Lieutenant keep their intended character once their king advances?** Resolved for this change: their positive Beacon aggression is permission to use the command chain when match rules allow it; it is no longer delegated to the BotSystems Beacon gate.
 - **Should `COVER_SATURATION` differ per tier?** It is currently one constant for every difficulty. A tier that reads as cautious might warrant a higher bar for what counts as a full screen — but that is a third knob, and the parameter table is published for outside creators, so it needs to earn its place.

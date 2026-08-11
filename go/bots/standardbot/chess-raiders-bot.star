@@ -138,6 +138,18 @@ PRIORITY_CAPTIVE_DELIVERY_SCORE = 1000.0
 ADVANCE_PAWN_MULTIPLIER = 2.0  # a pawn's forward progress counts double
 PROMOTION_BONUS = 8.0  # extra value for a pawn stepping onto its promotion rank
 LAST_RANK_INDEX = 7  # squares are 0-indexed 0..7; this is the board's far edge
+DEVELOP_FIRST_FORWARD_VALUE = 1.0  # first forward officer move puts a dormant unit into play
+PATROL_GAIN_VALUE = 0.5  # one host-reported patrol square is useful, but never material-sized
+PATROL_GAIN_CAP = 4  # broad vision is useful, not an unbounded material substitute
+KING_HUNT_VALUE = 1.0
+UNKNOWN_QUIET_PENALTY = 1.0  # a positional guess cannot tie a known, supported move
+UNSUPPORTED_QUIET_PENALTY = 0.75  # forward pressure needs friendly cover after the move
+
+# ---- king and Beacon leadership --------------------------------------------
+LEADER_SUPPORT_SATURATION = 2.0  # two weighted nearby supporters count as full cover
+LEADER_EXCESS_MORALE = 3  # enough spare morale: stop turning the king into a hero
+MORALE_PUSH_VALUE = 1.5  # named base keeps the 0.3/0.6/0.9 rows readable as dials
+LEADER_RETREAT_VALUE = 0.5  # excessive morale makes a measured regroup half as valuable as an advance
 
 # ---- reacting to a public threat --------------------------------------------
 TARGET_LOCK_DODGE_VALUE = 2.0  # base reward for moving a publicly-locked piece at all
@@ -150,6 +162,7 @@ UNIT_PRIORITY_PRISONER_CARGO = 20.0  # a captive-carrying convoy is considered e
 UNIT_PRIORITY_LOCKED_BONUS = 5.0  # a publicly target-locked piece is considered early so it can dodge
 UNIT_PRIORITY_KING_ITSELF = 8.0  # the king itself, when it is under threat
 UNIT_PRIORITY_NEAR_KING = 3.0  # a piece standing near a threatened king
+UNIT_PRIORITY_KING_HUNT = 2.0  # lets a visible-king pursuer enter shallow breadth
 NEAR_KING_RADIUS = 2  # how close counts as "near" the king for the bump above
 RANK_PRIORITY_SCALE = 100.0  # a tiny, stable preference for a more valuable piece, once every bump above is applied
 
@@ -193,6 +206,8 @@ MAX_SQUARE_INDEX = 63  # the highest valid board index (an 8x8 board, 0-indexed)
 BOARD_FILES = 8  # files per rank, for packing (file, rank) into one 0..63 index
 REFUSED_SET_SIZE = 4  # drop_refused's own small ring buffer size — see that function's own doc comment for why ONE remembered square was not enough
 MILLISECONDS_PER_SECOND = 1000.0  # unit conversion for the Tempo term's charge duration
+BITBOARD_SIGN_BIT = 1 << 63
+BITBOARD_MODULUS = 1 << 64
 
 
 # =============================================================================
@@ -284,6 +299,41 @@ def is_safe_square(observation, square):
     "safe": covered by a friendly piece, or attacked by nothing at all."""
     danger = danger_at(observation, square)
     return danger["guarded"] > 0 or danger["threat"] == 0
+
+def has_current_move_facts(observation):
+    """Current host contract marker. Old published corpus records predate
+    moveFacts, so their absence deliberately selects the byte-compatible
+    legacy scorer rather than making a new assumption from old observations."""
+    return observation.get("moveFacts") != None
+
+EMPTY_MOVE_FACT = {
+    "destinationKnown": False,
+    "patrolGain": 0,
+    "protectedAfter": 0,
+    "threatenedAfter": 0,
+    "cheapestThreatAfter": 0.0,
+}
+
+def move_fact_at(observation, unit_id, destination):
+    return observation.get("moveFacts", {}).get(unit_id, {}).get(destination, EMPTY_MOVE_FACT)
+
+def beacon_aggression(observation, params):
+    """beaconAggression is required by the current published rows. The
+    fallback exists only for a recorded legacy call whose inline row predates
+    the additive field; it preserves the old system-weight semantics."""
+    if "beaconAggression" in params:
+        return params["beaconAggression"]
+    return params.get("beaconAggression", params["system"])
+
+def is_quiet_move(observation, board, cell, destination):
+    """A quiet destination has neither a direct target nor host-confirmed
+    en-passant victim. Captures retain their tactical scoring unchanged."""
+    if board["enemy_by_square"].get(destination):
+        return False
+    return not observation.get("enPassant", {}).get(cell["unitId"], {}).get(destination)
+
+def protection_factor(move_fact):
+    return min(1.0, move_fact["protectedAfter"] / 2.0)
 
 
 # =============================================================================
@@ -400,12 +450,17 @@ def build_board(observation):
 # makes adding a discriminator here a non-breaking change forever.
 TERM_DETAILS = {
     "material": ["capture"],
-    "safety": ["risk", "kingIntoStrike"],
+    "safety": ["risk", "kingIntoStrike", "unknownQuiet", "unsupportedQuiet"],
     "tempo": ["charge"],
     "advance": ["pawn", "promotion", "piece"],
     "targetLock": ["dodge", "safeDodge"],
     "kingSafety": ["escape", "guard"],
-    "moralePush": ["push"],
+    "moralePush": ["push", "coveredAdvance", "excessAdvance", "excessRetreat"],
+    "beaconAggression": ["handOff", "deploy", "restore", "forge", "coveredAdvance"],
+    "develop": ["firstForward"],
+    "coverage": ["patrol"],
+    "kingHunt": ["visible"],
+    "repeatPenalty": ["quiet"],
     "delivery": ["wins", "closer", "offRoute", "drift", "unblock"],
     "prisoner": ["alive", "escort", "bootstrap", "priorityDelivery"],
     "system": [
@@ -451,6 +506,19 @@ def unit_priority(observation, board, params, cell):
             priority += UNIT_PRIORITY_KING_ITSELF
         elif board["king_cell"] and chebyshev_distance(cell["square"], board["king_cell"]["square"]) <= NEAR_KING_RADIUS:
             priority += UNIT_PRIORITY_NEAR_KING
+    if has_current_move_facts(observation) and not cell["convoy"] and cell["rank"] != "king" and not is_current_beacon_bearer(observation, cell):
+        for enemy in observation["enemy"]:
+            if enemy["rank"] != "king" or enemy["ghost"]:
+                continue
+            if enemy["square"] in observation["legal"].get(cell["unitId"], []):
+                priority += KING_VALUE
+                break
+            for destination in observation["legal"].get(cell["unitId"], []):
+                fact = move_fact_at(observation, cell["unitId"], destination)
+                if (fact["destinationKnown"] and fact["protectedAfter"] > 0 and
+                        chebyshev_distance(destination, enemy["square"]) < chebyshev_distance(cell["square"], enemy["square"])):
+                    priority += UNIT_PRIORITY_KING_HUNT
+                    break
     priority += rank_value(cell["rank"]) / RANK_PRIORITY_SCALE  # stable, tiny rank preference
     return priority
 
@@ -547,7 +615,59 @@ def capture_choice_available(observation, board, cell, destination):
         return True
     return False
 
-def score_move(observation, board, params, cell, destination):
+def leader_support(observation, board, leader, destination):
+    """Friendly cover at a candidate leader square. A supporter ahead of
+    the leader counts fully, one abreast counts half, and one behind cannot
+    make an advance safer. Nearer supporters count more; two weighted units
+    saturate rather than turning this 0..1 preference into a material score."""
+    support = 0.0
+    destination_progress = forward_progress(board["side"], destination)
+    for ally in observation["own"]:
+        if ally["unitId"] == leader["unitId"]:
+            continue
+        distance = chebyshev_distance(destination, ally["square"])
+        if distance == 0:
+            continue
+        ally_progress = forward_progress(board["side"], ally["square"])
+        direction_weight = 1.0 if ally_progress > destination_progress else (0.5 if ally_progress == destination_progress else 0.0)
+        support += direction_weight / distance
+    return min(1.0, support / LEADER_SUPPORT_SATURATION)
+
+def current_morale_need(observation):
+    """The highest currently visible capture threshold, also bounded by the
+    number already managed. The host owns affordability; this only asks how
+    much current work more morale would unlock."""
+    needed = observation.get("ownManaged", 0)
+    for by_destination in observation.get("affordability", {}).values():
+        for outcomes in by_destination.values():
+            needed = max(needed, outcomes.get("capture", EMPTY_OUTCOME).get("requiredMorale", 0))
+    return needed
+
+def post_move_morale(observation, board, from_square, destination):
+    """Do not score the king as current morale plus forward gain: an
+    incursion penalty already paid at the current square follows the king.
+    The host projects that exact applied 0/1 penalty because reconstructing
+    it from a clamped morale value is ambiguous at zero."""
+    current_penalty = observation.get("ownMoralePenalty", 0)
+    return max(0, forward_progress(board["side"], destination) - current_penalty)
+
+def is_current_beacon_bearer(observation, cell):
+    beacon = observation.get("beacon", {})
+    return beacon.get("lifecycle") == "deployed" and beacon.get("bearerSquare") == cell["square"]
+
+def is_leader(observation, cell):
+    return cell["rank"] == "king" or is_current_beacon_bearer(observation, cell)
+
+def has_other_ordinary_choice(observation, board, current_cell):
+    for cell in board["actionable_units"]:
+        if cell["unitId"] == current_cell["unitId"] or cell["convoy"] or cell["rank"] == "king" or is_current_beacon_bearer(observation, cell):
+            continue
+        for destination in observation["legal"].get(cell["unitId"], []):
+            if destination != cell["square"]:
+                return True
+    return False
+
+def score_move(observation, board, params, memory, cell, destination):
     """Scores one (own unit, legal destination) pair, AND builds the named
     breakdown of that score. `destination` always comes from
     observation.legal — this function only ever weighs a move the host
@@ -563,6 +683,9 @@ def score_move(observation, board, params, cell, destination):
     assumed — see the accompanying report."""
     danger = danger_at(observation, destination)
     target_cell = effective_capture_target(observation, board, cell, destination)
+    current_move_facts = has_current_move_facts(observation)
+    quiet_move = is_quiet_move(observation, board, cell, destination)
+    move_fact = move_fact_at(observation, cell["unitId"], destination) if current_move_facts else EMPTY_MOVE_FACT
     score = 0.0
     captured_value = 0.0
     terms = []
@@ -611,6 +734,8 @@ def score_move(observation, board, params, cell, destination):
                 cell["convoy"] and cell["cargoCount"] > 0):
             material_gain /= (cell["cargoCount"] + 1)
         score += add_term(terms, "material", material_gain, "capture")
+        if current_move_facts and target_cell["rank"] == "king" and not target_cell["ghost"]:
+            score += add_term(terms, "kingHunt", params["advance"], "visible")
         if params["prisoner"] > 0 and target_cell["rank"] != "king" and not target_cell["convoy"]:
             score += add_term(terms, "prisoner", CAPTURE_ALIVE_BONUS * params["prisoner"] * success_chance, "alive")
             # Veteran-progression bootstrap (bot4chess/score.go's own
@@ -635,13 +760,15 @@ def score_move(observation, board, params, cell, destination):
 
     # Safety: a trade that already wins material is worth taking; walking a
     # queen in front of a pawn for nothing is not.
-    if danger["threat"] > 0:
+    post_threat = move_fact["threatenedAfter"] if current_move_facts and quiet_move else danger["threat"]
+    post_guarded = move_fact["protectedAfter"] if current_move_facts and quiet_move else danger["guarded"]
+    if post_threat > 0:
         risk = rank_value(cell["rank"])
         if cell["kingCargo"]:
             risk += KING_CARGO_ESCORT_RISK
         if captured_value >= risk:
             risk *= SAFE_TRADE_DISCOUNT
-        elif danger["guarded"] > 0:
+        elif post_guarded > 0:
             risk *= RECAPTURE_DISCOUNT
         score += add_term(terms, "safety", -risk * params["safety"], "risk")
 
@@ -708,27 +835,46 @@ def score_move(observation, board, params, cell, destination):
                           (UNBLOCK_BASE_VALUE - min(rank_value(cell["rank"]), QUEEN_VALUE) * UNBLOCK_VALUE_SPREAD) * params["delivery"],
                           "unblock")
 
-    # Positional pressure.
+    # Positional pressure. New hosts provide post-move facts for quiet moves;
+    # old corpus observations intentionally retain the historical scorer.
     if params["advance"] > 0 and not cell["convoy"]:
         gain = forward_progress(board["side"], destination) - forward_progress(board["side"], cell["square"])
-        if cell["rank"] == "pawn":
+        positional_known_and_supported = (not current_move_facts or not quiet_move or
+                                          (move_fact["destinationKnown"] and move_fact["protectedAfter"] > 0))
+        if current_move_facts and quiet_move and not move_fact["destinationKnown"]:
+            score += add_term(terms, "safety", -UNKNOWN_QUIET_PENALTY * params["safety"], "unknownQuiet")
+        elif current_move_facts and quiet_move and move_fact["protectedAfter"] <= 0:
+            score += add_term(terms, "safety", -UNSUPPORTED_QUIET_PENALTY * params["safety"], "unsupportedQuiet")
+        ordinary_piece = cell["rank"] != "king" and not is_current_beacon_bearer(observation, cell)
+        if cell["rank"] == "pawn" and positional_known_and_supported and ordinary_piece:
             score += add_term(terms, "advance", gain * ADVANCE_PAWN_MULTIPLIER * params["advance"], "pawn")
             if is_promotion_square(board["side"], destination):
                 score += add_term(terms, "advance", PROMOTION_BONUS * params["advance"], "promotion")
-        elif cell["rank"] != "king":
+        elif ordinary_piece and positional_known_and_supported:
             score += add_term(terms, "advance", gain * params["advance"], "piece")
+        if (current_move_facts and quiet_move and positional_known_and_supported and
+                cell["rank"] in ["knight", "bishop", "rook", "queen"] and ordinary_piece and not cell.get("moved", False) and gain > 0):
+            score += add_term(terms, "develop", DEVELOP_FIRST_FORWARD_VALUE * params["advance"] * protection_factor(move_fact), "firstForward")
+        if current_move_facts and quiet_move and positional_known_and_supported and ordinary_piece and move_fact["patrolGain"] > 0:
+            score += add_term(terms, "coverage", min(move_fact["patrolGain"], PATROL_GAIN_CAP) * PATROL_GAIN_VALUE * params["advance"] * protection_factor(move_fact), "patrol")
+        if current_move_facts and quiet_move and positional_known_and_supported and ordinary_piece:
+            for enemy in observation["enemy"]:
+                if enemy["rank"] == "king" and not enemy["ghost"]:
+                    closer = chebyshev_distance(cell["square"], enemy["square"]) - chebyshev_distance(destination, enemy["square"])
+                    if closer > 0:
+                        score += add_term(terms, "kingHunt", closer * KING_HUNT_VALUE * params["advance"] * protection_factor(move_fact), "visible")
 
     # Dodge a target lock: the enemy has publicly committed to striking
     # this piece, so moving it is worth real value.
     if params["targetLock"] > 0 and board["locked_units"].get(cell["unitId"]):
         score += add_term(terms, "targetLock", TARGET_LOCK_DODGE_VALUE * params["targetLock"], "dodge")
-        if danger["threat"] == 0:
+        if post_threat == 0:
             score += add_term(terms, "targetLock", TARGET_LOCK_SAFE_VALUE * params["targetLock"], "safeDodge")
 
     # King safety: get the king out of danger, or take the piece
     # threatening it.
     if params["kingSafety"] > 0 and board["king_threatened"]:
-        if cell["rank"] == "king" and not cell["convoy"] and danger["threat"] == 0:
+        if cell["rank"] == "king" and not cell["convoy"] and post_threat == 0:
             score += add_term(terms, "kingSafety", params["kingSafety"], "escape")
         if target_cell and board["king_cell"] and target_cell.get("attacksKing"):
             score += add_term(terms, "kingSafety", params["kingSafety"] * KING_GUARD_BONUS, "guard")
@@ -737,12 +883,36 @@ def score_move(observation, board, params, cell, destination):
     # every command system, and only a tier that values it plays that way.
     if params["moralePush"] > 0 and cell["rank"] == "king" and not cell["convoy"]:
         gain = forward_progress(board["side"], destination) - forward_progress(board["side"], cell["square"])
-        if gain > 0 and danger["threat"] == 0:
-            score += add_term(terms, "moralePush", gain * params["moralePush"], "push")
-        if danger["threat"] > 0:
+        king_safe_after = (move_fact["destinationKnown"] and move_fact["protectedAfter"] > 0 and move_fact["threatenedAfter"] <= 0) if current_move_facts else danger["threat"] == 0
+        if gain > 0 and king_safe_after:
+            if current_move_facts:
+                after_morale = post_move_morale(observation, board, cell["square"], destination)
+                excess = after_morale - current_morale_need(observation)
+                covered = leader_support(observation, board, cell, destination)
+                if excess >= LEADER_EXCESS_MORALE:
+                    score += add_term(terms, "moralePush", -gain * MORALE_PUSH_VALUE * params["moralePush"], "excessAdvance")
+                else:
+                    score += add_term(terms, "moralePush", gain * MORALE_PUSH_VALUE * params["moralePush"] * covered, "coveredAdvance")
+            else:
+                score += add_term(terms, "moralePush", gain * params["moralePush"], "push")
+        elif current_move_facts and gain < 0 and king_safe_after:
+            after_morale = post_move_morale(observation, board, cell["square"], destination)
+            if observation.get("ownMorale", 0) - current_morale_need(observation) >= LEADER_EXCESS_MORALE:
+                score += add_term(terms, "moralePush", -gain * MORALE_PUSH_VALUE * params["moralePush"] * LEADER_RETREAT_VALUE, "excessRetreat")
+        if post_threat > 0:
             # never walk the king into a strike — a SAFETY cost, priced by the
             # safety weight, so it reads to a player as the danger it is
             score += add_term(terms, "safety", -KING_VALUE * params["safety"], "kingIntoStrike")
+
+    # A Beacon bearer motivates the formation but is not a hero either. The
+    # field is a permission as well as a weight on current observations.
+    if (current_move_facts and is_current_beacon_bearer(observation, cell) and cell["rank"] != "king" and
+            not cell["convoy"] and quiet_move and params["beaconAggression"] > 0):
+        gain = forward_progress(board["side"], destination) - forward_progress(board["side"], cell["square"])
+        if move_fact["destinationKnown"] and move_fact["protectedAfter"] > 0 and move_fact["threatenedAfter"] <= 0:
+            support_gain = leader_support(observation, board, cell, destination) - leader_support(observation, board, cell, cell["square"])
+            if support_gain > 0:
+                score += add_term(terms, "beaconAggression", support_gain * params["beaconAggression"] * protection_factor(move_fact), "coveredAdvance")
 
     intent = {"kind": "move", "from": cell["square"], "to": destination}
     if cell["rank"] == "pawn" and not cell["convoy"] and is_promotion_square(board["side"], destination):
@@ -842,7 +1012,40 @@ def _unit_priority_key(entry):
 def _proposal_score_key(proposal):
     return (-proposal["score"], proposal["key"])
 
-def move_proposals(observation, board, params):
+def apply_repeat_penalty(observation, board, params, memory, proposals):
+    """Only penalise a second quiet ordinary move when a different ordinary
+    proposal has already survived legality, affordability and breadth/spread
+    filtering. Raw legal squares are not enough: a morale-refused capture is
+    not a real alternative. lastQuietTo is written only for an ordinary quiet
+    move, so actions, captures, threatened escapes, delivery and leaders
+    remain exempt; pawns still avoid needless repetition."""
+    if not has_current_move_facts(observation):
+        return proposals
+    last_to = memory.get("lastQuietTo", NO_SQUARE_INDEX)
+    if last_to < 0:
+        return proposals
+    repeated_cell = board["own_by_square"].get(square_name(last_to))
+    if not repeated_cell or repeated_cell["convoy"] or repeated_cell["rank"] == "king" or is_current_beacon_bearer(observation, repeated_cell):
+        return proposals
+    other_viable = False
+    for proposal in proposals:
+        candidate = board["own_by_square"].get(proposal["intent"]["from"])
+        if (candidate and candidate["unitId"] != repeated_cell["unitId"] and not candidate["convoy"] and candidate["rank"] != "king" and
+                not is_current_beacon_bearer(observation, candidate) and proposal["score"] >= params["passBelow"]):
+            other_viable = True
+            break
+    if not other_viable:
+        return proposals
+    for proposal in proposals:
+        if proposal["actor"] != repeated_cell["unitId"]:
+            continue
+        destination = proposal["intent"].get("to")
+        if is_quiet_move(observation, board, repeated_cell, destination) and danger_at(observation, repeated_cell["square"])["threat"] <= 0:
+            penalty = -params["advance"]
+            proposal["score"] += add_term(proposal["terms"], "repeatPenalty", penalty, "quiet")
+    return proposals
+
+def move_proposals(observation, board, params, memory):
     """Expands the tier's breadth of own units into scored moves. Legality
     always comes from observation.legal, computed by the host — never from
     this function's own judgement, which only ever picks among what is
@@ -860,6 +1063,7 @@ def move_proposals(observation, board, params):
         breadth = len(ranked_units)
 
     proposals = []
+    leader_guard = active_leader_guard(observation, memory)
     for entry in ranked_units[:breadth]:
         cell = entry["cell"]
         destinations = observation["legal"].get(cell["unitId"], [])
@@ -869,7 +1073,9 @@ def move_proposals(observation, board, params):
                 continue
             if not capture_choice_available(observation, board, cell, destination):
                 continue
-            candidates.append(score_move(observation, board, params, cell, destination))
+            if leader_reverse_forbidden(observation, leader_guard, cell, destination):
+                continue
+            candidates.append(score_move(observation, board, params, memory, cell, destination))
         # A shallow tier keeps only its narrow spread of that unit's best
         # destinations — that, plus breadth, is what "shallow evaluation"
         # means.
@@ -878,7 +1084,7 @@ def move_proposals(observation, board, params):
         if candidate_spread <= 0 or candidate_spread > len(candidates):
             candidate_spread = len(candidates)
         proposals.extend(candidates[:candidate_spread])
-    return proposals
+    return apply_repeat_penalty(observation, board, params, memory, proposals)
 
 
 # =============================================================================
@@ -1069,6 +1275,8 @@ def beacon_hand_off_proposal(observation, board, params):
     REQ:options-are-distinct-by-unit must dedupe THIS proposal against: an
     ordinary move of that same ally proposed elsewhere in the same decide()
     call is the other candidate for the SAME idea, not a different one."""
+    if not observation["rules"].get("beaconEnabled", False):
+        return None
     king_cell = board["king_cell"]
     if king_cell == None or board["busy_units"].get(king_cell["unitId"]):
         return None
@@ -1087,11 +1295,11 @@ def beacon_hand_off_proposal(observation, board, params):
         if cell["square"] == to:
             actor = cell["unitId"]
             break
-    score = SYSTEM_BEACON_HAND_OFF_VALUE * params["system"]
+    score = SYSTEM_BEACON_HAND_OFF_VALUE * beacon_aggression(observation, params)
     return {
         "intent": {"kind": "action", "from": to, "to": to, "action": "beacon_take"},
         "score": score,
-        "terms": [{"term": "system", "value": score, "detail": "handOff"}],
+        "terms": [{"term": "beaconAggression", "value": score, "detail": "handOff"}],
         "actor": actor,
         "key": "beacon-hand-off",
     }
@@ -1333,25 +1541,27 @@ def beacon_deploy_or_restore_proposal(observation, board, params):
     itself at (REQ:options-are-distinct-by-unit), so any ordinary king move
     proposed elsewhere in the same decide() call is the SAME idea's other
     candidate, not a different one."""
+    if not observation["rules"].get("beaconEnabled", False):
+        return None
     king_cell = board["king_cell"]
     if king_cell == None or board["busy_units"].get(king_cell["unitId"]):
         return None
     beacon = observation["beacon"]
     if beacon["lifecycle"] == "undeployed":
-        score = SYSTEM_BEACON_DEPLOY_VALUE * params["system"]
+        score = SYSTEM_BEACON_DEPLOY_VALUE * beacon_aggression(observation, params)
         return {
             "intent": {"kind": "action", "from": king_cell["square"], "to": king_cell["square"], "action": "beacon_deploy"},
             "score": score,
-            "terms": [{"term": "system", "value": score, "detail": "deploy"}],
+            "terms": [{"term": "beaconAggression", "value": score, "detail": "deploy"}],
             "actor": king_cell["unitId"],
             "key": "beacon-deploy",
         }
     if beacon["lifecycle"] == "lost":
-        score = SYSTEM_BEACON_RESTORE_VALUE * params["system"]
+        score = SYSTEM_BEACON_RESTORE_VALUE * beacon_aggression(observation, params)
         return {
             "intent": {"kind": "action", "from": king_cell["square"], "to": king_cell["square"], "action": "beacon_restore"},
             "score": score,
-            "terms": [{"term": "system", "value": score, "detail": "restore"}],
+            "terms": [{"term": "beaconAggression", "value": score, "detail": "restore"}],
             "actor": king_cell["unitId"],
             "key": "beacon-restore",
         }
@@ -1389,6 +1599,8 @@ def beacon_forge_proposals(observation, board, params):
     since the loop below is keyed on cell["unitId"] already, but every
     other system generator in this file names it explicitly rather than
     leaving rank_options to fall back to `key`, so this does too."""
+    if not observation["rules"].get("beaconEnabled", False) or not observation["rules"].get("beaconForgeEnabled", False):
+        return []
     if observation["beacon"]["lifecycle"] != "lost":
         return []
     own_pawn_base_squares = observation["rules"]["baseSquares"].get("pawn", [])
@@ -1403,11 +1615,11 @@ def beacon_forge_proposals(observation, board, params):
         # reason (a channel locks progress in with no way to dodge).
         if danger_at(observation, cell["square"])["threat"] > 0:
             continue
-        score = SYSTEM_BEACON_FORGE_VALUE * params["system"]
+        score = SYSTEM_BEACON_FORGE_VALUE * beacon_aggression(observation, params)
         proposals.append({
             "intent": {"kind": "action", "from": cell["square"], "to": cell["square"], "action": "beacon_forge"},
             "score": score,
-            "terms": [{"term": "system", "value": score, "detail": "forge"}],
+            "terms": [{"term": "beaconAggression", "value": score, "detail": "forge"}],
             "actor": cell["unitId"],
             "key": "beacon-forge|" + cell["unitId"],
         })
@@ -1517,16 +1729,21 @@ def system_proposals(observation, board, params):
     params["system"] == 0, leaves every one of them exactly as inert as any
     other system action."""
     systems = observation["systems"]
-    any_system_enabled = (
-        systems["training"] or systems["walls"] or systems["beacon"] or
-        systems["prisoners"] or systems["morale"] or systems["espionage"]
-    )
-    if not any_system_enabled or params["system"] <= 0:
+    beacon_allowed = observation["rules"].get("beaconEnabled", False) and beacon_aggression(observation, params) > 0
+    if "beaconAggression" not in params:
+        beacon_allowed = beacon_allowed and systems["beacon"]
+    any_other_system_enabled = systems["training"] or systems["walls"] or systems["prisoners"] or systems["morale"] or systems["espionage"]
+    if (not beacon_allowed and (not any_other_system_enabled or params["system"] <= 0)):
         return []
     proposals = []
-    if systems["training"] and observation["rules"]["specialistsEnabled"]:
-        proposals.extend(training_proposals(observation, board, params))
-    if systems["beacon"]:
+    if params["system"] > 0:
+        if systems["training"] and observation["rules"]["specialistsEnabled"]:
+            proposals.extend(training_proposals(observation, board, params))
+        if systems["walls"] and (observation["rules"]["woodWallsEnabled"] or observation["rules"]["stoneWallsEnabled"]):
+            proposals.extend(wall_proposals(observation, board, params))
+        if systems["espionage"]:
+            proposals.extend(espionage_proposals(observation, board, params))
+    if beacon_allowed:
         hand_off = beacon_hand_off_proposal(observation, board, params)
         if hand_off != None:
             proposals.append(hand_off)
@@ -1535,10 +1752,6 @@ def system_proposals(observation, board, params):
             proposals.append(deploy_or_restore)
         if observation["rules"]["beaconForgeEnabled"]:
             proposals.extend(beacon_forge_proposals(observation, board, params))
-    if systems["walls"] and (observation["rules"]["woodWallsEnabled"] or observation["rules"]["stoneWallsEnabled"]):
-        proposals.extend(wall_proposals(observation, board, params))
-    if systems["espionage"]:
-        proposals.extend(espionage_proposals(observation, board, params))
     return proposals
 
 
@@ -1588,6 +1801,125 @@ def drop_refused(proposals, observation, memory):
         return proposals
     return [proposal for proposal in proposals if proposal["intent"]["from"] not in refused_squares]
 
+# One-ply leader reversal guard. It deliberately keeps placement as twelve
+# signed int64 side×rank bitboards, not a hash: each occupied square sets one
+# unique bit in exactly one category, so any intervening relocation, capture
+# or promotion changes at least one stored value. The twelve values plus
+# active/from/to/kind add sixteen entries to the existing eleven-entry memory
+# shape: 27, safely below Recruit's 32-entry allowance.
+RANK_BIT_SLOTS = {"pawn": 0, "knight": 1, "bishop": 2, "rook": 3, "queen": 4, "king": 5}
+
+def signed_bitboard(value):
+    return value - BITBOARD_MODULUS if value >= BITBOARD_SIGN_BIT else value
+
+def placement_bitboards(observation, moved_unit_id = "", moved_to = ""):
+    bitboards = [0] * 12
+    for cell in observation["own"] + observation["enemy"]:
+        rank_slot = RANK_BIT_SLOTS.get(cell["rank"])
+        if rank_slot == None:
+            continue
+        side_slot = 0 if cell["side"] == "white" else 6
+        square = moved_to if cell["unitId"] == moved_unit_id else cell["square"]
+        bitboards[side_slot + rank_slot] |= 1 << square_index(square)
+    return [signed_bitboard(value) for value in bitboards]
+
+def leader_kind(observation, cell):
+    if cell["rank"] == "king":
+        return 6  # king's rank bitboard slot + 1
+    if is_current_beacon_bearer(observation, cell):
+        return RANK_BIT_SLOTS.get(cell["rank"], -1) + 1
+    return 0
+
+def leader_guard_keys():
+    return ["leaderGuardActive", "leaderGuardFrom", "leaderGuardTo", "leaderGuardKind"] + ["leaderBoard" + str(slot) for slot in range(12)]
+
+def clear_leader_guard(memory):
+    for key in leader_guard_keys():
+        memory.pop(key, None)
+
+def leader_guard_matches(observation, memory):
+    if not has_current_move_facts(observation) or memory.get("leaderGuardActive", 0) != 1:
+        return False
+    from_square = square_name(memory["leaderGuardFrom"])
+    to_square = square_name(memory["leaderGuardTo"])
+    # During charging/pre-layout the source placement is still visible. Keep
+    # the guard rather than treating that expected transient as a board edit.
+    source_cell = None
+    for cell in observation["own"]:
+        if cell["square"] == from_square:
+            source_cell = cell
+            break
+    if source_cell and leader_kind(observation, source_cell) == memory["leaderGuardKind"]:
+        expected_pre = []
+        side_slot = 0 if source_cell["side"] == "white" else 6
+        board_slot = side_slot + memory["leaderGuardKind"] - 1
+        for slot in range(12):
+            value = memory.get("leaderBoard" + str(slot), 0)
+            if value < 0:
+                value += BITBOARD_MODULUS
+            if slot == board_slot:
+                value ^= (1 << memory["leaderGuardFrom"]) | (1 << memory["leaderGuardTo"])
+            expected_pre.append(signed_bitboard(value))
+        return placement_bitboards(observation) == expected_pre
+    destination_cell = None
+    for cell in observation["own"]:
+        if cell["square"] == to_square:
+            destination_cell = cell
+            break
+    if not destination_cell or leader_kind(observation, destination_cell) != memory["leaderGuardKind"]:
+        return False
+    bitboards = placement_bitboards(observation)
+    for slot in range(12):
+        if bitboards[slot] != memory.get("leaderBoard" + str(slot)):
+            return False
+    return True
+
+def active_leader_guard(observation, memory):
+    if not leader_guard_matches(observation, memory):
+        return None
+    return {"from": memory["leaderGuardFrom"], "to": memory["leaderGuardTo"], "kind": memory["leaderGuardKind"]}
+
+def leader_reverse_forbidden(observation, guard, cell, destination):
+    if guard == None:
+        return False
+    if cell["square"] != square_name(guard["to"]) or destination != square_name(guard["from"]):
+        return False
+    if leader_kind(observation, cell) != guard["kind"]:
+        return False
+    # A threatened leader may always take the exact reverse as an escape.
+    return danger_at(observation, cell["square"])["threat"] <= 0
+
+def memory_last_to_is(memory, square):
+    return memory.get("lastTo", NO_SQUARE_INDEX) == square_index(square)
+
+def quiet_leader_intent(observation, intent):
+    if not intent or intent["kind"] != "move" or intent.get("promotion"):
+        return None
+    cell = None
+    for candidate in observation["own"]:
+        if candidate["square"] == intent["from"]:
+            cell = candidate
+            break
+    if not cell or cell["convoy"] or not leader_kind(observation, cell):
+        return None
+    board = {"enemy_by_square": {enemy["square"]: enemy for enemy in observation["enemy"]}}
+    if not is_quiet_move(observation, board, cell, intent["to"]):
+        return None
+    return cell
+
+def quiet_ordinary_intent(observation, intent):
+    if not intent or intent["kind"] != "move" or intent.get("promotion"):
+        return None
+    cell = None
+    for candidate in observation["own"]:
+        if candidate["square"] == intent["from"]:
+            cell = candidate
+            break
+    if not cell or cell["convoy"] or leader_kind(observation, cell):
+        return None
+    board = {"enemy_by_square": {enemy["square"]: enemy for enemy in observation["enemy"]}}
+    return cell if is_quiet_move(observation, board, cell, intent["to"]) else None
+
 def build_memory(observation, memory, intent):
     """The next memory to persist: always records the revision and the
     intent just chosen (or NO_SQUARE_INDEX for a pass), and additionally
@@ -1606,6 +1938,8 @@ def build_memory(observation, memory, intent):
     run of refusals at the SAME frozen revision keeps growing the excluded
     set instead of only ever remembering the latest one."""
     updated_memory = dict(memory)
+    if updated_memory.get("leaderGuardActive", 0) == 1 and not leader_guard_matches(observation, updated_memory):
+        clear_leader_guard(updated_memory)
     from_index = square_index(intent["from"]) if intent else NO_SQUARE_INDEX
     to_index = square_index(intent["to"]) if intent else NO_SQUARE_INDEX
 
@@ -1625,6 +1959,17 @@ def build_memory(observation, memory, intent):
     elif intent and intent["kind"] == "move":
         updated_memory["moves"] = memory.get("moves", 0) + 1
         updated_memory["focusFrom"] = from_index + 1  # the piece this bot is now committed to; holds_focus reads it back
+    leader = quiet_leader_intent(observation, intent)
+    if has_current_move_facts(observation) and leader:
+        updated_memory["leaderGuardActive"] = 1
+        updated_memory["leaderGuardFrom"] = from_index
+        updated_memory["leaderGuardTo"] = to_index
+        updated_memory["leaderGuardKind"] = leader_kind(observation, leader)
+        bitboards = placement_bitboards(observation, leader["unitId"], intent["to"])
+        for slot in range(12):
+            updated_memory["leaderBoard" + str(slot)] = bitboards[slot]
+    quiet_ordinary = quiet_ordinary_intent(observation, intent)
+    updated_memory["lastQuietTo"] = to_index if quiet_ordinary else NO_SQUARE_INDEX
     return updated_memory
 
 def intn(random_draw, count):
@@ -1683,7 +2028,7 @@ def decide(observation, memory, params, host_random_draw, options = 0):
 
     proposals = []
     if not holds_focus(board, memory):
-        proposals = move_proposals(observation, board, params)
+        proposals = move_proposals(observation, board, params, memory)
     proposals = proposals + system_proposals(observation, board, params)
     proposals = drop_refused(proposals, observation, memory)
 

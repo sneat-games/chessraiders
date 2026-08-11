@@ -47,7 +47,7 @@ deliver a captured king, which squares are safe) arrives as plain data on
 
 ## What a single tier row means
 
-A row is sixteen named values, in three groups:
+A row is seventeen named values, in three groups:
 
 **Ten score weights** — each scales one whole category of `decide()`'s
 scoring, and each is a *gate*, not just a multiplier: `chess-raiders-bot.star` checks
@@ -67,9 +67,17 @@ row, so `chess-raiders-bot.star` never even considers a tempo, prisoner, or syst
 | `targetLock` | Dodging a piece the enemy has target-locked. |
 | `kingSafety` | Escaping or guarding a threatened king. |
 | `moralePush` | The morale gain from advancing the king (Chess Raiders' king can safely advance further than in traditional chess — see the [Standard Bot spec](../../../spec/features/standard-bot/README.md)). |
+| `beaconAggression` | Both the bot's Royal Beacon permission and its preference: `0` never proposes Beacon actions; a positive value proposes and scores them, still subject to the match's Beacon rules. Recruit/Lieutenant/Commander use 0.3/0.6/0.9; Adviser uses 1.0. |
 | `delivery` | Escorting a captured enemy king home, and clearing a blocked delivery lane. |
 | `prisoner` | Taking and holding prisoners, independent of delivering the king itself. |
-| `system` | Every non-move action: training, wall repair/dismantle, Beacon deploy/restore/forge/hand-off, interrogation. |
+| `system` | Non-Beacon actions: training, wall repair/dismantle and interrogation. |
+
+For a current host observation, quiet positional rewards use the host's
+`moveFacts[unitId][destination]`: unknown or unsupported destinations do not
+earn advance/development/coverage/king-hunt credit, and post-move threat facts
+price their risk. This prevents the bot treating a pre-move guard as proof it
+will remain covered after moving. Older recorded observations deliberately use
+the prior scorer so the published conformance corpus remains replayable.
 
 **Three scheduling knobs** — bound how much of the board one decision looks
 at, not what it values:

@@ -78,6 +78,24 @@ three. Read the script once and you know how all three commanders think;
 change one number in one difficulty's table and you have a new opponent
 without touching the others.
 
+#### REQ: leaders-advance-under-cover
+
+The king and the current Royal Beacon bearer are enablers, not attackers.
+They advance only when friendly pieces support the destination, with nearer
+pieces ahead contributing most; when the king already has three or more
+morale beyond its visible capture and managed-work needs, it prefers to
+regroup rather than press further. After either leader makes a quiet move,
+the bot rejects its exact immediate reverse while every other piece remains
+in the same placement, unless the leader must reverse to escape a threat.
+
+#### REQ: visible-king-pursuit-and-safe-development
+
+An ordinary unit pursues a visible, non-ghost enemy king, develops on its
+first forward officer move, and gains credit for host-confirmed patrol
+coverage. These quiet positional rewards require a known, protected
+post-move destination; a bot does not pretend a guard at its old square
+protects its destination.
+
 #### REQ: forking-needs-only-a-browser
 
 The published script and its parameter table are ordinary text — nothing
@@ -259,6 +277,32 @@ judgement still being worked through rather than a gap nobody noticed.
 - [Royal Beacon](../royal-beacon/README.md) — the command chain Lieutenant and Commander keep moving.
 
 ## Acceptance Criteria
+
+### AC: leaders-do-not-oscillate-or-overextend
+
+**Given** a king or current Royal Beacon bearer has made a quiet advance or
+retreat under friendly cover
+**When** it next decides with every other piece still in the same placement
+**Then** it does not immediately take the exact reverse, unless its current
+square is threatened; a move, capture or promotion by another piece releases
+that one-ply guard, and a charged command keeps it until its layout settles.
+
+### AC: safe-development-and-king-hunt-use-post-move-facts
+
+**Given** an ordinary piece can either move toward a visible non-ghost enemy
+king on a host-confirmed protected square or make an equally advancing unknown
+or unsupported quiet move
+**When** the bot chooses within its breadth
+**Then** it selects the protected pursuit/development/coverage opportunity,
+and it never lets the unknown or unsupported advance win merely by tying it.
+
+### AC: beacon-aggression-is-bot-permission
+
+**Given** match rules enable the Royal Beacon
+**When** a bot's `beaconAggression` is zero
+**Then** it proposes no Beacon action; **when** it is positive, Recruit,
+Lieutenant and Commander use 0.3, 0.6 and 0.9 respectively and can propose
+Beacon actions regardless of a legacy BotSystems Beacon gate.
 
 ### AC: solo-vs-bot-playable
 
