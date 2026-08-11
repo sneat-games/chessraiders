@@ -117,8 +117,14 @@ This is a floor underneath the three difficulties above, not a fourth
 difficulty. It is not a walkover: a side that does nothing still has its
 whole army standing in the way, so the bot has to advance into it, take
 material, promote a pawn, capture the enemy king and escort it home —
-all without a single move from the other side to react to. Recruit is
-expected to take far longer than Commander and to win untidily.
+all without a single move from the other side to react to.
+
+No ordering between the difficulties is implied. A Recruit may well finish
+first: it spends every decision advancing, while Commander's fortification
+work, prisoner logistics and incursion positioning are machinery for
+beating an opponent who does something, and buy nothing against one who
+does not. How quickly a difficulty beats a passive opponent measures how
+directly it plays, not how well.
 
 What no difficulty may do is fail to finish. Wandering, stalling, or
 repeating the same two moves until the clock runs out is a defect, not a
@@ -268,8 +274,9 @@ positioning
 
 **Given** each of the three difficulties in turn, against an opponent that
 issues no commands at all, across a range of starting seeds rather than one
-**When** each match plays out under a time budget generous enough for the
-slowest difficulty
+**When** each match plays out under a generous time budget — the same one
+for every difficulty, since none is expected to be quicker than another
+here
 **Then** every difficulty delivers the enemy king home and wins, in every
 seed — a single seed that stalls, wanders, or repeats one pair of moves
 until the budget expires fails this criterion, and pinning the check to a
