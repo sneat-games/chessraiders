@@ -126,6 +126,32 @@ beating an opponent who does something, and buy nothing against one who
 does not. How quickly a difficulty beats a passive opponent measures how
 directly it plays, not how well.
 
+#### REQ: no-repeated-position-against-a-passive-opponent
+
+Against an opponent issuing no commands, a bot never returns the board to
+a state it has already been in.
+
+With nobody opposing it, every change on the board is the bot's own doing.
+Arriving back somewhere it has already been therefore means it has undone
+its own work — that is what a cycle is, and it is how a stalled bot burns
+an entire clock while still looking busy from the outside.
+
+**This is checked, not implemented.** No difficulty tracks the positions
+it has visited, and none should: carrying that history would cost every
+player's browser memory and would change the bot's decisions in order to
+satisfy a test. The check belongs to whatever drives the match, which
+fails at the FIRST repetition and names the state — turning a cycle from
+something you infer from an expired budget into something reported at the
+moment it happens.
+
+What counts as the same state is the part worth getting right. The
+comparison covers what a player would see change: where the pieces are,
+plus everything that makes an otherwise-identical placement genuinely
+different — fatigue, morale, Beacon standing, specialist and veteran
+progress, prisoner status. It deliberately excludes the clock. A
+comparison that includes a value which advances every tick can never
+report a repeat, and would pass forever without ever comparing anything.
+
 What no difficulty may do is fail to finish. Wandering, stalling, or
 repeating the same two moves until the clock runs out is a defect, not a
 weaker setting — a commander who cannot beat someone standing still has
@@ -281,6 +307,20 @@ here
 seed — a single seed that stalls, wanders, or repeats one pair of moves
 until the budget expires fails this criterion, and pinning the check to a
 seed that happens to pass does not satisfy it
+
+### AC: no-position-repeats-against-a-passive-opponent
+
+**Given** any difficulty playing an opponent that issues no commands, with
+whatever drives the match recording each state it passes through
+**When** the bot decides and the board advances
+**Then** no state ever recurs, and the moment one does the run fails
+immediately — naming the repeated state and the two decisions that
+produced it — rather than running on until the budget expires
+
+**And** the recorded state excludes the clock, so that a check which can
+never report a repeat is itself a failure: deliberately drive a bot into a
+cycle and confirm the check catches it, rather than trusting that a green
+run means no cycle occurred
 
 ### AC: no-tier-builds-a-wall
 
