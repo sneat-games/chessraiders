@@ -6,6 +6,29 @@
 
 ---
 
+## The plan this belongs to
+
+**`sneat-co/chessraiders@plans` → `spec/plans/publish-the-standard-bot.md`**
+
+The plan is **CLI-locked**. It declares `**Coordination:** sneat-co/chessraiders@plans`, so `specscore task change-status` refuses to mutate a task unless the current repo and branch match. Walk it only in the dedicated plans worktree — `/Users/alex/projects/.wb/worktrees/chess-plans/sneat-co/chessraiders` — never in the canonical clone, and never by hand-editing a `**Status:**` line.
+
+Transitions are a strict matrix: `planning → queued → in_progress → complete`. You cannot jump straight to `complete`, and re-running a transition onto the current status exits 4.
+
+**Task status as of this handover** (21 tasks, 17 complete):
+
+| still open | status | note |
+|---|---|---|
+| Task 10 — the public module's two CI jobs | `planning` | blocked on a 404; see §10, the cause is **not** established |
+| Task 12 — the creator's replayer and two sanity checks, in the browser | `planning` | not started |
+| Task 20 — the public trajectory suite in Node against the published binary | `planning` | PR #9 open on `sneat-games/chessraiders` |
+| Task 21 — walk the journey | `planning` | last task; needs the others first |
+
+Note that the plan **spans two repos**. Read each task's `Repository:` line rather than assuming — public artifacts live in `sneat-games/chessraiders`, the engine and its specs in `sneat-co/chessraiders`.
+
+The bot work described in this handover is **not** one of the plan's 21 tasks. It surfaced from the two passive-opponent requirements and is tracked as its own effort; decide deliberately whether it becomes a plan task or a separate plan.
+
+---
+
 ## 0. Read this first
 
 Three things outrank everything else in this document:
