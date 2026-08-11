@@ -144,13 +144,17 @@ fails at the FIRST repetition and names the state — turning a cycle from
 something you infer from an expired budget into something reported at the
 moment it happens.
 
-What counts as the same state is the part worth getting right. The
-comparison covers what a player would see change: where the pieces are,
-plus everything that makes an otherwise-identical placement genuinely
-different — fatigue, morale, Beacon standing, specialist and veteran
-progress, prisoner status. It deliberately excludes the clock. A
-comparison that includes a value which advances every tick can never
-report a repeat, and would pass forever without ever comparing anything.
+What counts as the same state is deliberately narrow: **which piece stands
+on which square, and nothing else.** Not fatigue, not charge, not morale,
+not Beacon standing, not the clock. Those are bookkeeping that moves on its
+own as time passes, and admitting any of them would let a bot shuffle back
+to an identical arrangement and escape the check because some counter had
+ticked in the meantime — a comparison that can never report a repeat passes
+forever without ever comparing anything.
+
+The strictness is the point. Against a side that does nothing, putting the
+pieces back where they already were means no progress was made, whatever
+the counters say.
 
 What no difficulty may do is fail to finish. Wandering, stalling, or
 repeating the same two moves until the clock runs out is a defect, not a
@@ -317,10 +321,11 @@ whatever drives the match recording each state it passes through
 immediately — naming the repeated state and the two decisions that
 produced it — rather than running on until the budget expires
 
-**And** the recorded state excludes the clock, so that a check which can
-never report a repeat is itself a failure: deliberately drive a bot into a
-cycle and confirm the check catches it, rather than trusting that a green
-run means no cycle occurred
+**And** the recorded state is piece placement alone — no fatigue, charge,
+morale, Beacon standing or clock — so that a check which can never report
+a repeat is itself a failure: deliberately drive a bot into a cycle and
+confirm the check catches it, rather than trusting that a green run means
+no cycle occurred
 
 ### AC: no-tier-builds-a-wall
 
