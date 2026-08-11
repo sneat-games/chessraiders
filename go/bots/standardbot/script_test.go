@@ -5,6 +5,7 @@ package standardbot_test
 import (
 	"encoding/json"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/sneat-games/chessraiders/go/bots/runtime"
@@ -82,6 +83,17 @@ func TestScriptCompiles(t *testing.T) {
 	}
 	if !program.HasFunction("decide") {
 		t.Fatal(`Script does not bind a callable global named "decide"`)
+	}
+}
+
+func TestScriptUsesTargetOnlyInterrogationActivity(t *testing.T) {
+	if !strings.Contains(standardbot.Script, `"interrogationRemainingMs"`) {
+		t.Fatal("script no longer consumes the target-side interrogation timer")
+	}
+	for _, forbidden := range []string{`"interrogating"`, `"interrogatedBy"`, `"beingInterrogated"`} {
+		if strings.Contains(standardbot.Script, forbidden) {
+			t.Fatalf("script consumes forbidden king/source-side interrogation field %s", forbidden)
+		}
 	}
 }
 

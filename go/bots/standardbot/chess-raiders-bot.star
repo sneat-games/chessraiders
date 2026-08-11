@@ -1086,7 +1086,9 @@ def score_move(observation, board, params, memory, cell, destination):
                     score += add_term(terms, "moralePush", gain * MORALE_PUSH_VALUE * params["moralePush"] * guard_strength, "guardedAdvance")
         elif candidate_known and gain < 0 and king_safe_after:
             after_morale = post_move_morale(observation, board, cell["square"], destination)
-            if observation.get("ownMorale", 0) - current_morale_need(observation) >= LEADER_EXCESS_MORALE:
+            needed = current_morale_need(observation)
+            if (observation.get("ownMorale", 0) - needed >= LEADER_EXCESS_MORALE and
+                    after_morale >= needed + 1):
                 score += add_term(terms, "moralePush", -gain * MORALE_PUSH_VALUE * params["moralePush"] * LEADER_RETREAT_VALUE, "excessRetreat")
         if post_threat > 0:
             # never walk the king into a strike — a SAFETY cost, priced by the

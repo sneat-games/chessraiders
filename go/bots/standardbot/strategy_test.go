@@ -1722,6 +1722,31 @@ func TestMoraleReserveExcessRetreatAndIncursionPenalty(t *testing.T) {
 			t.Fatalf("excess morale did not reward retreat: %#v", options)
 		}
 	})
+	t.Run("retreat preserves one point of reserve", func(t *testing.T) {
+		o := makeKing("e6")
+		o["ownMorale"] = 5
+		// Put the tempting deeper retreat first. Without the post-move reserve
+		// floor it receives four times the excessRetreat reward and wins.
+		o["legal"] = map[string]any{"wk": []any{"e2", "e5"}}
+		o["candidates"] = map[string]any{"wk": map[string]any{
+			"e2": candidateFact(true, 1, 0, 0),
+			"e5": candidateFact(true, 1, 0, 0),
+		}}
+		intent, _, options := decision(t, o, nil)
+		if intent == nil || intent["from"] != "e6" || intent["to"] != "e5" {
+			t.Fatalf("below-reserve retreat beat the bounded regroup: intent=%#v options=%#v", intent, options)
+		}
+		if !hasTerm(requireOption(t, options, "e6", "e5"), "moralePush", "excessRetreat") {
+			t.Fatalf("bounded e6→e5 retreat lost its excessRetreat reward: %#v", options)
+		}
+		// Explained options are distinct by actor, so isolate the deeper move
+		// after proving it lost the real competition and inspect its terms.
+		o["legal"] = map[string]any{"wk": []any{"e2"}}
+		_, _, deepOptions := decision(t, o, nil)
+		if hasTerm(requireOption(t, deepOptions, "e6", "e2"), "moralePush", "excessRetreat") {
+			t.Fatalf("e6→e2 retreat spent the required morale reserve: %#v", deepOptions)
+		}
+	})
 	t.Run("rank one incursion penalty prevents false excess", func(t *testing.T) {
 		o := makeKing("e3")
 		o["ownMoralePenalty"] = 1
