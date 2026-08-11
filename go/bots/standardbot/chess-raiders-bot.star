@@ -137,6 +137,7 @@ PRIORITY_CAPTIVE_DELIVERY_SCORE = 1000.0
 # ---- positional pressure ----------------------------------------------------
 ADVANCE_PAWN_MULTIPLIER = 2.0  # a pawn's forward progress counts double
 PROMOTION_BONUS = 8.0  # extra value for a pawn stepping onto its promotion rank
+PROMOTION_NEXT_BONUS = 4.0  # a safe pawn setup that leaves an exact promotion destination next turn, deliberately below PROMOTION_BONUS
 LAST_RANK_INDEX = 7  # squares are 0-indexed 0..7; this is the board's far edge
 DEVELOP_FIRST_FORWARD_VALUE = 1.0  # first forward officer move puts a dormant unit into play
 PATROL_GAIN_VALUE = 0.5  # one host-reported patrol square is useful, but never material-sized
@@ -454,7 +455,7 @@ TERM_DETAILS = {
     "material": ["capture"],
     "safety": ["risk", "kingIntoStrike", "unknownQuiet", "unsupportedQuiet"],
     "tempo": ["charge"],
-    "advance": ["pawn", "promotion", "piece"],
+    "advance": ["pawn", "promotion", "promotionNext", "piece"],
     "targetLock": ["dodge", "safeDodge"],
     "kingSafety": ["escape", "guard"],
     "moralePush": ["push", "coveredAdvance", "excessAdvance", "excessRetreat"],
@@ -521,7 +522,7 @@ def unit_priority(observation, board, params, cell):
                 fact = move_fact_at(observation, cell["unitId"], destination)
                 if (is_quiet_move(observation, board, cell, destination) and fact["destinationKnown"] and
                         fact["protectedAfter"] > 0 and fact["threatenedAfter"] <= 0 and
-                        enemy["square"] in (fact.get("visibleAttacks", []) or [])):
+                        enemy["square"] in (fact.get("nextPossibleMoves", []) or [])):
                     priority += UNIT_PRIORITY_KING_VISIBLE_ATTACK
                     break
     priority += rank_value(cell["rank"]) / RANK_PRIORITY_SCALE  # stable, tiny rank preference
@@ -662,6 +663,14 @@ def is_current_beacon_bearer(observation, cell):
 
 def is_leader(observation, cell):
     return cell["rank"] == "king" or is_current_beacon_bearer(observation, cell)
+
+def can_promote_next_move(side, move_fact):
+    """The host's own post-settlement moves, not a pawn-geometry guess. An
+    omitted/empty list means no known next promotion setup."""
+    for next_destination in (move_fact.get("nextPossibleMoves", []) or []):
+        if is_promotion_square(side, next_destination):
+            return True
+    return False
 
 def formation_leader_priority(observation, board, params, cell):
     """Lets a leader whose current weight permits formation work enter a
@@ -904,6 +913,9 @@ def score_move(observation, board, params, memory, cell, destination):
             score += add_term(terms, "advance", gain * ADVANCE_PAWN_MULTIPLIER * params["advance"], "pawn")
             if is_promotion_square(board["side"], destination):
                 score += add_term(terms, "advance", PROMOTION_BONUS * params["advance"], "promotion")
+            elif (current_move_facts and quiet_move and move_fact["destinationKnown"] and move_fact["protectedAfter"] > 0 and
+                    move_fact["threatenedAfter"] <= 0 and can_promote_next_move(board["side"], move_fact)):
+                score += add_term(terms, "advance", PROMOTION_NEXT_BONUS * params["advance"] * protection_factor(move_fact), "promotionNext")
         elif ordinary_piece and positional_known_and_supported:
             score += add_term(terms, "advance", gain * params["advance"], "piece")
         if (current_move_facts and quiet_move and positional_known_and_supported and
@@ -913,7 +925,7 @@ def score_move(observation, board, params, memory, cell, destination):
             score += add_term(terms, "coverage", min(move_fact["patrolGain"], PATROL_GAIN_CAP) * PATROL_GAIN_VALUE * params["advance"] * protection_factor(move_fact), "patrol")
         if current_move_facts and quiet_move and positional_known_and_supported and ordinary_piece and move_fact["threatenedAfter"] <= 0:
             for enemy in observation["enemy"]:
-                if enemy["rank"] == "king" and not enemy["ghost"] and enemy["square"] in (move_fact.get("visibleAttacks", []) or []):
+                if enemy["rank"] == "king" and not enemy["ghost"] and enemy["square"] in (move_fact.get("nextPossibleMoves", []) or []):
                     score += add_term(terms, "kingHunt", KING_VISIBLE_ATTACK_BONUS * params["advance"] * protection_factor(move_fact), "visible")
                     break
 
