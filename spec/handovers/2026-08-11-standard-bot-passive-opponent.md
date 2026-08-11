@@ -4,6 +4,16 @@
 **Repo:** `sneat-games/chessraiders` (public). Some work is in `sneat-co/chessraiders` (private) — each item below names its repo.
 **Status at handover:** design settled with the founder, measurement substantially done, **one founder decision blocking the shape of the fix**.
 
+> **Superseded contract notice (2026-08-11):** this file preserves the
+> measurements and reasoning available at handover time; it is no longer an
+> active implementation brief. Its Beacon double-gate, `observation["own"]`,
+> top-level danger, and "single next action" recommendations were superseded
+> by the square-keyed `pieces` and engine-projected `candidates` contract in
+> [Bot Script Contract](../features/standard-bot/bot-script-contract/README.md)
+> and the current
+> [King and Beacon advance under cover proposal](../features/standard-bot/proposals/king-beacon-advance-under-cover.md).
+> Historical result tables below remain evidence only.
+
 ---
 
 ## The plan this belongs to
