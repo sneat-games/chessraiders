@@ -12,9 +12,19 @@ import (
 )
 
 var standardBotLimits = manifest.ValidationLimits{
-	MaxFiles:      3,
-	MaxFileBytes:  200_000,
-	MaxTotalBytes: 400_000,
+	MaxFiles:         3,
+	MaxFileBytes:     200_000,
+	MaxTotalBytes:    400_000,
+	MaxManifestBytes: 20_000,
+	MaxJSONDepth:     32,
+}
+
+var standardBotProfile = manifest.CompatibilityProfile{
+	Game:              "chess-raiders",
+	Rules:             manifest.Range{Minimum: "chess-raiders-rules/v1", Maximum: "chess-raiders-rules/v1"},
+	Runtime:           manifest.Range{Minimum: "chess-raiders-starlark-runtime/v1", Maximum: "chess-raiders-starlark-runtime/v1"},
+	ScriptProtocol:    "chess-raiders-bot-script/v1",
+	AllowedStateModes: []manifest.StateMode{manifest.StateModeStateless, manifest.StateModeBattleStateful},
 }
 
 func standardBotEntries() []manifest.TreeEntry {
@@ -26,7 +36,7 @@ func standardBotEntries() []manifest.TreeEntry {
 }
 
 func TestStandardBotManifestBindsTheExactPublishedClosure(t *testing.T) {
-	artifact, err := manifest.ValidateArtifact(standardbot.Manifest, standardBotEntries(), standardBotLimits)
+	artifact, err := manifest.ValidateArtifact(standardbot.Manifest, standardBotEntries(), standardBotLimits, standardBotProfile)
 	if err != nil {
 		t.Fatalf("ValidateArtifact(standard bot) = %v", err)
 	}
@@ -56,7 +66,7 @@ func TestStandardBotManifestRejectsAByteThatDoesNotMatchTheEmbeddedArtifact(t *t
 
 func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 	entries := append(standardBotEntries(), manifest.TreeEntry{Path: "notes.txt", Kind: manifest.EntryKindRegular, Content: []byte("not source")})
-	_, err := manifest.ValidateArtifact(standardbot.Manifest, entries, manifest.ValidationLimits{MaxFiles: 4, MaxFileBytes: 200_000, MaxTotalBytes: 400_000})
+	_, err := manifest.ValidateArtifact(standardbot.Manifest, entries, manifest.ValidationLimits{MaxFiles: 4, MaxFileBytes: 200_000, MaxTotalBytes: 400_000, MaxManifestBytes: 20_000, MaxJSONDepth: 32}, standardBotProfile)
 	if err == nil {
 		t.Fatal("ValidateArtifact() = nil, want undeclared-file rejection")
 	}

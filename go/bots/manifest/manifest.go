@@ -115,16 +115,29 @@ const (
 )
 
 type NumericRange struct {
-	Minimum float64 `json:"minimum"`
-	Maximum float64 `json:"maximum"`
+	Minimum json.Number `json:"minimum"`
+	Maximum json.Number `json:"maximum"`
 }
 
 // ValidationLimits are supplied by the caller. This package deliberately
 // owns no Season 1 resource-limit numbers.
 type ValidationLimits struct {
-	MaxFiles      int
-	MaxFileBytes  int64
-	MaxTotalBytes int64
+	MaxFiles         int
+	MaxFileBytes     int64
+	MaxTotalBytes    int64
+	MaxManifestBytes int64
+	MaxJSONDepth     int
+}
+
+// CompatibilityProfile is caller-supplied execution policy. The portable
+// manifest package never embeds a Cup, Season, provider, or resource policy.
+type CompatibilityProfile struct {
+	Game                string
+	Rules               Range
+	Runtime             Range
+	ScriptProtocol      string
+	AllowedStateModes   []StateMode
+	AllowedCapabilities []string
 }
 
 type EntryKind string

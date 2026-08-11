@@ -7,15 +7,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math"
+	"math/big"
 	"strings"
 )
+
+const maximumJSONDepth = 256
 
 // Parse parses a strict manifest: unknown fields and trailing JSON are
 // rejected so a field a newer producer relies on cannot be silently ignored by
 // an older validator.
 func Parse(raw []byte) (Manifest, error) {
-	if err := rejectDuplicateJSONKeys(raw); err != nil {
+	return parseWithDepth(raw, maximumJSONDepth)
+}
+
+func parseWithDepth(raw []byte, maxDepth int) (Manifest, error) {
+	if err := scanJSON(raw, maxDepth, true); err != nil {
 		return Manifest{}, err
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
@@ -54,18 +60,24 @@ func jsonError(err error) error {
 	return &Error{Code: code, Detail: err.Error()}
 }
 
-// rejectDuplicateJSONKeys runs before ordinary decoding because encoding/json
-// otherwise keeps only the final duplicate key. Silent overwrite is not a
-// strict source-artifact contract.
-func rejectDuplicateJSONKeys(raw []byte) error {
+// scanStrictJSON runs before ordinary decoding because encoding/json otherwise
+// accepts case-insensitive struct fields and keeps only a final duplicate key.
+// The depth ceiling makes this preflight safe on untrusted raw input.
+func scanJSON(raw []byte, maxDepth int, enforceManifestFieldCase bool) error {
+	if maxDepth <= 0 || maxDepth > maximumJSONDepth {
+		return &Error{Code: ErrInvalidLimit, Field: "maxJSONDepth", Detail: fmt.Sprintf("must be between 1 and %d", maximumJSONDepth)}
+	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
-	if err := scanJSONValue(decoder); err != nil {
+	if err := scanJSONValue(decoder, "", 1, maxDepth, enforceManifestFieldCase); err != nil {
 		return err
 	}
 	return requireJSONEOF(decoder)
 }
 
-func scanJSONValue(decoder *json.Decoder) error {
+func scanJSONValue(decoder *json.Decoder, objectPath string, depth, maxDepth int, enforceManifestFieldCase bool) error {
+	if depth > maxDepth {
+		return &Error{Code: ErrJSONDepth, Field: objectPath, Detail: "exceeds the caller's JSON nesting limit"}
+	}
 	token, err := decoder.Token()
 	if err != nil {
 		return jsonError(err)
@@ -77,6 +89,11 @@ func scanJSONValue(decoder *json.Decoder) error {
 	switch delimiter {
 	case '{':
 		seen := map[string]struct{}{}
+		seenFolded := make([]string, 0)
+		expected := map[string]struct{}(nil)
+		if enforceManifestFieldCase {
+			expected = expectedFields(objectPath)
+		}
 		for decoder.More() {
 			keyToken, err := decoder.Token()
 			if err != nil {
@@ -89,8 +106,17 @@ func scanJSONValue(decoder *json.Decoder) error {
 			if _, exists := seen[key]; exists {
 				return &Error{Code: ErrInvalidJSON, Detail: "duplicate object key " + key}
 			}
+			for _, prior := range seenFolded {
+				if strings.EqualFold(prior, key) {
+					return &Error{Code: ErrInvalidJSON, Field: objectPath, Detail: "case-fold-equivalent duplicate object key " + key}
+				}
+			}
+			if canonical, found := exactCaseField(expected, key); found && canonical != key {
+				return &Error{Code: ErrUnknownField, Field: objectPath, Detail: "field " + key + " must use exact case " + canonical}
+			}
 			seen[key] = struct{}{}
-			if err := scanJSONValue(decoder); err != nil {
+			seenFolded = append(seenFolded, key)
+			if err := scanJSONValue(decoder, childObjectPath(objectPath, key), depth+1, maxDepth, enforceManifestFieldCase); err != nil {
 				return err
 			}
 		}
@@ -99,7 +125,7 @@ func scanJSONValue(decoder *json.Decoder) error {
 		}
 	case '[':
 		for decoder.More() {
-			if err := scanJSONValue(decoder); err != nil {
+			if err := scanJSONValue(decoder, objectPath, depth+1, maxDepth, enforceManifestFieldCase); err != nil {
 				return err
 			}
 		}
@@ -108,6 +134,58 @@ func scanJSONValue(decoder *json.Decoder) error {
 		}
 	}
 	return nil
+}
+
+func exactCaseField(expected map[string]struct{}, key string) (string, bool) {
+	for candidate := range expected {
+		if strings.EqualFold(candidate, key) {
+			return candidate, true
+		}
+	}
+	return "", false
+}
+
+func childObjectPath(parent, key string) string {
+	if parent == "" {
+		return key
+	}
+	return parent + "." + key
+}
+
+func expectedFields(path string) map[string]struct{} {
+	fields := func(values ...string) map[string]struct{} {
+		result := make(map[string]struct{}, len(values))
+		for _, value := range values {
+			result[value] = struct{}{}
+		}
+		return result
+	}
+	switch path {
+	case "":
+		return fields("schema", "display", "author", "source", "license", "compatibility", "runtime", "stateMode", "parameters", "requiredCapabilities", "sources")
+	case "display":
+		return fields("name", "description")
+	case "author":
+		return fields("name", "url")
+	case "source":
+		return fields("repository", "attribution")
+	case "license":
+		return fields("spdx")
+	case "compatibility":
+		return fields("game", "rules", "runtime")
+	case "compatibility.rules", "compatibility.runtime":
+		return fields("minimum", "maximum")
+	case "runtime":
+		return fields("kind", "protocol", "entrypoint")
+	case "parameters":
+		return fields("path", "declarations")
+	case "parameters.declarations":
+		return fields("name", "type", "default", "range")
+	case "parameters.declarations.range":
+		return fields("minimum", "maximum")
+	default:
+		return nil
+	}
 }
 
 // Validate checks only declarative facts. It does not open a repository,
@@ -194,9 +272,6 @@ func validateParameter(parameter ParameterDeclaration) error {
 	if len(parameter.Default) == 0 || !json.Valid(parameter.Default) {
 		return invalid("parameters."+parameter.Name+".default", "must be one valid JSON value")
 	}
-	if parameter.Range != nil && (math.IsNaN(parameter.Range.Minimum) || math.IsNaN(parameter.Range.Maximum) || math.IsInf(parameter.Range.Minimum, 0) || math.IsInf(parameter.Range.Maximum, 0) || parameter.Range.Minimum > parameter.Range.Maximum) {
-		return invalid("parameters."+parameter.Name+".range", "must be finite with minimum no greater than maximum")
-	}
 	decoder := json.NewDecoder(bytes.NewReader(parameter.Default))
 	decoder.UseNumber()
 	var value any
@@ -209,17 +284,31 @@ func validateParameter(parameter ParameterDeclaration) error {
 		if !ok {
 			return invalid("parameters."+parameter.Name+".default", "must match its numeric type")
 		}
-		value, err := number.Float64()
-		if err != nil || math.IsNaN(value) || math.IsInf(value, 0) {
-			return invalid("parameters."+parameter.Name+".default", "must be finite")
-		}
-		if parameter.Type == ParameterTypeInteger && math.Trunc(value) != value {
-			return invalid("parameters."+parameter.Name+".default", "must be an integer")
-		}
 		if parameter.Range == nil {
 			return invalid("parameters."+parameter.Name+".range", "is required for a numeric parameter")
 		}
-		if value < parameter.Range.Minimum || value > parameter.Range.Maximum {
+		defaultValue, err := exactDecimal(number.String())
+		if err != nil {
+			return invalid("parameters."+parameter.Name+".default", err.Error())
+		}
+		minimum, err := exactDecimal(parameter.Range.Minimum.String())
+		if err != nil {
+			return invalid("parameters."+parameter.Name+".range.minimum", err.Error())
+		}
+		maximum, err := exactDecimal(parameter.Range.Maximum.String())
+		if err != nil {
+			return invalid("parameters."+parameter.Name+".range.maximum", err.Error())
+		}
+		if minimum.Cmp(maximum) > 0 {
+			return invalid("parameters."+parameter.Name+".range", "must have minimum no greater than maximum")
+		}
+		if parameter.Type == ParameterTypeInteger && !defaultValue.IsInt() {
+			return invalid("parameters."+parameter.Name+".default", "must be an integer")
+		}
+		if parameter.Type == ParameterTypeInteger && (!minimum.IsInt() || !maximum.IsInt()) {
+			return invalid("parameters."+parameter.Name+".range", "integer parameter range endpoints must be integers")
+		}
+		if defaultValue.Cmp(minimum) < 0 || defaultValue.Cmp(maximum) > 0 {
 			return invalid("parameters."+parameter.Name+".default", "must be inside its declared range")
 		}
 	case ParameterTypeBoolean:
@@ -238,6 +327,89 @@ func validateParameter(parameter ParameterDeclaration) error {
 		return invalid("parameters."+parameter.Name+".type", "must be number, integer, boolean, string or json")
 	}
 	return nil
+}
+
+// exactDecimal accepts a JSON number and preserves its mathematical value as
+// a rational. It intentionally avoids float64: 2^60 and 2^60+1 must not
+// collapse into one value while deciding whether a manifest default is inside
+// its declared range.
+func exactDecimal(value string) (*big.Rat, error) {
+	if value == "" {
+		return nil, fmt.Errorf("is required")
+	}
+	index := 0
+	negative := false
+	if value[index] == '-' {
+		negative = true
+		index++
+		if index == len(value) {
+			return nil, fmt.Errorf("is not a JSON number")
+		}
+	}
+	integerStart := index
+	if value[index] == '0' {
+		index++
+	} else if value[index] >= '1' && value[index] <= '9' {
+		for index < len(value) && value[index] >= '0' && value[index] <= '9' {
+			index++
+		}
+	} else {
+		return nil, fmt.Errorf("is not a JSON number")
+	}
+	integer := value[integerStart:index]
+	fraction := ""
+	if index < len(value) && value[index] == '.' {
+		index++
+		fractionStart := index
+		for index < len(value) && value[index] >= '0' && value[index] <= '9' {
+			index++
+		}
+		if fractionStart == index {
+			return nil, fmt.Errorf("is not a JSON number")
+		}
+		fraction = value[fractionStart:index]
+	}
+	exponent := 0
+	if index < len(value) && (value[index] == 'e' || value[index] == 'E') {
+		index++
+		sign := 1
+		if index < len(value) && (value[index] == '+' || value[index] == '-') {
+			if value[index] == '-' {
+				sign = -1
+			}
+			index++
+		}
+		exponentStart := index
+		for index < len(value) && value[index] >= '0' && value[index] <= '9' {
+			index++
+		}
+		if exponentStart == index {
+			return nil, fmt.Errorf("is not a JSON number")
+		}
+		exponentValue, ok := new(big.Int).SetString(value[exponentStart:index], 10)
+		if !ok || !exponentValue.IsInt64() || exponentValue.Int64() > 10_000 {
+			return nil, fmt.Errorf("has an unsupported exponent")
+		}
+		exponent = sign * int(exponentValue.Int64())
+	}
+	if index != len(value) {
+		return nil, fmt.Errorf("is not a JSON number")
+	}
+	digits := integer + fraction
+	numerator, ok := new(big.Int).SetString(digits, 10)
+	if !ok {
+		return nil, fmt.Errorf("is not a JSON number")
+	}
+	if negative {
+		numerator.Neg(numerator)
+	}
+	denominator := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(len(fraction))), nil)
+	if exponent >= 0 {
+		numerator.Mul(numerator, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(exponent)), nil))
+	} else {
+		denominator.Mul(denominator, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(-exponent)), nil))
+	}
+	return new(big.Rat).SetFrac(numerator, denominator), nil
 }
 
 func blank(value string) bool { return strings.TrimSpace(value) == "" }
