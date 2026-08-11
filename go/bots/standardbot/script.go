@@ -80,6 +80,14 @@ var Script string
 //go:embed params.json
 var Params []byte
 
+// Manifest is the strict, portable source-artifact declaration for this exact
+// public standard-bot closure. It is an artifact beside Script and Params, not
+// a second source of either: standardbot_manifest_test.go binds all three raw
+// files into one canonical closure.
+//
+//go:embed chess-raiders-bot.json
+var Manifest []byte
+
 // ParamsVersion is params.json's own top-level "version" field, exported so
 // a caller decoding Params can assert it is reading the envelope format it
 // was written against rather than silently misreading a future,
