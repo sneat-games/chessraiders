@@ -616,6 +616,46 @@ func TestChargingRouteReplacementIsTheOnlyActiveCommandFront(t *testing.T) {
 	})
 }
 
+func TestRoutedQuietReplacementDoesNotClaimUnknownPostMoveSafety(t *testing.T) {
+	t.Run("target lock dodge is not called safe", func(t *testing.T) {
+		o := strategyObservation(t, strategyCell("charger", "a2", "white", "pawn"))
+		putStrategyPiece(o, strategyCell("route-target", "c2", "black", "pawn"))
+		cell := strategyPieceAt(o, "a2")
+		cell["charging"] = map[string]any{"square": "c2", "remainingMs": 500}
+		cell["targetLocked"] = true
+		o["legal"] = map[string]any{"charger": []any{"c2", "a3"}}
+		o["candidates"] = map[string]any{}
+		params := decodedTierParams(t, "commander")
+		params["passBelow"] = -100.0
+		_, _, options := decisionWithParams(t, o, nil, params)
+		option := requireOption(t, options, "a2", "a3")
+		if !hasTerm(option, "targetLock", "dodge") {
+			t.Fatalf("routed replacement lost the observable target-lock dodge: %#v", option)
+		}
+		if hasTerm(option, "targetLock", "safeDodge") {
+			t.Fatalf("routed replacement without a candidate fact claimed safeDodge: %#v", option)
+		}
+	})
+
+	t.Run("threatened king move is not called an escape", func(t *testing.T) {
+		o := strategyObservation(t, strategyCell("wk", "e1", "white", "king"))
+		putStrategyPiece(o, strategyCell("route-target", "e2", "black", "pawn"))
+		cell := strategyPieceAt(o, "e1")
+		cell["charging"] = map[string]any{"square": "e2", "remainingMs": 500}
+		cell["threatenedBy"] = []any{"a8"}
+		cell["targetLocked"] = true // keeps the unknown quiet replacement observable
+		o["legal"] = map[string]any{"wk": []any{"e2", "f1"}}
+		o["candidates"] = map[string]any{}
+		params := decodedTierParams(t, "commander")
+		params["passBelow"] = -100.0
+		_, _, options := decisionWithParams(t, o, nil, params)
+		option := requireOption(t, options, "e1", "f1")
+		if hasTerm(option, "kingSafety", "escape") {
+			t.Fatalf("routed king replacement without a candidate fact claimed escape: %#v", option)
+		}
+	})
+}
+
 func TestRecruitRouteReplacementValuesRemainingTimeAgainstRetention(t *testing.T) {
 	t.Run("near-complete pawn route retains over marginal quiet move", func(t *testing.T) {
 		o := strategyObservation(t, strategyCell("charger", "a2", "white", "pawn"))

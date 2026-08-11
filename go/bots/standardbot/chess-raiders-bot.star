@@ -922,6 +922,11 @@ def score_move(observation, board, params, memory, cell, destination):
     else:
         post_threat = 0
         post_guarded = 0
+    # Quiet active-route replacements deliberately lack candidate facts.
+    # Zero above is an arithmetic fallback, never evidence that the
+    # destination is safe. Captures retain their visible-target relation
+    # fallback because their outcome branches cannot have one settled fact.
+    post_safety_known = candidate_known or target_cell != None
     if post_threat > 0:
         risk = rank_value(cell["rank"])
         if cell["kingCargo"]:
@@ -1065,13 +1070,13 @@ def score_move(observation, board, params, memory, cell, destination):
     # this piece, so moving it is worth real value.
     if params["targetLock"] > 0 and board["locked_units"].get(cell["unitId"]):
         score += add_term(terms, "targetLock", TARGET_LOCK_DODGE_VALUE * params["targetLock"], "dodge")
-        if post_threat == 0:
+        if post_safety_known and post_threat == 0:
             score += add_term(terms, "targetLock", TARGET_LOCK_SAFE_VALUE * params["targetLock"], "safeDodge")
 
     # King safety: get the king out of danger, or take the piece
     # threatening it.
     if params["kingSafety"] > 0 and board["king_threatened"]:
-        if cell["rank"] == "king" and not cell["convoy"] and post_threat == 0:
+        if cell["rank"] == "king" and not cell["convoy"] and post_safety_known and post_threat == 0:
             score += add_term(terms, "kingSafety", params["kingSafety"], "escape")
         if (target_cell and board["king_cell"] and
                 board["king_cell"]["square"] in relation_squares(target_cell, "threatens")):
@@ -1081,7 +1086,8 @@ def score_move(observation, board, params, memory, cell, destination):
     # every command system, and only a tier that values it plays that way.
     if params["moralePush"] > 0 and cell["rank"] == "king" and not cell["convoy"]:
         gain = forward_progress(board["side"], destination) - forward_progress(board["side"], cell["square"])
-        king_safe_after = (candidate.get("destinationVisible", False) and supported_and_unthreatened(candidate)) if candidate_known else post_threat == 0
+        king_safe_after = ((candidate.get("destinationVisible", False) and supported_and_unthreatened(candidate)) if candidate_known else
+                           (target_cell != None and post_threat == 0))
         if gain > 0 and king_safe_after:
             if candidate_known:
                 after_morale = post_move_morale(observation, board, cell["square"], destination)
