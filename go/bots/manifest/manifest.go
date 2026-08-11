@@ -90,33 +90,13 @@ type Runtime struct {
 	Entrypoint string `json:"entrypoint"`
 }
 
-// Parameters describes the inert configuration file handed to a script. The
-// host never executes parameter values as source.
+// Parameters names the JSON-Schema declaration and the named partial
+// configurations validated against it. The host never executes parameter
+// values as source.
 type Parameters struct {
-	Path         string                 `json:"path"`
-	Declarations []ParameterDeclaration `json:"declarations"`
-}
-
-type ParameterDeclaration struct {
-	Name    string          `json:"name"`
-	Type    ParameterType   `json:"type"`
-	Default json.RawMessage `json:"default"`
-	Range   *NumericRange   `json:"range,omitempty"`
-}
-
-type ParameterType string
-
-const (
-	ParameterTypeNumber  ParameterType = "number"
-	ParameterTypeInteger ParameterType = "integer"
-	ParameterTypeBoolean ParameterType = "boolean"
-	ParameterTypeString  ParameterType = "string"
-	ParameterTypeJSON    ParameterType = "json"
-)
-
-type NumericRange struct {
-	Minimum json.Number `json:"minimum"`
-	Maximum json.Number `json:"maximum"`
+	SchemaPath string `json:"schemaPath"`
+	SetsPath   string `json:"setsPath"`
+	DefaultSet string `json:"defaultSet"`
 }
 
 // ValidationLimits are supplied by the caller. This package deliberately
@@ -158,8 +138,18 @@ type TreeEntry struct {
 }
 
 type Artifact struct {
+	Manifest           Manifest
+	Digest             Digest
+	ResolvedParameters json.RawMessage
+}
+
+// ClosurePlan is the bounded manifest-only result a host may use to fetch the
+// exact declared files before performing full artifact validation. Paths are
+// canonical and sorted; Limits is the caller policy that admitted the plan.
+type ClosurePlan struct {
 	Manifest Manifest
-	Digest   Digest
+	Paths    []string
+	Limits   ValidationLimits
 }
 
 type Digest [32]byte

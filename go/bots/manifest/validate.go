@@ -11,13 +11,17 @@ import (
 	"strings"
 )
 
-const maximumJSONDepth = 256
+// MaximumJSONDepth is the parser's hard safety ceiling. Callers still choose a
+// positive limit at or below it for each untrusted artifact.
+const MaximumJSONDepth = 256
 
-// Parse parses a strict manifest: unknown fields and trailing JSON are
-// rejected so a field a newer producer relies on cannot be silently ignored by
-// an older validator.
+// Parse parses a structurally strict manifest: unknown fields and trailing JSON
+// are rejected so a field a newer producer relies on cannot be silently
+// ignored by an older validator. Parse does not establish execution or
+// competition eligibility for untrusted input; callers must use
+// ValidateArtifact with their own CompatibilityProfile and ValidationLimits.
 func Parse(raw []byte) (Manifest, error) {
-	return parseWithDepth(raw, maximumJSONDepth)
+	return parseWithDepth(raw, MaximumJSONDepth)
 }
 
 func parseWithDepth(raw []byte, maxDepth int) (Manifest, error) {
@@ -64,8 +68,8 @@ func jsonError(err error) error {
 // accepts case-insensitive struct fields and keeps only a final duplicate key.
 // The depth ceiling makes this preflight safe on untrusted raw input.
 func scanJSON(raw []byte, maxDepth int, enforceManifestFieldCase bool) error {
-	if maxDepth <= 0 || maxDepth > maximumJSONDepth {
-		return &Error{Code: ErrInvalidLimit, Field: "maxJSONDepth", Detail: fmt.Sprintf("must be between 1 and %d", maximumJSONDepth)}
+	if maxDepth <= 0 || maxDepth > MaximumJSONDepth {
+		return &Error{Code: ErrInvalidLimit, Field: "maxJSONDepth", Detail: fmt.Sprintf("must be between 1 and %d", MaximumJSONDepth)}
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	if err := scanJSONValue(decoder, "", 1, maxDepth, enforceManifestFieldCase); err != nil {
@@ -89,8 +93,8 @@ func scanJSONValue(decoder *json.Decoder, objectPath string, depth, maxDepth int
 	switch delimiter {
 	case '{':
 		seen := map[string]struct{}{}
-		seenFolded := make([]string, 0)
-		expected := map[string]struct{}(nil)
+		seenFolded := map[string]string{}
+		expected := map[string]string(nil)
 		if enforceManifestFieldCase {
 			expected = expectedFields(objectPath)
 		}
@@ -106,16 +110,15 @@ func scanJSONValue(decoder *json.Decoder, objectPath string, depth, maxDepth int
 			if _, exists := seen[key]; exists {
 				return &Error{Code: ErrInvalidJSON, Detail: "duplicate object key " + key}
 			}
-			for _, prior := range seenFolded {
-				if strings.EqualFold(prior, key) {
-					return &Error{Code: ErrInvalidJSON, Field: objectPath, Detail: "case-fold-equivalent duplicate object key " + key}
-				}
+			foldedKey := strings.ToLower(key)
+			if prior, exists := seenFolded[foldedKey]; exists {
+				return &Error{Code: ErrInvalidJSON, Field: objectPath, Detail: "case-fold-equivalent duplicate object keys " + prior + " and " + key}
 			}
 			if canonical, found := exactCaseField(expected, key); found && canonical != key {
 				return &Error{Code: ErrUnknownField, Field: objectPath, Detail: "field " + key + " must use exact case " + canonical}
 			}
 			seen[key] = struct{}{}
-			seenFolded = append(seenFolded, key)
+			seenFolded[foldedKey] = key
 			if err := scanJSONValue(decoder, childObjectPath(objectPath, key), depth+1, maxDepth, enforceManifestFieldCase); err != nil {
 				return err
 			}
@@ -136,13 +139,9 @@ func scanJSONValue(decoder *json.Decoder, objectPath string, depth, maxDepth int
 	return nil
 }
 
-func exactCaseField(expected map[string]struct{}, key string) (string, bool) {
-	for candidate := range expected {
-		if strings.EqualFold(candidate, key) {
-			return candidate, true
-		}
-	}
-	return "", false
+func exactCaseField(expected map[string]string, key string) (string, bool) {
+	canonical, found := expected[strings.ToLower(key)]
+	return canonical, found
 }
 
 func childObjectPath(parent, key string) string {
@@ -152,11 +151,11 @@ func childObjectPath(parent, key string) string {
 	return parent + "." + key
 }
 
-func expectedFields(path string) map[string]struct{} {
-	fields := func(values ...string) map[string]struct{} {
-		result := make(map[string]struct{}, len(values))
+func expectedFields(path string) map[string]string {
+	fields := func(values ...string) map[string]string {
+		result := make(map[string]string, len(values))
 		for _, value := range values {
-			result[value] = struct{}{}
+			result[strings.ToLower(value)] = value
 		}
 		return result
 	}
@@ -178,11 +177,7 @@ func expectedFields(path string) map[string]struct{} {
 	case "runtime":
 		return fields("kind", "protocol", "entrypoint")
 	case "parameters":
-		return fields("path", "declarations")
-	case "parameters.declarations":
-		return fields("name", "type", "default", "range")
-	case "parameters.declarations.range":
-		return fields("minimum", "maximum")
+		return fields("schemaPath", "setsPath", "defaultSet")
 	default:
 		return nil
 	}
@@ -212,11 +207,17 @@ func Validate(m Manifest) error {
 	if m.StateMode != StateModeStateless && m.StateMode != StateModeBattleStateful {
 		return invalid("stateMode", "must be stateless or battle-stateful")
 	}
-	if _, err := canonicalPath(m.Parameters.Path); err != nil {
-		return pathError("parameters.path", err)
+	if _, err := canonicalPath(m.Parameters.SchemaPath); err != nil {
+		return pathError("parameters.schemaPath", err)
 	}
-	if err := validateParameters(m.Parameters); err != nil {
-		return err
+	if _, err := canonicalPath(m.Parameters.SetsPath); err != nil {
+		return pathError("parameters.setsPath", err)
+	}
+	if blank(m.Parameters.DefaultSet) {
+		return invalid("parameters.defaultSet", "is required")
+	}
+	if m.Parameters.SchemaPath == m.Parameters.SetsPath {
+		return invalid("parameters", "schemaPath and setsPath must name different files")
 	}
 	if len(m.RequiredCapabilities) != len(uniqueStrings(m.RequiredCapabilities)) {
 		return invalid("requiredCapabilities", "contains a duplicate capability")
@@ -240,91 +241,10 @@ func Validate(m Manifest) error {
 		}
 		seen[canonical] = struct{}{}
 	}
-	for _, required := range []string{ManifestPath, m.Runtime.Entrypoint, m.Parameters.Path} {
+	for _, required := range []string{ManifestPath, m.Runtime.Entrypoint, m.Parameters.SchemaPath, m.Parameters.SetsPath} {
 		if _, exists := seen[required]; !exists {
 			return &Error{Code: ErrMissingFile, Path: required, Detail: "is required by the manifest but not declared in sources"}
 		}
-	}
-	return nil
-}
-
-func validateParameters(parameters Parameters) error {
-	if len(parameters.Declarations) == 0 {
-		return invalid("parameters.declarations", "must declare at least one parameter")
-	}
-	seen := map[string]struct{}{}
-	for _, declaration := range parameters.Declarations {
-		if blank(declaration.Name) {
-			return invalid("parameters.declarations", "parameter name is required")
-		}
-		if _, exists := seen[declaration.Name]; exists {
-			return invalid("parameters.declarations", "contains a duplicate parameter name "+declaration.Name)
-		}
-		seen[declaration.Name] = struct{}{}
-		if err := validateParameter(declaration); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func validateParameter(parameter ParameterDeclaration) error {
-	if len(parameter.Default) == 0 || !json.Valid(parameter.Default) {
-		return invalid("parameters."+parameter.Name+".default", "must be one valid JSON value")
-	}
-	decoder := json.NewDecoder(bytes.NewReader(parameter.Default))
-	decoder.UseNumber()
-	var value any
-	if err := decoder.Decode(&value); err != nil {
-		return invalid("parameters."+parameter.Name+".default", err.Error())
-	}
-	switch parameter.Type {
-	case ParameterTypeNumber, ParameterTypeInteger:
-		number, ok := value.(json.Number)
-		if !ok {
-			return invalid("parameters."+parameter.Name+".default", "must match its numeric type")
-		}
-		if parameter.Range == nil {
-			return invalid("parameters."+parameter.Name+".range", "is required for a numeric parameter")
-		}
-		defaultValue, err := exactDecimal(number.String())
-		if err != nil {
-			return invalid("parameters."+parameter.Name+".default", err.Error())
-		}
-		minimum, err := exactDecimal(parameter.Range.Minimum.String())
-		if err != nil {
-			return invalid("parameters."+parameter.Name+".range.minimum", err.Error())
-		}
-		maximum, err := exactDecimal(parameter.Range.Maximum.String())
-		if err != nil {
-			return invalid("parameters."+parameter.Name+".range.maximum", err.Error())
-		}
-		if minimum.Cmp(maximum) > 0 {
-			return invalid("parameters."+parameter.Name+".range", "must have minimum no greater than maximum")
-		}
-		if parameter.Type == ParameterTypeInteger && !defaultValue.IsInt() {
-			return invalid("parameters."+parameter.Name+".default", "must be an integer")
-		}
-		if parameter.Type == ParameterTypeInteger && (!minimum.IsInt() || !maximum.IsInt()) {
-			return invalid("parameters."+parameter.Name+".range", "integer parameter range endpoints must be integers")
-		}
-		if defaultValue.Cmp(minimum) < 0 || defaultValue.Cmp(maximum) > 0 {
-			return invalid("parameters."+parameter.Name+".default", "must be inside its declared range")
-		}
-	case ParameterTypeBoolean:
-		if _, ok := value.(bool); !ok || parameter.Range != nil {
-			return invalid("parameters."+parameter.Name, "boolean parameters require a boolean default and no numeric range")
-		}
-	case ParameterTypeString:
-		if _, ok := value.(string); !ok || parameter.Range != nil {
-			return invalid("parameters."+parameter.Name, "string parameters require a string default and no numeric range")
-		}
-	case ParameterTypeJSON:
-		if parameter.Range != nil {
-			return invalid("parameters."+parameter.Name+".range", "is only valid for numeric parameters")
-		}
-	default:
-		return invalid("parameters."+parameter.Name+".type", "must be number, integer, boolean, string or json")
 	}
 	return nil
 }
@@ -439,8 +359,13 @@ func uniqueStrings(values []string) []string {
 }
 
 func canonicalPath(value string) (string, error) {
-	if value == "" || strings.HasPrefix(value, "/") || strings.Contains(value, "\\") || strings.ContainsRune(value, 0) {
+	if value == "" || strings.HasPrefix(value, "/") || strings.Contains(value, "\\") {
 		return "", fmt.Errorf("must be a relative POSIX path")
+	}
+	for _, character := range value {
+		if character <= 0x1f || character == 0x7f {
+			return "", fmt.Errorf("must not contain ASCII control characters")
+		}
 	}
 	parts := strings.Split(value, "/")
 	for _, part := range parts {

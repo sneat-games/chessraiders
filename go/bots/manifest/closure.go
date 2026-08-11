@@ -6,6 +6,8 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"reflect"
 	"sort"
 	"strings"
@@ -17,27 +19,50 @@ const gitLFSPointerPrefix = "version https://git-lfs.github.com/spec/v1"
 
 // ValidateArtifact parses manifestBytes, verifies the supplied materialised
 // tree is exactly its declared executable closure, and returns the stable
-// content digest. Callers retain only the returned digest plus their own
-// immutable storage reference; they never execute a live repository ref.
+// content digest plus the selected complete parameter object. Callers retain
+// only the returned values plus their own immutable storage reference; they
+// never execute a live repository ref or raw partial parameter set.
 func ValidateArtifact(manifestBytes []byte, entries []TreeEntry, limits ValidationLimits, profile CompatibilityProfile) (Artifact, error) {
+	plan, err := ValidateManifest(manifestBytes, limits, profile)
+	if err != nil {
+		return Artifact{}, err
+	}
+	validated, err := validateClosure(plan.Manifest, manifestBytes, entries, limits)
+	if err != nil {
+		return Artifact{}, err
+	}
+	resolved := validated.ResolvedSets[plan.Manifest.Parameters.DefaultSet]
+	return Artifact{
+		Manifest:           plan.Manifest,
+		Digest:             validated.Digest,
+		ResolvedParameters: append([]byte(nil), resolved...),
+	}, nil
+}
+
+// ValidateManifest performs the bounded first stage of artifact admission. It
+// reads no script, schema or configuration bytes and grants no execution by
+// itself; it returns only the exact canonical closure plan a host may fetch for
+// a later ValidateArtifact call.
+func ValidateManifest(manifestBytes []byte, limits ValidationLimits, profile CompatibilityProfile) (ClosurePlan, error) {
 	if err := validateLimits(limits); err != nil {
-		return Artifact{}, err
+		return ClosurePlan{}, err
 	}
-	if int64(len(manifestBytes)) > limits.MaxManifestBytes {
-		return Artifact{}, &Error{Code: ErrByteLimit, Path: ManifestPath, Detail: "exceeds the caller's raw manifest byte limit"}
+	if int64(len(manifestBytes)) > limits.MaxManifestBytes || int64(len(manifestBytes)) > limits.MaxFileBytes {
+		return ClosurePlan{}, &Error{Code: ErrByteLimit, Path: ManifestPath, Detail: "exceeds the caller's raw manifest/file byte limit"}
 	}
-	manifest, err := parseWithDepth(manifestBytes, limits.MaxJSONDepth)
+	parsed, err := parseWithDepth(manifestBytes, limits.MaxJSONDepth)
 	if err != nil {
-		return Artifact{}, err
+		return ClosurePlan{}, err
 	}
-	if err := ValidateCompatibility(manifest, profile); err != nil {
-		return Artifact{}, err
+	if err := ValidateCompatibility(parsed, profile); err != nil {
+		return ClosurePlan{}, err
 	}
-	digest, err := ValidateClosure(manifest, manifestBytes, entries, limits)
-	if err != nil {
-		return Artifact{}, err
+	if len(parsed.Sources) > limits.MaxFiles {
+		return ClosurePlan{}, &Error{Code: ErrFileLimit, Detail: "manifest declares more files than the caller permits"}
 	}
-	return Artifact{Manifest: manifest, Digest: digest}, nil
+	paths := append([]string(nil), parsed.Sources...)
+	sort.Strings(paths)
+	return ClosurePlan{Manifest: parsed, Paths: paths, Limits: limits}, nil
 }
 
 // ValidateCompatibility applies the game/provider's caller-owned exact
@@ -77,26 +102,38 @@ func containsStateMode(modes []StateMode, wanted StateMode) bool {
 // ValidateClosure verifies that entries contains exactly the manifest's
 // declared regular files. It deliberately accepts resolver-provided tree
 // metadata so symlinks and submodules cannot be made to look like ordinary
-// source bytes before validation.
+// source bytes before validation. It does not apply a CompatibilityProfile or
+// return the selected runtime configuration; untrusted eligibility callers use
+// ValidateArtifact.
 func ValidateClosure(manifest Manifest, manifestBytes []byte, entries []TreeEntry, limits ValidationLimits) (Digest, error) {
+	validated, err := validateClosure(manifest, manifestBytes, entries, limits)
+	return validated.Digest, err
+}
+
+type closureValidation struct {
+	Digest       Digest
+	ResolvedSets map[string]json.RawMessage
+}
+
+func validateClosure(manifest Manifest, manifestBytes []byte, entries []TreeEntry, limits ValidationLimits) (closureValidation, error) {
 	if err := validateLimits(limits); err != nil {
-		return Digest{}, err
+		return closureValidation{}, err
 	}
-	if int64(len(manifestBytes)) > limits.MaxManifestBytes {
-		return Digest{}, &Error{Code: ErrByteLimit, Path: ManifestPath, Detail: "exceeds the caller's raw manifest byte limit"}
+	if int64(len(manifestBytes)) > limits.MaxManifestBytes || int64(len(manifestBytes)) > limits.MaxFileBytes {
+		return closureValidation{}, &Error{Code: ErrByteLimit, Path: ManifestPath, Detail: "exceeds the caller's raw manifest/file byte limit"}
 	}
 	parsed, err := parseWithDepth(manifestBytes, limits.MaxJSONDepth)
 	if err != nil {
-		return Digest{}, err
+		return closureValidation{}, err
 	}
 	if !reflect.DeepEqual(parsed, manifest) {
-		return Digest{}, &Error{Code: ErrInvalidManifest, Path: ManifestPath, Detail: "parsed manifest does not match the manifest argument"}
+		return closureValidation{}, &Error{Code: ErrInvalidManifest, Path: ManifestPath, Detail: "parsed manifest does not match the manifest argument"}
 	}
 	if err := Validate(manifest); err != nil {
-		return Digest{}, err
+		return closureValidation{}, err
 	}
 	if len(entries) > limits.MaxFiles {
-		return Digest{}, &Error{Code: ErrFileLimit, Detail: "tree has more entries than the caller permits"}
+		return closureValidation{}, &Error{Code: ErrFileLimit, Detail: "tree has more entries than the caller permits"}
 	}
 
 	declared := make(map[string]struct{}, len(manifest.Sources))
@@ -108,48 +145,62 @@ func ValidateClosure(manifest Manifest, manifestBytes []byte, entries []TreeEntr
 	for _, entry := range entries {
 		canonical, err := canonicalPath(entry.Path)
 		if err != nil {
-			return Digest{}, pathError(entry.Path, err)
+			return closureValidation{}, pathError(entry.Path, err)
 		}
 		if canonical != entry.Path {
-			return Digest{}, &Error{Code: ErrInvalidPath, Path: entry.Path, Detail: "is not canonical"}
+			return closureValidation{}, &Error{Code: ErrInvalidPath, Path: entry.Path, Detail: "is not canonical"}
 		}
 		if _, exists := files[canonical]; exists {
-			return Digest{}, &Error{Code: ErrDuplicatePath, Path: canonical, Detail: "appears more than once in the tree"}
+			return closureValidation{}, &Error{Code: ErrDuplicatePath, Path: canonical, Detail: "appears more than once in the tree"}
 		}
 		if entry.Kind != EntryKindRegular {
-			return Digest{}, &Error{Code: ErrNonRegularFile, Path: canonical, Detail: "must be a regular file"}
+			return closureValidation{}, &Error{Code: ErrNonRegularFile, Path: canonical, Detail: "must be a regular file"}
 		}
 		if int64(len(entry.Content)) > limits.MaxFileBytes {
-			return Digest{}, &Error{Code: ErrByteLimit, Path: canonical, Detail: "exceeds the caller's per-file byte limit"}
+			return closureValidation{}, &Error{Code: ErrByteLimit, Path: canonical, Detail: "exceeds the caller's per-file byte limit"}
 		}
 		total += int64(len(entry.Content))
 		if total > limits.MaxTotalBytes {
-			return Digest{}, &Error{Code: ErrByteLimit, Detail: "exceeds the caller's total byte limit"}
+			return closureValidation{}, &Error{Code: ErrByteLimit, Detail: "exceeds the caller's total byte limit"}
 		}
 		if isLFSPointer(entry.Content) {
-			return Digest{}, &Error{Code: ErrLFSPointer, Path: canonical, Detail: "Git LFS pointer files are not executable source"}
+			return closureValidation{}, &Error{Code: ErrLFSPointer, Path: canonical, Detail: "Git LFS pointer files are not executable source"}
 		}
 		if _, ok := declared[canonical]; !ok {
-			return Digest{}, &Error{Code: ErrUndeclaredFile, Path: canonical, Detail: "is not declared by sources"}
+			return closureValidation{}, &Error{Code: ErrUndeclaredFile, Path: canonical, Detail: "is not declared by sources"}
 		}
 		files[canonical] = append([]byte(nil), entry.Content...)
 	}
 	for declaredPath := range declared {
 		content, ok := files[declaredPath]
 		if !ok {
-			return Digest{}, &Error{Code: ErrMissingFile, Path: declaredPath, Detail: "is declared but absent from the tree"}
+			return closureValidation{}, &Error{Code: ErrMissingFile, Path: declaredPath, Detail: "is declared but absent from the tree"}
 		}
 		if declaredPath == ManifestPath && string(content) != string(manifestBytes) {
-			return Digest{}, &Error{Code: ErrInvalidManifest, Path: ManifestPath, Detail: "tree bytes differ from the parsed manifest bytes"}
+			return closureValidation{}, &Error{Code: ErrInvalidManifest, Path: ManifestPath, Detail: "tree bytes differ from the parsed manifest bytes"}
 		}
 	}
-	if err := scanJSON(files[manifest.Parameters.Path], limits.MaxJSONDepth, false); err != nil {
-		return Digest{}, &Error{Code: ErrInvalidManifest, Path: manifest.Parameters.Path, Detail: "declared parameter/configuration JSON is invalid: " + err.Error()}
+	jsonLimits := JSONLimits{MaxBytes: limits.MaxFileBytes, MaxDepth: limits.MaxJSONDepth}
+	resolvedSets, err := ResolveParameterSets(
+		files[manifest.Parameters.SchemaPath],
+		files[manifest.Parameters.SetsPath],
+		jsonLimits,
+	)
+	if err != nil {
+		path := manifest.Parameters.SetsPath
+		var validationError *Error
+		if errors.As(err, &validationError) && validationError.Code == ErrParameterSchema {
+			path = manifest.Parameters.SchemaPath
+		}
+		return closureValidation{}, &Error{Code: ErrInvalidManifest, Path: path, Detail: "declared parameter schema/configurations are invalid: " + err.Error()}
+	}
+	if _, ok := resolvedSets[manifest.Parameters.DefaultSet]; !ok {
+		return closureValidation{}, &Error{Code: ErrInvalidManifest, Path: manifest.Parameters.SetsPath, Detail: "defaultSet is absent from the named parameter configurations"}
 	}
 	if err := runtime.ValidateEntrypoint(string(files[manifest.Runtime.Entrypoint]), "decide", 5); err != nil {
-		return Digest{}, &Error{Code: ErrEntrypoint, Path: manifest.Runtime.Entrypoint, Detail: err.Error()}
+		return closureValidation{}, &Error{Code: ErrEntrypoint, Path: manifest.Runtime.Entrypoint, Detail: err.Error()}
 	}
-	return DigestClosure(files), nil
+	return closureValidation{Digest: DigestClosure(files), ResolvedSets: resolvedSets}, nil
 }
 
 // DigestClosure deterministically hashes an already-validated regular-file

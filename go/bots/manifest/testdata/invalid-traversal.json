@@ -12,9 +12,10 @@
   "runtime": {"kind": "starlark", "protocol": "chess-raiders-bot-script/v1", "entrypoint": "../bot.star"},
   "stateMode": "stateless",
   "parameters": {
-    "path": "parameters.json",
-    "declarations": [{"name": "search", "type": "integer", "default": 4, "range": {"minimum": 1, "maximum": 8}}]
+    "schemaPath": "parameters.schema.json",
+    "setsPath": "parameters.json",
+    "defaultSet": "default"
   },
   "requiredCapabilities": [],
-  "sources": ["chess-raiders-bot.json", "../bot.star", "parameters.json"]
+  "sources": ["chess-raiders-bot.json", "../bot.star", "parameters.schema.json", "parameters.json"]
 }

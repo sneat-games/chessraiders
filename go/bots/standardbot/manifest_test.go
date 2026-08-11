@@ -3,7 +3,10 @@
 package standardbot_test
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/sneat-games/chessraiders/go/bots/manifest"
@@ -12,7 +15,7 @@ import (
 )
 
 var standardBotLimits = manifest.ValidationLimits{
-	MaxFiles:         3,
+	MaxFiles:         4,
 	MaxFileBytes:     200_000,
 	MaxTotalBytes:    400_000,
 	MaxManifestBytes: 20_000,
@@ -31,6 +34,7 @@ func standardBotEntries() []manifest.TreeEntry {
 	return []manifest.TreeEntry{
 		{Path: manifest.ManifestPath, Kind: manifest.EntryKindRegular, Content: standardbot.Manifest},
 		{Path: "chess-raiders-bot.star", Kind: manifest.EntryKindRegular, Content: []byte(standardbot.Script)},
+		{Path: "params.schema.json", Kind: manifest.EntryKindRegular, Content: standardbot.ParamsSchema},
 		{Path: "params.json", Kind: manifest.EntryKindRegular, Content: standardbot.Params},
 	}
 }
@@ -43,11 +47,24 @@ func TestStandardBotManifestBindsTheExactPublishedClosure(t *testing.T) {
 	if got, want := artifact.Manifest.Runtime.Entrypoint, "chess-raiders-bot.star"; got != want {
 		t.Fatalf("entrypoint = %q, want %q", got, want)
 	}
+	if artifact.Manifest.StateMode != manifest.StateModeBattleStateful {
+		t.Fatalf("stateMode = %q, want battle-stateful for the script's persisted focus/refusal memory", artifact.Manifest.StateMode)
+	}
 	if artifact.Digest.String() != standardBotClosureDigest {
 		t.Fatalf("closure digest = %s, want %s", artifact.Digest, standardBotClosureDigest)
 	}
+	commander, err := standardbot.ResolveParams("commander")
+	if err != nil {
+		t.Fatalf("ResolveParams(commander) = %v", err)
+	}
+	if !bytes.Equal(artifact.ResolvedParameters, commander) {
+		t.Fatalf("artifact default parameters = %s, want resolved Commander %s", artifact.ResolvedParameters, commander)
+	}
 	if err := runtime.ValidateEntrypoint(standardbot.Script, "decide", 5); err != nil {
 		t.Fatalf("ValidateEntrypoint(standard bot) = %v, want exact five-argument decide", err)
+	}
+	if got := fmt.Sprintf("%x", sha256.Sum256([]byte(standardbot.Script))); got != standardBotScriptDigest {
+		t.Fatalf("standard strategy source digest = %s, want preserved %s", got, standardBotScriptDigest)
 	}
 }
 
@@ -57,6 +74,7 @@ func TestStandardBotManifestRejectsAByteThatDoesNotMatchTheEmbeddedArtifact(t *t
 	got := manifest.DigestClosure(map[string][]byte{
 		manifest.ManifestPath:    standardbot.Manifest,
 		"chess-raiders-bot.star": entries[1].Content,
+		"params.schema.json":     standardbot.ParamsSchema,
 		"params.json":            standardbot.Params,
 	})
 	if got.String() == standardBotClosureDigest {
@@ -66,7 +84,7 @@ func TestStandardBotManifestRejectsAByteThatDoesNotMatchTheEmbeddedArtifact(t *t
 
 func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 	entries := append(standardBotEntries(), manifest.TreeEntry{Path: "notes.txt", Kind: manifest.EntryKindRegular, Content: []byte("not source")})
-	_, err := manifest.ValidateArtifact(standardbot.Manifest, entries, manifest.ValidationLimits{MaxFiles: 4, MaxFileBytes: 200_000, MaxTotalBytes: 400_000, MaxManifestBytes: 20_000, MaxJSONDepth: 32}, standardBotProfile)
+	_, err := manifest.ValidateArtifact(standardbot.Manifest, entries, manifest.ValidationLimits{MaxFiles: 5, MaxFileBytes: 200_000, MaxTotalBytes: 400_000, MaxManifestBytes: 20_000, MaxJSONDepth: 32}, standardBotProfile)
 	if err == nil {
 		t.Fatal("ValidateArtifact() = nil, want undeclared-file rejection")
 	}
@@ -78,4 +96,6 @@ func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 
 // Updated only when an intentional standard-bot artifact change is reviewed.
 // This is a closure digest, not the Go module version.
-const standardBotClosureDigest = "sha256:48068f256b8c7fef4f4230c339939b6afb42de43ec9ea488fe6f97108a497c42"
+const standardBotClosureDigest = "sha256:76ef5fe6616b26b56a7d016caa3cba0a3c328abb67b22fa715f3867da5e52439"
+
+const standardBotScriptDigest = "35e284ea23acc6c9aa3d2ae7e11ead638c8bd07c33fbe5f4f6445ddad4395878"

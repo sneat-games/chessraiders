@@ -33,24 +33,15 @@
   },
   "stateMode": "battle-stateful",
   "parameters": {
-    "path": "params.json",
-    "declarations": [
-      {
-        "name": "tiers",
-        "type": "json",
-        "default": {
-          "adviser": {},
-          "commander": {},
-          "lieutenant": {},
-          "recruit": {}
-        }
-      }
-    ]
+    "schemaPath": "params.schema.json",
+    "setsPath": "params.json",
+    "defaultSet": "commander"
   },
   "requiredCapabilities": [],
   "sources": [
     "chess-raiders-bot.json",
     "chess-raiders-bot.star",
+    "params.schema.json",
     "params.json"
   ]
 }
