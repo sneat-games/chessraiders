@@ -97,11 +97,11 @@ their affordability and outcomes remain separate, and current target
 `guardedBy` relations describe visible recapture risk. A script must not infer
 piece geometry, future attacks, or protection from distance.
 
-An already charging unit may conservatively omit candidate facts when its
-hidden route state prevents a fog-correct settled projection. `legal` still
-authorizes same-actor replacement; a capture replacement remains fully scored
-from current target relations and affordability, while an absent quiet fact
-earns no speculative future bonus.
+Candidate facts are unconditionally omitted for every already charging unit.
+`legal` still authorizes same-actor replacement; a capture replacement remains
+fully scored from affordability and the target's current visible relations,
+while an absent quiet fact earns no speculative safety or other future-state
+bonus.
 
 #### REQ: activity-fields-preserve-command-privacy
 

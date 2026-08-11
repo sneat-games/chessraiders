@@ -93,11 +93,11 @@ exact next promotion square. Captures have no fabricated deterministic
 post-state fact; affordability/outcomes and the current target's guards price
 them instead.
 
-An already charging actor may have no candidate facts when its private route
-state prevents an exact fog-safe projection. `legal` still offers actionable
-same-actor replacements: capture alternatives use current relations and
-affordability normally, while a quiet alternative with no fact receives no
-speculative development, support or future-attack bonus.
+Candidate facts are unconditionally omitted for every already charging actor.
+`legal` still offers actionable same-actor replacements: capture alternatives
+use affordability and the target's current visible relations normally, while
+a quiet alternative without a fact receives no speculative safety,
+development, support or future-attack bonus.
 
 Activity follows the same privacy boundary. Own routes expose destination and
 remaining milliseconds; a currently visible enemy exposes active status and
