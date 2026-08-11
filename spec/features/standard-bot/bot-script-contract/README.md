@@ -13,6 +13,13 @@ status: Draft
 
 What a bot script is handed each decision, what it may return, and the one source of randomness it may use.
 
+**Mechanic:** the host supplies one fog-correct piece map, actionable choices,
+post-move relation facts, and public activity state; the script may select but
+never reconstruct them.
+**Real-world analogy:** a commander receives a current reconnaissance report
+and an approved-order sheet, not the enemy's hidden map or permission to
+invent roads.
+
 ## Problem
 
 A script that can quietly work out its own version of a rule is a script
@@ -48,14 +55,67 @@ rather than a person.
 
 #### REQ: legal-moves-are-already-worked-out
 
-Alongside that view, a script is handed the full set of legal destinations
-for each of its own pieces, already worked out by the game. A script never
-computes where a piece is allowed to go — it can plan around that set (a
-route home for a captured king's convoy is exactly this: chaining several
-one-step legal moves into a plan), but the one move it actually issues
-must be a destination the game already offered. A script that names
-anywhere else is rejected before it ever reaches the board: a scripting
-mistake can misfire, but it can never issue an illegal move.
+Alongside that view, `legal[unitId]` gives the host-offered actionable
+destinations for each own piece, including replacement destinations for a
+piece whose route is already charging. A script never computes where a piece
+is allowed to go — it can plan around that set (a route home for a captured
+king's convoy is exactly this: chaining several one-step offered moves into a
+plan), but the one move it issues must be a destination the game offered.
+
+Under Fog of War, an offered destination is a belief-correct hint, not a leak
+from the true hidden board. Submission revalidates it atomically and may still
+reject it because of an unseen blocker without identifying that blocker. A
+script that names a destination the host did not offer is rejected before it
+reaches the board.
+
+#### REQ: pieces-map-is-the-only-board-shape
+
+The board is `pieces`, one map keyed by algebraic square. Each value carries
+an opaque stable `unitId`, an explicit `side`, rank and physical state; it
+does not repeat its square. Side is never inferred from the unit ID because
+recruitment can change ownership. Scripts sort the square keys before
+iteration, and the published standard bot reconstructs a transient square
+field without mutating the observation.
+
+There is no parallel `own`/`enemy` board and no top-level `danger` summary.
+Every visible non-ghost piece may instead carry sorted, duplicate-free square
+lists: `threatens`, `threatenedBy`, `guards`, and `guardedBy`; omitted means
+empty. These relations describe current combat reach, independently of
+cooldown and morale affordability. Ghosts carry no live relations.
+
+#### REQ: deterministic-candidates-describe-the-exact-post-state
+
+`candidates[unitId][destination]` exists for deterministic non-capture
+relocations. It carries `destinationVisible`, the host's fog-safe `patrolGain`,
+`nextPossibleMoves`, and the same four post-move relation lists. Presence of a
+candidate does not make its destination visible, and omitted lists mean empty.
+
+Candidate facts cover ordinary quiet moves, deterministic convoy relocation
+and unload/refit/delivery, and a chosen-queen quiet promotion. Captures,
+en-passant and branching choices have no fabricated single future state:
+their affordability and outcomes remain separate, and current target
+`guardedBy` relations describe visible recapture risk. A script must not infer
+piece geometry, future attacks, or protection from distance.
+
+An already charging unit may conservatively omit candidate facts when its
+hidden route state prevents a fog-correct settled projection. `legal` still
+authorizes same-actor replacement; a capture replacement remains fully scored
+from current target relations and affordability, while an absent quiet fact
+earns no speculative future bonus.
+
+#### REQ: activity-fields-preserve-command-privacy
+
+An own active route is `charging: {square, remainingMs}`. A currently visible
+enemy route exposes only `isCharging: true` and `chargingRemainingMs`, never
+its destination; invisible enemies and ghosts expose neither. Public physical
+recovery is `recoveryRemainingMs`; own-only work is
+`forgingRemainingMs` or `training: {profession, grade?, remainingMs}`; a piece
+being interrogated carries only `interrogationRemainingMs`, from which the
+sole adjacent king interrogator is derived. Inactive fields are omitted.
+
+Specialist identity uses `profession`, engineer `grade` (`basic` or `master`),
+and an optional `eligibleFor` list containing `masterEngineerTraining`; the
+removed boolean summaries are not accepted as a second schema.
 
 #### REQ: parameters-are-just-numbers-you-declare
 
@@ -103,11 +163,11 @@ destination happens to be occupied.
 
 #### REQ: the-same-position-reads-the-same-way
 
-Everything a script can look through — the board, the routes, its own
-legal moves, even its own configuration values — always comes in the same
-order for the same position. A script's behaviour never depends on an
-ordering nobody promised it, so the same script facing the same position
-always sees it the same way.
+Everything a script can look through — sorted `pieces` keys, relation lists,
+candidate lists, legal moves, and its own configuration values — always
+comes in the same order for the same position. A script's behaviour never
+depends on map iteration or another ordering nobody promised it, so the same
+script facing the same position always sees it the same way.
 
 ## Dependencies
 
@@ -135,6 +195,33 @@ side cannot see
 **When** a script's decision is inspected
 **Then** nothing in it mentions that hidden unit, and nothing the script
 can call gives it a way to ask about one
+
+### AC: observation-has-one-unambiguous-board-schema
+
+**Given** a current bot observation
+**When** its board is decoded
+**Then** every projected occupant appears exactly once under its algebraic
+key in `pieces`, carries explicit `side` and opaque `unitId`, and no
+`own`/`enemy` arrays, cell `square`, top-level `danger`, or removed boolean
+specialist summary is present
+
+### AC: candidate-relations-are-exact-and-geometry-free
+
+**Given** one deterministic quiet move and one branching capture
+**When** their host facts are inspected
+**Then** the quiet move's `candidates` entry carries visibility, patrol,
+next-move and post-state relation facts while the capture has no fabricated
+post-state candidate, and the script uses supplied relations/outcomes rather
+than distance or piece-geometry guesses
+
+### AC: charge-activity-shows-progress-without-leaking-enemy-targets
+
+**Given** one own charging piece, one currently visible charging enemy, and
+one fogged enemy ghost
+**When** the bot observation is produced
+**Then** the own piece exposes destination and remaining time, the visible
+enemy exposes active status and remaining time but no destination, and the
+ghost exposes no live charge fields
 
 ### AC: bad-configuration-fails-before-the-match-not-during-it
 

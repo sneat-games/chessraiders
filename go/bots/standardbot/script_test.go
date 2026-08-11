@@ -98,8 +98,7 @@ const emptyBoardObservation = `{
 	"lifecycle": "playing",
 	"side": "white",
 	"nowMs": 0,
-	"own": [],
-	"enemy": [],
+	"pieces": {},
 	"legal": {},
 	"rules": {"veteranProgression": false, "allowsCapture": true}
 }`

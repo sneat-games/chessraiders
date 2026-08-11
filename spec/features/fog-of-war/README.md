@@ -18,6 +18,12 @@ where a friendly piece could currently see or reach it. Two exceptions keep
 early play readable and keep command itself honest: the enemy king and queen
 start visible until they first move, and both teams' morale is always public.
 
+**Mechanic:** the server projects one team-shared visible/unknown/ghost board
+and exposes only public physical state for currently visible enemies.
+**Real-world analogy:** scouts can report that a visible enemy is preparing
+something and how soon it will happen, but not the sealed destination on its
+orders; an old sighting cannot radio live updates.
+
 ## Problem
 
 Full information turns Chess Raiders into a puzzle where every plan is
@@ -111,6 +117,15 @@ actually saw; it never reveals an enemy piece's live charge state, its
 ordinary route plan, or any cargo change that happened while it was out of
 your sight.
 
+#### REQ: visible-enemy-charge-progress-without-target
+
+A currently visible enemy piece reveals whether it is actively charging and,
+when it is, the remaining milliseconds. It never reveals the destination,
+queued route or attack target. Your own charging piece shows both its current
+destination and remaining time. An invisible enemy and a ghost expose no live
+charge fields at all; becoming visible again resumes the current status rather
+than replaying what happened while hidden.
+
 ## Dependencies
 
 - [Real-Time Command](../real-time-command/README.md)
@@ -165,6 +180,15 @@ the ghost square never displays live charge, route, or cargo information.
 **When** the move turns out to be illegal because of what is actually there
 **Then** the rejection does not reveal what occupies the square or who owns
 it.
+
+### AC: visible-charge-progress-does-not-reveal-the-route
+
+**Given** an own charging piece, a currently visible charging enemy piece,
+and a ghost of another enemy that is charging out of sight
+**When** the team's fogged view is produced
+**Then** the own piece shows destination and remaining time, the visible enemy
+shows active status and remaining time but no destination, and the ghost shows
+no live charge status or timing
 
 ### AC: morale-and-incursion-stay-public-under-fog
 

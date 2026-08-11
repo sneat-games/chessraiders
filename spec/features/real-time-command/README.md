@@ -14,10 +14,17 @@ status: Stable
 Chess Raiders has no turns. Both armies act at the same time. A commanded
 piece does not move the instant you command it — it charges on its starting
 square for a duration set by its rank and by whether it is moving or
-attacking, then the order resolves. Charging is readable to your own side as
-a route plan; an attack is readable to the threatened side as an anonymous
-warning. Classical movement, castling, en passant, and promotion continue to
-work exactly as in ordinary chess.
+attacking, then the order resolves. Your own side sees the route plan; an
+opponent who currently sees the piece sees only that it is charging and the
+time remaining; an attack is separately readable to the threatened side as
+an anonymous warning. Classical movement, castling, en passant, and promotion
+continue to work exactly as in ordinary chess.
+
+**Mechanic:** a command creates a timed, replaceable route whose destinations
+stay team-private while visible physical progress is public without its target.
+**Real-world analogy:** an observer can see troops preparing to move and judge
+when they will be ready, but only their own headquarters can read the sealed
+route orders.
 
 ## Contents
 
@@ -30,10 +37,10 @@ work exactly as in ordinary chess.
 Alternating turns do not fit a group commanding one army together, and simply
 moving a piece at once and locking it afterward gives a defender no way to
 see a blow coming and gives teammates no way to see that someone is already
-routing a piece toward a square. Chess Raiders needed preparation *before* movement
-rather than recovery *after* it — readable to your own side without leaking
-your plans to the enemy, except for the one signal the enemy is owed: that
-something is about to hit them.
+routing a piece toward a square. Chess Raiders needed preparation *before*
+movement rather than recovery *after* it — readable as a plan to your own
+side while exposing only physical preparation and anonymous threat warnings
+to an enemy, never the destination written in the order.
 
 ## Behavior
 
@@ -104,16 +111,22 @@ and its live charge are dropped, all its markers disappear, and a new route
 begins at step 1. This works regardless of which teammate queued the
 original route, because the army is shared.
 
-None of this — destinations, order, progress, overlaps, or which piece is
-moving — is ever visible to the opposing team.
+None of the route plan — destinations, order, cumulative route progress or
+overlaps — is visible to the opposing team. If the charging piece itself is
+currently visible, the opponent still sees the generic active status and
+remaining time required by [Fog of War](../fog-of-war/README.md), but cannot
+link that public countdown to a destination or later route step.
 
 #### REQ: attack-target-lock
 
 An accepted attack creates a second, different signal: an anonymous
 under-attack marker on the threatened piece, visible to both teams. It says
-only that the piece is threatened. It never reveals who is attacking, where
-the attack is coming from, its charge progress, or its route. Your own team
-still gets its ordinary route marker on the attacker in addition to this.
+only that the piece is threatened. The warning itself never reveals who is
+attacking, where the attack is coming from, or its route, and never links any
+public countdown to that target. If the attacker is independently visible,
+its ordinary active status and remaining time are still public without a
+destination. Your own team gets its full route marker on the attacker in
+addition to this warning.
 
 #### REQ: changed-target-cancels-route
 
@@ -274,8 +287,9 @@ either unit's own charge time.
 **Given** a player plans an ordered route with three destinations
 **When** a teammate and an opposing player each view the board
 **Then** the teammate sees the numbered rings and cumulative progress while
-the opponent sees no destination, order, progress, or identity of the moving
-piece.
+the opponent sees no destination, order or cumulative route progress; if the
+piece is currently visible, the opponent sees only its active status and
+remaining time.
 
 ### AC: overlapping-plans-stand-out
 
@@ -296,7 +310,15 @@ and the new move becomes step 1 of a fresh route.
 **Given** an attack begins charging against a piece
 **When** both teams view the board
 **Then** both see that the piece is under attack, but neither the identity of
-the attacker, its origin, nor its route is ever revealed by that warning.
+the attacker, its origin, nor its route is ever revealed by that warning; a
+visible attacker's generic countdown is not linked to the threatened piece.
+
+### AC: visible-enemy-charge-shows-time-not-target
+
+**Given** an enemy piece is currently visible while an active route charges
+**When** the opposing team views it
+**Then** they see that it is charging and how many milliseconds remain, but no
+destination, queued step, attack target or route marker
 
 ### AC: changed-target-cancels-the-route-immediately
 
