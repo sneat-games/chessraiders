@@ -76,7 +76,7 @@ func TestReplayCaseDetectsAWrongRecordedIntent(t *testing.T) {
 // only from a hand-edited intent field. TestBotClearsAFriendlyBlockerToDeliverTheCapturedKing.0
 // is used by name (not "entries[0]") because the perturbation below —
 // zeroing `delivery`, the one weight that gates the whole "escort a captive
-// home" category tier.star's own scoring reads (go/bots/standardbot/README.md's
+// home" category chess-raiders-bot.star's own scoring reads (go/bots/standardbot/README.md's
 // own weight table) — is verified, empirically, against THIS specific
 // case's recorded decision to flip it; an arbitrary case's own decision is
 // not guaranteed to be sensitive to any one weight, so asserting this

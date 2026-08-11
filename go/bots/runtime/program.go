@@ -194,7 +194,7 @@ func (p *Program) newThread() *starlark.Thread {
 // starlark.ExecFileOptions calls globals.Freeze() immediately after
 // mod.Init succeeds (go.starlark.net's own eval.go), before Compile ever
 // returns, so even a MUTABLE top-level binding (a script-level list or
-// dict) is permanently frozen the moment compilation finishes. tier.star
+// dict) is permanently frozen the moment compilation finishes. chess-raiders-bot.star
 // has none (every top-level binding is a numeric constant or a def), so
 // this is inert for it today, but it is worth stating precisely for a
 // future script that tries to keep mutable state at module level: it
@@ -232,7 +232,7 @@ func (p *Program) Call(name string, argsJSON ...string) (string, error) {
 // CallWithStepLimit is Call's sibling for a caller whose step ceiling varies
 // CALL TO CALL rather than being fixed once at Compile time — the server bot
 // resolver (server-go/starlarkbot4chess, via server-go/starlarktier), which
-// shares ONE compiled tier.star Program across Recruit/Lieutenant/Commander/
+// shares ONE compiled chess-raiders-bot.star Program across Recruit/Lieutenant/Commander/
 // Custom yet must bound each decision by THAT match's own
 // chess.BotTierRules.StepBudget. CompileWithStepLimit cannot express this on
 // its own: maxSteps lives on the *Program (this file's own CONCURRENCY

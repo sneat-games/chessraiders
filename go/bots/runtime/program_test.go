@@ -12,7 +12,7 @@ import (
 
 // TestProgramCallRoundTrip is Program's own acceptance test: compile once,
 // call a global function with JSON arguments, get a JSON result back —
-// the direct-call shape tier.star's own bottom adapter block existed only
+// the direct-call shape chess-raiders-bot.star's own bottom adapter block existed only
 // to simulate.
 func TestProgramCallRoundTrip(t *testing.T) {
 	const source = `
@@ -258,7 +258,7 @@ def modest():
 // specifically: many goroutines calling CallWithStepLimit against the SAME
 // compiled Program with DIFFERENT per-call ceilings, under `go test -race` —
 // the exact shape server-go/starlarkbot4chess's production resolver uses
-// (one compiled tier.star, one budget per decision, many matches deciding
+// (one compiled chess-raiders-bot.star, one budget per decision, many matches deciding
 // concurrently). concurrency_test.go's own
 // TestConcurrentProgramsWithDifferentStepBudgetsCancelAtTheirOwn proves the
 // equivalent property for CompileWithStepLimit/Call (ten SEPARATE Programs);

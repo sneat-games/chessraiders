@@ -5,7 +5,7 @@
 // REQ:one-script-three-difficulties), and Params, the parameter table whose
 // three rows — recruit, lieutenant, commander — are the entire declared
 // difference between them. Turning Recruit into Lieutenant is editing a row
-// of numbers in params.json, never touching tier.star; see this package's
+// of numbers in params.json, never touching chess-raiders-bot.star; see this package's
 // own README.md for what a row means and how to change one.
 //
 // Params carries a FOURTH row, adviser, that the same decide() scores
@@ -19,21 +19,21 @@
 //
 // Both files are embedded verbatim by the two go:embed directives below,
 // never copied into a Go string literal by hand, so `git diff` against
-// tier.star or params.json IS the diff against what a compiled bot actually
+// chess-raiders-bot.star or params.json IS the diff against what a compiled bot actually
 // reads — there is no intermediate copy for the two to drift apart from.
 // Load Script into go/bots/runtime.Compile to get a callable Program; the
 // README walks the shortest path from there to a decision.
 //
 // BOTH FILES ORIGINATE HERE — this package is the one and only source of
-// truth for tier.star and params.json; a change to either is made HERE
+// truth for chess-raiders-bot.star and params.json; a change to either is made HERE
 // first, never in the private implementation, and the private repository
 // republishes what this package already carries, never the other way
 // around.
 //
-// tier.star made that crossing first, in the private implementation's plan
+// chess-raiders-bot.star made that crossing first, in the private implementation's plan
 // publish-the-standard-bot (task-5, 2026-08-10): server-go/starlarktier/
-// recruit.go no longer `//go:embed`s a local tier.star at all — there is no
-// local tier.star left there to embed — and re-exports THIS package's own
+// recruit.go no longer `//go:embed`s a local chess-raiders-bot.star at all — there is no
+// local chess-raiders-bot.star left there to embed — and re-exports THIS package's own
 // Script symbol instead (that file's own doc comment has the full account).
 //
 // params.json made the SAME crossing one task later, in task-6: this file —
@@ -48,21 +48,21 @@
 // briefly were not byte-for-byte identical even though both traced back to
 // params.go. Task-6 collapsed that whole chain: params.go now DECODES this
 // very file's own bytes (fetched by module version, the same way
-// server-go/starlarktier/recruit.go fetches tier.star FROM this package)
+// server-go/starlarktier/recruit.go fetches chess-raiders-bot.star FROM this package)
 // instead of hand-writing the numbers, so there is exactly one copy of the
 // table again, and it is HERE.
 package standardbot
 
 import _ "embed"
 
-// Script is tier.star's own content, byte-for-byte: the one decide()
+// Script is chess-raiders-bot.star's own content, byte-for-byte: the one decide()
 // function every difficulty calls, differing only in which row of Params it
 // is handed. It declares no dependency of its own beyond what
 // go/bots/runtime's dialect predeclares (json.encode/json.decode) — nothing
 // in it reaches outside the observation, legal-move set and params a caller
 // hands it.
 //
-//go:embed tier.star
+//go:embed chess-raiders-bot.star
 var Script string
 
 // Params is params.json's own content, byte-for-byte: an envelope naming its
@@ -83,7 +83,7 @@ var Params []byte
 // ParamsVersion is params.json's own top-level "version" field, exported so
 // a caller decoding Params can assert it is reading the envelope format it
 // was written against rather than silently misreading a future,
-// incompatible one. It is not this package's version, nor tier.star's — it
+// incompatible one. It is not this package's version, nor chess-raiders-bot.star's — it
 // names params.json's shape alone. The private implementation's own
 // server-go/starlarktier/params.go imports THIS constant directly and
 // panics at init if a decoded params.json disagrees with it, rather than
