@@ -3,6 +3,17 @@ name: CI
 on:
   push:
     branches: [main]
+    # A tag push re-runs this whole workflow, engine-backed job included,
+    # against the exact commit being released — always with real credentials,
+    # because a tag is only ever pushed by someone inside the organisation,
+    # never a fork. This is the tag gate spec/plans/publish-the-standard-bot.md
+    # Task 10 (sneat-co/chessraiders, `plans` branch) asks for: a release path
+    # that could produce a tag without the engine-backed job having run against
+    # that commit is the same defect as the fork-PR green tick, one step
+    # further downstream. Branch protection cannot itself require a fork-
+    # conditional check (see the `engine_backed` job below), so this trigger —
+    # not a branch-protection setting — is what makes the tag gate real.
+    tags: ["go/v*"]
   pull_request:
 
 # This is the OPEN job: it needs no credentials, so it runs on every push and
@@ -10,16 +21,26 @@ on:
 # repository is published so outsiders can fork the bot, and a fork whose CI
 # cannot run is a fork nobody can review.
 #
-# A second, ENGINE-BACKED job arrives later (spec/plans/publish-the-standard-bot.md
-# Task 10 in sneat-co/chess): it checks out the private engine with an
-# organisation token and runs the real behavioural suite against the published
-# bot. It cannot run on a fork PR, and when it cannot it must report a NAMED
-# SKIP rather than a pass — a green tick standing for a suite that did not run
-# is worse than a visibly missing one.
+# The second, ENGINE-BACKED job is `engine_backed` below (plan task-10,
+# spec/plans/publish-the-standard-bot.md in sneat-co/chessraiders on the
+# `plans` branch): it checks out the private engine with an organisation
+# token and runs the real behavioural suite (`server-go/tests4bot`) against
+# the published bot. It cannot run on a fork PR, and when it cannot it fails
+# with a message naming the missing credential rather than reporting
+# success — a green tick standing for a suite that did not run is worse than
+# a visibly failing one. It is deliberately NOT a required branch-protection
+# check (see that job's own comment for why GitHub cannot express "required
+# for an internal PR, advisory for a fork PR" as a single setting) — the tag
+# trigger above is what actually gates a release.
 jobs:
   go:
     name: go build + vet + test
     runs-on: ubuntu-latest
+    # Observed: ~25s (run 31466402814, 2026-08-11). Sized several times over,
+    # not 1.5x, per the private repo's 2h17m no-timeout outage the day before
+    # (a hung job plus `cancel-in-progress: false` queued every later run
+    # behind it) — see spec/plans/publish-the-standard-bot.md Task 10.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -43,6 +64,10 @@ jobs:
   spec:
     name: spec lint
     runs-on: ubuntu-latest
+    # Observed: ~5s (run 31466402814). Generous headroom over that mainly
+    # covers the network fetch of the SpecScore installer, not the lint
+    # itself — see the `go` job's timeout comment for why this exists at all.
+    timeout-minutes: 10
     # The specs ARE the product here — this repository is the authoritative
     # public statement of Chess Raiders' rules. Until now nothing checked them
     # on push, and all ten feature-index rows had silently gone stale. That is
@@ -65,6 +90,8 @@ jobs:
   dependency_free:
     name: dependency allowlist
     runs-on: ubuntu-latest
+    # Observed: ~8s (run 31466402814). Same reasoning as the `go` job.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -109,7 +136,7 @@ jobs:
             || true)
           if [ -n "$offenders" ]; then
             echo "These modules are outside the allowlist:"
-            echo "$offenders" | sed 's/^/  /'
+            echo "  ${offenders//$'\n'/$'\n  '}"
             echo
             echo "Only go.starlark.net and golang.org/x/sys (its own"
             echo "int_posix64.go dependency on every POSIX platform) may be"
@@ -120,3 +147,121 @@ jobs:
             exit 1
           fi
           echo "dependencies: within the allowlist"
+
+  engine_backed:
+    name: engine-backed (tests4bot)
+    runs-on: ubuntu-latest
+    # First observed run: see the PR that introduced this job for the actual
+    # figure. Set generously above that observation, several times over, not
+    # 1.5x — this job does a second private checkout and a much larger `go
+    # mod download` than the other three, so it legitimately needs more
+    # headroom than their 10 minutes, but a stall here must still fail loudly
+    # rather than hang the way the private repo's did for 2h17m the day
+    # before this task was written.
+    timeout-minutes: 15
+    env:
+      # Scopes `go mod download`/`go test`'s git fetches for the OTHER private
+      # sneat-co modules server-go/tests4bot's dependency graph reaches
+      # (github.com/sneat-co/competios/backend, .../ext-chessraiders/backend,
+      # .../ext-competios/backend) away from the public proxy and checksum
+      # database, mirroring the private repo's own CI
+      # (.github/workflows/main.yml, "Set GitHub access token for GOPRIVATE").
+      GOPRIVATE: github.com/sneat-co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+
+      # GitHub Actions never hands repository secrets to a workflow run
+      # triggered by a pull_request from a fork — secrets.* simply comes back
+      # empty. That is the ONE reliable, doc'd signal this job has for "am I
+      # running on a fork PR", and it is what plan task-10's AC
+      # (the-engine-backed-job-runs-or-says-it-did-not) means by "reports a
+      # skip naming the missing credential".
+      - name: Check for the organisation engine-checkout credential
+        id: engine_token
+        env:
+          SNEAT_GAMES_RELEASE_TOKEN: ${{ secrets.SNEAT_GAMES_RELEASE_TOKEN }}
+        run: |
+          if [ -n "${SNEAT_GAMES_RELEASE_TOKEN:-}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Deliberately FAILS rather than passing or silently skipping. A
+      # job-level `if:` skip reports GitHub Actions conclusion "skipped",
+      # which several branch-protection configurations treat as satisfying a
+      # required check — exactly the "green tick standing for a suite that
+      # did not run" outcome plan task-10 exists to prevent. Failing loudly,
+      # with a message that names the missing credential and says plainly
+      # that this is expected on a fork PR (not a broken harness), is the
+      # only conclusion here that cannot be mistaken for a pass. This job is
+      # intentionally NOT a branch-protection required check (branch
+      # protection cannot itself express "required for an internal PR,
+      # advisory for a fork PR" — it applies uniformly to a branch regardless
+      # of the PR's origin), so this failure never blocks a fork PR from
+      # merging; the `on.push.tags` trigger above is the real release gate.
+      - name: Report the missing-credential skip
+        if: steps.engine_token.outputs.available == 'false'
+        run: |
+          {
+            echo "### engine-backed job: SKIPPED, not passed"
+            echo
+            echo "Missing credential \`SNEAT_GAMES_RELEASE_TOKEN\`. GitHub Actions never hands"
+            echo "repository secrets to a workflow run triggered by a pull request from a"
+            echo "fork, so this is the expected shape of a fork PR — not a broken harness."
+            echo
+            echo "The real behavioural suite (\`server-go/tests4bot\` against the private"
+            echo "chess engine) DID NOT RUN for this change. This job fails rather than"
+            echo "reporting success so a fork PR cannot appear to have passed a check it"
+            echo "structurally cannot run — see spec/plans/publish-the-standard-bot.md Task 10"
+            echo "(sneat-co/chessraiders, \`plans\` branch)."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::engine-backed job SKIPPED — missing SNEAT_GAMES_RELEASE_TOKEN (expected on a fork PR; server-go/tests4bot did NOT run)"
+          exit 1
+
+      - name: Checkout the private engine
+        if: steps.engine_token.outputs.available == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: sneat-co/chessraiders
+          token: ${{ secrets.SNEAT_GAMES_RELEASE_TOKEN }}
+          path: engine
+
+      - name: Authenticate git for the rest of the private module graph
+        if: steps.engine_token.outputs.available == 'true'
+        env:
+          SNEAT_GAMES_RELEASE_TOKEN: ${{ secrets.SNEAT_GAMES_RELEASE_TOKEN }}
+        run: |
+          git config --global url."https://${SNEAT_GAMES_RELEASE_TOKEN}:x-oauth-basic@github.com/sneat-co".insteadOf "https://github.com/sneat-co"
+
+      # The documented local recipe (sneat-co/chessraiders AGENTS.md, "Local
+      # two-repository iteration (go.work)"): `go work init .` in the engine
+      # checkout, then `go work use` the public module's `go/` directory —
+      # here, THIS commit's checkout, not the tagged release, so a change
+      # this PR makes is exactly what tests4bot exercises.
+      - name: Point go.work at this checkout of the published module
+        if: steps.engine_token.outputs.available == 'true'
+        working-directory: engine
+        run: |
+          go work init .
+          go work use ../go
+
+      - name: Run tests4bot against the published script
+        if: steps.engine_token.outputs.available == 'true'
+        working-directory: engine
+        run: go test ./server-go/tests4bot/...
+
+  workflow_policy:
+    name: workflow timeout policy
+    runs-on: ubuntu-latest
+    # This job only greps text files; if it ever needs more than a minute
+    # something is badly wrong, but 10x that observed shape (a few seconds)
+    # costs nothing to allow for a cold runner.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every workflow job must declare a timeout-minutes
+        run: .github/scripts/check-job-timeouts.sh
