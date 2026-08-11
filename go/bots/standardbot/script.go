@@ -24,21 +24,33 @@
 // Load Script into go/bots/runtime.Compile to get a callable Program; the
 // README walks the shortest path from there to a decision.
 //
-// Neither file originates here. tier.star is ported byte-for-byte from the
-// private implementation's server-go/starlarktier/tier.star. params.json's
-// three playing-difficulty rows are that repository's own
-// contracts/chess-bot-tier-params-v1.json, generated FROM
-// RecruitParams/LieutenantParams/CommanderParams there (see that file's own
-// generating test, bot_tier_params_fixture_test.go, for the mechanism this
-// package's copy has no way to re-run) — that generator deliberately stops
-// at those three, because the private implementation's own browser mirror
-// it feeds resolves the Adviser by name instead of a fourth hand-mirrored
-// row (server-go/starlarktier/params.go's own ParamsRow doc comment). The
-// adviser row here is params.go's AdviserParams() directly, so the two
-// files are no longer byte-for-byte identical; both still originate from
-// params.go alone. A change to either lands upstream first and is
-// re-published here; this package is a read path, not a source of truth
-// for either file's content.
+// BOTH FILES ORIGINATE HERE — this package is the one and only source of
+// truth for tier.star and params.json; a change to either is made HERE
+// first, never in the private implementation, and the private repository
+// republishes what this package already carries, never the other way
+// around.
+//
+// tier.star made that crossing first, in the private implementation's plan
+// publish-the-standard-bot (task-5, 2026-08-10): server-go/starlarktier/
+// recruit.go no longer `//go:embed`s a local tier.star at all — there is no
+// local tier.star left there to embed — and re-exports THIS package's own
+// Script symbol instead (that file's own doc comment has the full account).
+//
+// params.json made the SAME crossing one task later, in task-6: this file —
+// not anything hand-written in that other repository — is now the table's
+// one and only author. Before task-6, the causality ran the other way:
+// server-go/starlarktier/params.go hand-wrote RecruitParams/
+// LieutenantParams/CommanderParams/AdviserParams as Go struct literals, and
+// a generator there (bot_tier_params_fixture_test.go, since deleted) copied
+// their three PLAYING rows out to a private fixture that this package's
+// copy of params.json was, in turn, republished from — the Adviser row
+// never made that trip, which is the historical reason the two files
+// briefly were not byte-for-byte identical even though both traced back to
+// params.go. Task-6 collapsed that whole chain: params.go now DECODES this
+// very file's own bytes (fetched by module version, the same way
+// server-go/starlarktier/recruit.go fetches tier.star FROM this package)
+// instead of hand-writing the numbers, so there is exactly one copy of the
+// table again, and it is HERE.
 package standardbot
 
 import _ "embed"
@@ -72,7 +84,8 @@ var Params []byte
 // a caller decoding Params can assert it is reading the envelope format it
 // was written against rather than silently misreading a future,
 // incompatible one. It is not this package's version, nor tier.star's — it
-// names params.json's shape alone, and matches the private implementation's
-// own fixture envelope constant 1:1 so a regenerated params.json copied here
-// verbatim needs no translation.
+// names params.json's shape alone. The private implementation's own
+// server-go/starlarktier/params.go imports THIS constant directly and
+// panics at init if a decoded params.json disagrees with it, rather than
+// declaring a second copy of the string to keep in sync by hand.
 const ParamsVersion = "chess-bot-tier-params/v1"
