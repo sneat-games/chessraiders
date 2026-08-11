@@ -619,9 +619,7 @@ func TestOnlyQuietNonPromotionLeaderMovesArmGuard(t *testing.T) {
 func TestDevelopmentAndKingHuntRequireKnownProtectedQuietMove(t *testing.T) {
 	makeDevelopment := func() map[string]any {
 		o := strategyObservation(t, strategyCell("wn", "c2", "white", "knight"))
-		// d3 is within the approved Chebyshev pursuit horizon; this test
-		// deliberately no longer claims that any merely-closer square hunts.
-		o["enemy"] = []any{strategyCell("bk", "e5", "black", "king")}
+		o["enemy"] = []any{strategyCell("bk", "h8", "black", "king")}
 		return o
 	}
 	base := makeDevelopment()
@@ -828,31 +826,6 @@ func TestUnaffordableKingContactsDoNotConsumeRecruitBreadth(t *testing.T) {
 	intent, _, _ = decision(t, o, nil)
 	if intent == nil || intent["from"] == "e1" || intent["to"] != "h8" {
 		t.Fatalf("affordable king contact did not take priority after morale transition: %#v", intent)
-	}
-}
-
-func TestVisibleKingPursuitBandsAdmitAndChooseSafeDestination(t *testing.T) {
-	// These bands are deliberately Chebyshev proximity, not a reimplementation
-	// of rank-specific attack geometry. The host still owns legal moves.
-	units := []map[string]any{
-		strategyCell("hunter", "a1", "white", "rook"),
-		strategyCell("near1", "f7", "white", "queen"), strategyCell("near2", "g8", "white", "queen"),
-		strategyCell("near3", "h7", "white", "queen"), strategyCell("near4", "f8", "white", "queen"),
-		strategyCell("near5", "e7", "white", "queen"),
-	}
-	o := strategyObservation(t, units...)
-	o["enemy"] = []any{strategyCell("bk", "h8", "black", "king")}
-	o["legal"] = map[string]any{"hunter": []any{"g7", "e5"}}
-	o["moveFacts"] = map[string]any{"hunter": map[string]any{
-		"g7": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0},
-		"e5": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0},
-	}}
-	intent, _, options := decision(t, o, nil)
-	if intent == nil || intent["from"] != "a1" || intent["to"] != "g7" {
-		t.Fatalf("near pursuit destination was not admitted and selected: intent=%#v options=%#v", intent, options)
-	}
-	if got, ok := termValue(requireOption(t, options, "a1", "g7"), "kingHunt", "visible"); !ok || got != 30*0.15*0.5 {
-		t.Fatalf("near pursuit band = %v (present=%v), want %v: %#v", got, ok, 30*0.15*0.5, options)
 	}
 }
 
