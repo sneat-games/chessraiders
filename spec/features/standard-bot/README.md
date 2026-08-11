@@ -108,6 +108,23 @@ A higher difficulty plays better because it looks further ahead and reacts
 faster — never because it can see something a human on the same side
 could not.
 
+#### REQ: every-difficulty-defeats-a-passive-opponent
+
+Every difficulty, Recruit included, wins against an opponent who never
+issues a single command.
+
+This is a floor underneath the three difficulties above, not a fourth
+difficulty. It is not a walkover: a side that does nothing still has its
+whole army standing in the way, so the bot has to advance into it, take
+material, promote a pawn, capture the enemy king and escort it home —
+all without a single move from the other side to react to. Recruit is
+expected to take far longer than Commander and to win untidily.
+
+What no difficulty may do is fail to finish. Wandering, stalling, or
+repeating the same two moves until the clock runs out is a defect, not a
+weaker setting — a commander who cannot beat someone standing still has
+not been given a lower difficulty, they have been given a broken one.
+
 #### REQ: no-bot-ever-builds-a-new-wall
 
 None of the three difficulties ever raises a brand-new fortification.
@@ -246,6 +263,17 @@ installed, nothing compiled, and no checkout of any repository
 pawn when it's safe to and keeps its command chain moving, and Commander
 additionally works fortifications, prisoner logistics and incursion
 positioning
+
+### AC: every-tier-beats-a-passive-opponent
+
+**Given** each of the three difficulties in turn, against an opponent that
+issues no commands at all, across a range of starting seeds rather than one
+**When** each match plays out under a time budget generous enough for the
+slowest difficulty
+**Then** every difficulty delivers the enemy king home and wins, in every
+seed — a single seed that stalls, wanders, or repeats one pair of moves
+until the budget expires fails this criterion, and pinning the check to a
+seed that happens to pass does not satisfy it
 
 ### AC: no-tier-builds-a-wall
 
