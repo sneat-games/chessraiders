@@ -305,8 +305,8 @@ All three were stopped mid-task when session budget ran out.
 | work | repo | state |
 |---|---|---|
 | **Bot diagnosis + variant matrix** | private `sneat-co/chessraiders` | **Reported.** Branch `diagnose-bot-stall` @ `2ebc0ed`, pushed, **not merged, no PR**. Throwaway diagnostics only; no published artifact touched. Everything in §3e came from it. |
-| Nightly red, 6 nights, Webapp unit tests | `sneat-co/chessraiders` | **Report not received.** Cause unknown. Verify from `gh` before assuming anything. |
-| The cover change-request in this repo | `sneat-games/chessraiders` | **Report not received.** May have landed; check `spec/features/standard-bot/`. |
+| Nightly red, 6 nights, Webapp unit tests | `sneat-co/chessraiders` | **Stalled and died** before reporting. Its last output was installing dependencies and preparing to run the failing step with **TinyGo on `PATH`** — a hint about where to look, **not a diagnosis**. Nothing was fixed and no cause was established. Start from the logs, not from that hint. |
+| The cover change-request in this repo | `sneat-games/chessraiders` | **Stalled and died** before writing anything. It did independently confirm the feature spec lives in `sneat-games/chessraiders` (this repo). Its intended content was written directly into [`../features/standard-bot/proposals/king-beacon-advance-under-cover.md`](../features/standard-bot/proposals/king-beacon-advance-under-cover.md) instead. |
 
 **First action for whoever picks this up:** `gh pr list` in both repos and `wb worktree list`, to find any branch pushed but unmerged. Do not assume a branch is absent because this document does not name it.
 
