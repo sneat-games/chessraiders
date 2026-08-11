@@ -624,7 +624,10 @@ func TestDevelopmentAndKingHuntRequireKnownProtectedQuietMove(t *testing.T) {
 	}
 	base := makeDevelopment()
 	base["legal"] = map[string]any{"wn": []any{"d3"}}
-	base["moveFacts"] = facts("wn", "d3", true, 1, 0, 2)
+	base["moveFacts"] = map[string]any{"wn": map[string]any{"d3": map[string]any{
+		"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 2,
+		"visibleAttacks": []any{"h8"},
+	}}}
 	intent, _, options := decision(t, base, nil)
 	if intent == nil || intent["to"] != "d3" {
 		t.Fatalf("known protected development was not selected: %#v", intent)
@@ -648,8 +651,8 @@ func TestDevelopmentAndKingHuntRequireKnownProtectedQuietMove(t *testing.T) {
 			o := makeDevelopment()
 			o["legal"] = map[string]any{"wn": []any{"d3", "b3"}}
 			o["moveFacts"] = map[string]any{"wn": map[string]any{
-				"d3": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 2},
-				"b3": map[string]any{"destinationKnown": tc.known, "protectedAfter": tc.protected, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 2},
+				"d3": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 2, "visibleAttacks": []any{"h8"}},
+				"b3": map[string]any{"destinationKnown": tc.known, "protectedAfter": tc.protected, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 2, "visibleAttacks": []any{"h8"}},
 			}}
 			intent, _, _ := decision(t, o, nil)
 			if intent == nil || intent["to"] != "d3" {
@@ -690,6 +693,142 @@ func TestDevelopmentAndKingHuntRequireKnownProtectedQuietMove(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVisibleAttacksSelectsExactSafeKingHuntWithoutDistanceGuessing(t *testing.T) {
+	makeObservation := func(visibleAttacks []any) map[string]any {
+		hunter := strategyCell("rook", "a1", "white", "rook")
+		hunter["moved"] = true
+		o := strategyObservation(t, hunter, strategyCell("pawn", "b2", "white", "pawn"))
+		o["enemy"] = []any{strategyCell("king", "a8", "black", "king"), strategyCell("victim", "b3", "black", "pawn")}
+		o["legal"] = map[string]any{"rook": []any{"a2", "a7"}, "pawn": []any{"b3"}} // non-attacking choice intentionally comes first
+		o["moveFacts"] = map[string]any{"rook": map[string]any{
+			"a2": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0},
+			"a7": map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0, "visibleAttacks": visibleAttacks},
+		}}
+		o["affordability"] = map[string]any{"pawn": map[string]any{"b3": map[string]any{
+			"kill": map[string]any{"affordable": true, "oddsKnown": false, "odds": map[string]any{"success": 1, "defenderKilled": 1, "repelled": 0}},
+		}}}
+		return o
+	}
+	t.Run("rook clear line fact admits and chooses its matching destination", func(t *testing.T) {
+		intent, _, options := decision(t, makeObservation([]any{"a8"}), nil)
+		if intent == nil || intent["from"] != "a1" || intent["to"] != "a7" {
+			t.Fatalf("host-proven rook attack was not selected: intent=%#v options=%#v", intent, options)
+		}
+		if !hasTerm(requireOption(t, options, "a1", "a7"), "kingHunt", "visible") {
+			t.Fatalf("host-proven rook attack lacks kingHunt score: %#v", options)
+		}
+		reversed := makeObservation([]any{"a8"})
+		reversed["legal"].(map[string]any)["rook"] = []any{"a7", "a2"}
+		intent, _, _ = decision(t, reversed, nil)
+		if intent == nil || intent["from"] != "a1" || intent["to"] != "a7" {
+			t.Fatalf("legal ordering changed exact attack selection: %#v", intent)
+		}
+	})
+	t.Run("empty or omitted fact flips to tactical alternative", func(t *testing.T) {
+		for _, visibleAttacks := range [][]any{nil, {}} {
+			intent, _, options := decision(t, makeObservation(visibleAttacks), nil)
+			if intent == nil || intent["from"] != "b2" || intent["to"] != "b3" || hasTerm(optionFor(options, "a1", "a7"), "kingHunt", "visible") {
+				t.Fatalf("empty visibleAttacks did not remove +30 hunt preference: intent=%#v options=%#v", intent, options)
+			}
+		}
+	})
+}
+
+func TestVisibleAttacksRejectsUnsafeAndNonExactKingHunts(t *testing.T) {
+	makeObservation := func(rank string, enemy map[string]any, fact map[string]any) map[string]any {
+		o := strategyObservation(t, strategyCell("unit", "c2", "white", rank))
+		o["enemy"] = []any{enemy}
+		o["legal"] = map[string]any{"unit": []any{"d3"}}
+		o["moveFacts"] = map[string]any{"unit": map[string]any{"d3": fact}}
+		return o
+	}
+	baseFact := func() map[string]any {
+		return map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0, "visibleAttacks": []any{"h8"}}
+	}
+	for _, tc := range []struct {
+		name  string
+		rank  string
+		enemy map[string]any
+		fact  map[string]any
+	}{
+		{"knight adjacent empty", "knight", strategyCell("king", "h8", "black", "king"), map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0, "visibleAttacks": []any{}}},
+		{"blocked slider empty", "rook", strategyCell("king", "h8", "black", "king"), map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0}},
+		{"unknown", "rook", strategyCell("king", "h8", "black", "king"), map[string]any{"destinationKnown": false, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0, "visibleAttacks": []any{"h8"}}},
+		{"unprotected", "rook", strategyCell("king", "h8", "black", "king"), map[string]any{"destinationKnown": true, "protectedAfter": 0, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0, "visibleAttacks": []any{"h8"}}},
+		{"unsafe", "rook", strategyCell("king", "h8", "black", "king"), map[string]any{"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 1, "cheapestThreatAfter": 1, "patrolGain": 0, "visibleAttacks": []any{"h8"}}},
+		{"ghost king", "rook", func() map[string]any {
+			king := strategyCell("king", "h8", "black", "king")
+			king["ghost"] = true
+			return king
+		}(), baseFact()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, options := decision(t, makeObservation(tc.rank, tc.enemy, tc.fact), nil)
+			if hasTerm(requireOption(t, options, "c2", "d3"), "kingHunt", "visible") {
+				t.Fatalf("%s received a visible-attack king hunt bonus: %#v", tc.name, options)
+			}
+		})
+	}
+}
+
+func TestVisibleAttacksEntersBreadthBelowDirectKingCapture(t *testing.T) {
+	t.Run("exact post-settlement attack enters Recruit breadth", func(t *testing.T) {
+		units := []map[string]any{strategyCell("hunter", "a1", "white", "rook")}
+		for _, square := range []string{"g7", "g8", "h7", "f7", "f8"} {
+			units = append(units, strategyCell("noise"+square, square, "white", "queen"))
+		}
+		o := strategyObservation(t, units...)
+		o["enemy"] = []any{strategyCell("king", "a8", "black", "king")}
+		o["legal"] = map[string]any{"hunter": []any{"a7"}}
+		o["moveFacts"] = map[string]any{"hunter": map[string]any{"a7": map[string]any{
+			"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0, "visibleAttacks": []any{"a8"},
+		}}}
+		intent, _, _ := decision(t, o, nil)
+		if intent == nil || intent["from"] != "a1" || intent["to"] != "a7" {
+			t.Fatalf("exact post-move king attack stayed outside Recruit breadth: %#v", intent)
+		}
+	})
+	t.Run("unknown unprotected or unsafe attack facts stay outside breadth", func(t *testing.T) {
+		for _, tc := range []struct {
+			name                     string
+			known, protected, threat any
+		}{
+			{"unknown", false, 1, 0}, {"unprotected", true, 0, 0}, {"unsafe", true, 1, 1},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				units := []map[string]any{strategyCell("hunter", "a1", "white", "rook")}
+				for _, square := range []string{"g7", "g8", "h7", "f7", "f8"} {
+					units = append(units, strategyCell("noise"+square, square, "white", "queen"))
+				}
+				o := strategyObservation(t, units...)
+				o["enemy"] = []any{strategyCell("king", "a8", "black", "king")}
+				o["legal"] = map[string]any{"hunter": []any{"a7"}}
+				o["moveFacts"] = map[string]any{"hunter": map[string]any{"a7": map[string]any{
+					"destinationKnown": tc.known, "protectedAfter": tc.protected, "threatenedAfter": tc.threat,
+					"cheapestThreatAfter": tc.threat, "patrolGain": 0, "visibleAttacks": []any{"a8"},
+				}}}
+				intent, _, options := decision(t, o, nil)
+				if intent != nil || optionFor(options, "a1", "a7") != nil {
+					t.Fatalf("%s exact attack incorrectly entered Recruit breadth: intent=%#v options=%#v", tc.name, intent, options)
+				}
+			})
+		}
+	})
+	t.Run("affordable direct capture remains senior", func(t *testing.T) {
+		o := strategyObservation(t, strategyCell("direct", "h1", "white", "rook"), strategyCell("attack", "a1", "white", "rook"))
+		o["enemy"] = []any{strategyCell("king", "h8", "black", "king")}
+		o["legal"] = map[string]any{"direct": []any{"h8"}, "attack": []any{"g7"}}
+		o["moveFacts"] = map[string]any{"attack": map[string]any{"g7": map[string]any{
+			"destinationKnown": true, "protectedAfter": 1, "threatenedAfter": 0, "cheapestThreatAfter": 0, "patrolGain": 0, "visibleAttacks": []any{"h8"},
+		}}}
+		o["affordability"] = map[string]any{"direct": map[string]any{"h8": map[string]any{"capture": map[string]any{"affordable": true, "requiredMorale": 0}}}}
+		intent, _, _ := decision(t, o, nil)
+		if intent == nil || intent["from"] != "h1" || intent["to"] != "h8" {
+			t.Fatalf("+30 exact attack outranked affordable direct king capture: %#v", intent)
+		}
+	})
 }
 
 func TestKingCaptureIsPrioritizedWithinBreadth(t *testing.T) {

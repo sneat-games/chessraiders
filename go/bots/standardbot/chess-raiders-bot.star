@@ -141,7 +141,7 @@ LAST_RANK_INDEX = 7  # squares are 0-indexed 0..7; this is the board's far edge
 DEVELOP_FIRST_FORWARD_VALUE = 1.0  # first forward officer move puts a dormant unit into play
 PATROL_GAIN_VALUE = 0.5  # one host-reported patrol square is useful, but never material-sized
 PATROL_GAIN_CAP = 4  # broad vision is useful, not an unbounded material substitute
-KING_HUNT_VALUE = 1.0
+KING_VISIBLE_ATTACK_BONUS = 30.0  # host-proven post-settlement attack on a visible king; the script never guesses rank geometry
 UNKNOWN_QUIET_PENALTY = 1.0  # a positional guess cannot tie a known, supported move
 UNSUPPORTED_QUIET_PENALTY = 0.75  # forward pressure needs friendly cover after the move
 
@@ -163,7 +163,7 @@ UNIT_PRIORITY_LOCKED_BONUS = 5.0  # a publicly target-locked piece is considered
 UNIT_PRIORITY_KING_ITSELF = 8.0  # the king itself, when it is under threat
 UNIT_PRIORITY_FORMATION_LEADER = 40.0  # admission-only: above ordinary positioning, below an exact affordable king capture (+60); weights remain the scoring dial
 UNIT_PRIORITY_NEAR_KING = 3.0  # a piece standing near a threatened king
-UNIT_PRIORITY_KING_HUNT = 2.0  # lets a visible-king pursuer enter shallow breadth
+UNIT_PRIORITY_KING_VISIBLE_ATTACK = 30.0  # exact safe post-move king attack enters shallow breadth, below an affordable capture (+60)
 NEAR_KING_RADIUS = 2  # how close counts as "near" the king for the bump above
 RANK_PRIORITY_SCALE = 100.0  # a tiny, stable preference for a more valuable piece, once every bump above is applied
 
@@ -519,9 +519,10 @@ def unit_priority(observation, board, params, cell):
                 break
             for destination in observation["legal"].get(cell["unitId"], []):
                 fact = move_fact_at(observation, cell["unitId"], destination)
-                if (fact["destinationKnown"] and fact["protectedAfter"] > 0 and
-                        chebyshev_distance(destination, enemy["square"]) < chebyshev_distance(cell["square"], enemy["square"])):
-                    priority += UNIT_PRIORITY_KING_HUNT
+                if (is_quiet_move(observation, board, cell, destination) and fact["destinationKnown"] and
+                        fact["protectedAfter"] > 0 and fact["threatenedAfter"] <= 0 and
+                        enemy["square"] in (fact.get("visibleAttacks", []) or [])):
+                    priority += UNIT_PRIORITY_KING_VISIBLE_ATTACK
                     break
     priority += rank_value(cell["rank"]) / RANK_PRIORITY_SCALE  # stable, tiny rank preference
     return priority
@@ -910,12 +911,11 @@ def score_move(observation, board, params, memory, cell, destination):
             score += add_term(terms, "develop", DEVELOP_FIRST_FORWARD_VALUE * params["advance"] * protection_factor(move_fact), "firstForward")
         if current_move_facts and quiet_move and positional_known_and_supported and ordinary_piece and move_fact["patrolGain"] > 0:
             score += add_term(terms, "coverage", min(move_fact["patrolGain"], PATROL_GAIN_CAP) * PATROL_GAIN_VALUE * params["advance"] * protection_factor(move_fact), "patrol")
-        if current_move_facts and quiet_move and positional_known_and_supported and ordinary_piece:
+        if current_move_facts and quiet_move and positional_known_and_supported and ordinary_piece and move_fact["threatenedAfter"] <= 0:
             for enemy in observation["enemy"]:
-                if enemy["rank"] == "king" and not enemy["ghost"]:
-                    closer = chebyshev_distance(cell["square"], enemy["square"]) - chebyshev_distance(destination, enemy["square"])
-                    if closer > 0:
-                        score += add_term(terms, "kingHunt", closer * KING_HUNT_VALUE * params["advance"] * protection_factor(move_fact), "visible")
+                if enemy["rank"] == "king" and not enemy["ghost"] and enemy["square"] in (move_fact.get("visibleAttacks", []) or []):
+                    score += add_term(terms, "kingHunt", KING_VISIBLE_ATTACK_BONUS * params["advance"] * protection_factor(move_fact), "visible")
+                    break
 
     # Dodge a target lock: the enemy has publicly committed to striking
     # this piece, so moving it is worth real value.
