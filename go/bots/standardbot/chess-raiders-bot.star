@@ -1457,6 +1457,11 @@ def priority_captive_delivery_in_flight(observation, board):
         if (not charging or not cell["convoy"] or cell["cargoCount"] == 0 or
                 cell["kingCargo"] or cell["rank"] != "pawn"):
             continue
+        # The priority proposal below only chooses a QUIET departure. An
+        # occupied route target is an attack, which must retain ordinary
+        # route-replacement freedom even if it happens to point homeward.
+        if board["all_by_square"].get(charging["square"]):
+            continue
         prisoner_rank = "pawn" if observation["rules"]["cargoBasedDelivery"] else cell["rank"]
         base_squares = observation["rules"]["baseSquares"].get(prisoner_rank, [])
         if cell["square"] in base_squares:

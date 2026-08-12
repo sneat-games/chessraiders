@@ -712,6 +712,81 @@ func TestCommanderRetainsFirstEngineerConvoyUntilItsTwoSecondChargeSettles(t *te
 	}
 }
 
+// TestFirstEngineerRouteRetentionExcludesNonPriorityRoutes proves the
+// retention pin is not a blanket ban on replacements. Every case offers the
+// same attractive e4→f3 replacement; only the positive test above is the
+// quiet, loaded Pawn convoy priority route that may suppress it.
+func TestFirstEngineerRouteRetentionExcludesNonPriorityRoutes(t *testing.T) {
+	affordable := map[string]any{
+		"kill":    map[string]any{"affordable": true, "oddsKnown": false, "odds": map[string]any{"success": 1, "defenderKilled": 1, "repelled": 0}},
+		"capture": map[string]any{"affordable": true, "oddsKnown": false, "odds": map[string]any{"success": 1, "defenderKilled": 1, "repelled": 0}},
+	}
+	base := func() map[string]any {
+		o := strategyObservation(t, strategyCell("escort", "e4", "white", "pawn"))
+		escort := strategyPieceAt(o, "e4")
+		escort["convoy"] = true
+		escort["cargoCount"] = 1
+		escort["charging"] = map[string]any{"square": "d3", "remainingMs": 1_000}
+		o["legal"] = map[string]any{"e4": []any{"d3", "f3"}}
+		o["candidates"] = map[string]any{}
+		rules := o["rules"].(map[string]any)
+		rules["veteranProgression"] = true
+		rules["cargoBasedDelivery"] = true
+		rules["baseSquares"] = map[string]any{"pawn": []any{"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2"}}
+		return o
+	}
+	for _, tc := range []struct {
+		name   string
+		adjust func(map[string]any)
+	}{
+		{
+			name: "occupied homeward target is an attack",
+			adjust: func(o map[string]any) {
+				putStrategyPiece(o, strategyCell("route-target", "d3", "black", "pawn"))
+			},
+		},
+		{
+			name: "king cargo",
+			adjust: func(o map[string]any) {
+				strategyPieceAt(o, "e4")["kingCargo"] = true
+				o["deliverySquares"] = []any{"f3"}
+			},
+		},
+		{
+			name: "non pawn escort",
+			adjust: func(o map[string]any) {
+				strategyPieceAt(o, "e4")["rank"] = "rook"
+				putStrategyPiece(o, strategyCell("replacement-target", "f3", "black", "pawn"))
+				o["affordability"] = map[string]any{"e4": map[string]any{"f3": affordable}}
+			},
+		},
+		{
+			name: "empty convoy",
+			adjust: func(o map[string]any) {
+				strategyPieceAt(o, "e4")["cargoCount"] = 0
+				putStrategyPiece(o, strategyCell("replacement-target", "f3", "black", "pawn"))
+				o["affordability"] = map[string]any{"e4": map[string]any{"f3": affordable}}
+			},
+		},
+		{
+			name: "non homeward route",
+			adjust: func(o map[string]any) {
+				strategyPieceAt(o, "e4")["charging"] = map[string]any{"square": "f4", "remainingMs": 1_000}
+				o["legal"] = map[string]any{"e4": []any{"f4", "f3"}}
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			o := base()
+			tc.adjust(o)
+			intent, _, _ := decisionWithParams(t, o, nil, decodedTierParams(t, "commander"))
+			if intent == nil {
+				t.Fatalf("non-priority route was suppressed instead of remaining replaceable")
+			}
+		})
+	}
+}
+
 func TestMultipleChargingRoutesOnlyConsiderTheirOwnReplacements(t *testing.T) {
 	o := strategyObservation(t,
 		strategyCell("first", "a2", "white", "pawn"),
