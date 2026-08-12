@@ -3,6 +3,16 @@ name: CI
 on:
   push:
     branches: [main]
+    # A tag push re-runs this whole workflow against the exact commit being
+    # released, as a belt-and-braces check. The RELEASE gate itself does not
+    # live here any more: it lives in the private repository's release flow,
+    # which runs the engine-backed battery natively against the exact public
+    # SHA it is about to tag, BEFORE it pushes any `go/v*` tag — a tag
+    # physically cannot appear without that battery having run (plan task-10
+    # as re-scoped 2026-08-12, superseding the in-repo tag-gate placement of
+    # 2026-08-09; spec/plans/publish-the-standard-bot.md, sneat-co/chessraiders
+    # `plans` branch).
+    tags: ["go/v*"]
   pull_request:
 
 # This is the OPEN job: it needs no credentials, so it runs on every push and
@@ -10,16 +20,30 @@ on:
 # repository is published so outsiders can fork the bot, and a fork whose CI
 # cannot run is a fork nobody can review.
 #
-# A second, ENGINE-BACKED job arrives later (spec/plans/publish-the-standard-bot.md
-# Task 10 in sneat-co/chess): it checks out the private engine with an
-# organisation token and runs the real behavioural suite against the published
-# bot. It cannot run on a fork PR, and when it cannot it must report a NAMED
-# SKIP rather than a pass — a green tick standing for a suite that did not run
-# is worse than a visibly missing one.
+# The second, ENGINE-BACKED job is `engine_backed` below (plan task-10 as
+# re-scoped 2026-08-12, spec/plans/publish-the-standard-bot.md in
+# sneat-co/chessraiders on the `plans` branch): it downloads the PINNED
+# release of the `chessraiders` bot-test CLI — a compiled binary built from
+# the private engine and published to THIS repository's releases, the same
+# way the engine wasm is — and runs its behavioural battery against this
+# checkout's own published script and params. No credential is involved in
+# any direction: the binary is a public release asset, so the job runs
+# identically on pushes, internal PRs, and fork PRs. The original design
+# (checking out the private engine with an organisation token) was rejected
+# by the founder on 2026-08-12: a private-read credential parked in a public
+# repository's CI inverts the trust boundary, and the sneat-co org token
+# cannot reach a sneat-games repository at all. Until the first CLI release
+# is published, the job reports a NAMED skip — never a silent pass standing
+# for a suite that did not run.
 jobs:
   go:
     name: go build + vet + test
     runs-on: ubuntu-latest
+    # Observed: ~25s (run 31466402814, 2026-08-11). Sized several times over,
+    # not 1.5x, per the private repo's 2h17m no-timeout outage the day before
+    # (a hung job plus `cancel-in-progress: false` queued every later run
+    # behind it) — see spec/plans/publish-the-standard-bot.md Task 10.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -43,6 +67,10 @@ jobs:
   spec:
     name: spec lint
     runs-on: ubuntu-latest
+    # Observed: ~5s (run 31466402814). Generous headroom over that mainly
+    # covers the network fetch of the SpecScore installer, not the lint
+    # itself — see the `go` job's timeout comment for why this exists at all.
+    timeout-minutes: 10
     # The specs ARE the product here — this repository is the authoritative
     # public statement of Chess Raiders' rules. Until now nothing checked them
     # on push, and all ten feature-index rows had silently gone stale. That is
@@ -65,6 +93,8 @@ jobs:
   dependency_free:
     name: dependency allowlist
     runs-on: ubuntu-latest
+    # Observed: ~8s (run 31466402814). Same reasoning as the `go` job.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -109,7 +139,7 @@ jobs:
             || true)
           if [ -n "$offenders" ]; then
             echo "These modules are outside the allowlist:"
-            echo "$offenders" | sed 's/^/  /'
+            echo "  ${offenders//$'\n'/$'\n  '}"
             echo
             echo "Only go.starlark.net and golang.org/x/sys (its own"
             echo "int_posix64.go dependency on every POSIX platform) may be"
@@ -120,3 +150,77 @@ jobs:
             exit 1
           fi
           echo "dependencies: within the allowlist"
+
+  engine_backed:
+    name: engine-backed (bot CLI)
+    runs-on: ubuntu-latest
+    # Today this job only checks for the CLI version pin and reports; once
+    # the pinned CLI runs here, re-observe and re-size (the battery's own CI
+    # shape is "1 stable seed + 9 random per tier, a few seconds per run,
+    # native"). A stall must still fail loudly rather than hang the way the
+    # private repo's did for 2h17m — hence a timeout even for the scaffold.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # `.github/CHESSRAIDERS_CLI_VERSION` names the release tag of the
+      # `chessraiders` bot-test CLI this repository validates against. The
+      # file does not exist until the private release flow publishes the
+      # first CLI release and bumps it here — the same wave that must also
+      # replace the fail-closed placeholder below with the real install-and-
+      # run steps (installation follows the same strongo install-script
+      # mechanism specscore-cli uses; see the `spec` job's installer step
+      # above for the pattern).
+      - name: Resolve the pinned bot-test CLI version
+        id: cli_pin
+        run: |
+          if [ -f .github/CHESSRAIDERS_CLI_VERSION ]; then
+            echo "pinned=true" >> "$GITHUB_OUTPUT"
+            echo "version=$(cat .github/CHESSRAIDERS_CLI_VERSION)" >> "$GITHUB_OUTPUT"
+          else
+            echo "pinned=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # A NAMED skip, never a silent pass: no CLI release exists yet, so the
+      # behavioural battery structurally cannot run, and this job says so in
+      # the run summary rather than pretending a suite ran. This mirrors the
+      # trajectory suite's own empty-asset discipline (js/trajectory/README.md,
+      # "Empty-asset handling"). The moment the pin file appears, this branch
+      # is unreachable and the fail-closed placeholder below takes over, so
+      # the pin cannot be bumped without this job being completed.
+      - name: Report the no-CLI-release-yet skip
+        if: steps.cli_pin.outputs.pinned == 'false'
+        run: |
+          {
+            echo "### engine-backed job: NAMED SKIP, not a pass"
+            echo
+            echo "No \`chessraiders\` bot-test CLI release is pinned yet"
+            echo "(\`.github/CHESSRAIDERS_CLI_VERSION\` does not exist). The behavioural"
+            echo "battery DID NOT RUN for this change. The private release flow publishes"
+            echo "the first CLI release, bumps the pin, and wires the install-and-run"
+            echo "steps — see spec/plans/publish-the-standard-bot.md Task 10"
+            echo "(sneat-co/chessraiders, \`plans\` branch, re-scoped 2026-08-12)."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "engine-backed: named skip — no CLI release pinned yet; the battery did not run"
+
+      # Fail-closed: a pinned version with no wired install/run steps is a
+      # defect, not a skip. This guarantees the wave that bumps the pin also
+      # finishes this job — a green tick standing for a suite that did not
+      # run is the one outcome plan task-10 exists to prevent.
+      - name: Fail — CLI pinned but the install-and-run steps are not wired
+        if: steps.cli_pin.outputs.pinned == 'true'
+        run: |
+          echo "::error::.github/CHESSRAIDERS_CLI_VERSION pins ${{ steps.cli_pin.outputs.version }}, but this job's install-and-run steps have not been wired yet. Complete the job in the same change that bumps the pin."
+          exit 1
+
+  workflow_policy:
+    name: workflow timeout policy
+    runs-on: ubuntu-latest
+    # This job only greps text files; if it ever needs more than a minute
+    # something is badly wrong, but 10x that observed shape (a few seconds)
+    # costs nothing to allow for a cold runner.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every workflow job must declare a timeout-minutes
+        run: .github/scripts/check-job-timeouts.sh
