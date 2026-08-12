@@ -1,20 +1,28 @@
 # standardbot
 
-The standard Chess Raiders bot, published as the two files it actually is:
+The standard Chess Raiders bot, published as one portable four-file closure:
 
-- **[`tier.star`](tier.star)** — one Starlark script, defining one function,
+- **[`chess-raiders-bot.star`](chess-raiders-bot.star)** — one Starlark script, defining one function,
   `decide()`. This is the entire brain of every built-in opponent.
-- **[`params.json`](params.json)** — a table of four rows: `recruit`,
+- **[`params.schema.json`](params.schema.json)** — the directly consumable JSON
+  Schema declaration for all sixteen flat inputs, with Commander as the
+  runnable default.
+- **[`params.json`](params.json)** — four named partial sets: `recruit`,
   `lieutenant` and `commander`, the three playing difficulties, plus
-  `adviser`, a fourth row the same script scores candidate moves against to
-  produce explain-mode advice rather than a move to play. Each row is a set
-  of numbers `decide()` reads by name. There is no other difference between
-  the three difficulties: same script, same rules, different numbers. The
-  Adviser's row is deliberately its own — not inherited from, or shared
-  with, any playing difficulty's row (see `params.json`'s own `adviser`
-  entry and the private implementation's `AdviserParams` for why).
+  `adviser`, a fourth set the same script scores candidate moves against to
+  produce explain-mode advice rather than a move to play. `ResolveParams`
+  validates each set and fills omitted schema defaults before `decide()` sees
+  it. There is no other difference between the three difficulties: same
+  script, same rules, different parameter values. The Adviser's effective row
+  is deliberately its own — not inherited from, or shared with, any playing
+  difficulty's effective row (see `params.json`'s own `adviser` entry and the
+  private implementation's `AdviserParams` for why).
+- **[`chess-raiders-bot.json`](chess-raiders-bot.json)** — the portable
+  manifest that binds the script, schema and partial sets into one exact
+  executable closure.
 
-[`script.go`](script.go) embeds both files verbatim (`Script` and `Params`)
+[`script.go`](script.go) embeds the script, schema, parameter sets and manifest
+verbatim (`Script`, `ParamsSchema`, `Params` and `Manifest`)
 so a Go program can load them without touching the filesystem; see
 [go/bots/runtime](../runtime) for the interpreter that actually runs `Script`.
 Everything below assumes no access to Chess Raiders' private implementation
@@ -35,7 +43,7 @@ for exactly what `decide()` is handed each turn and what it may return.
 
 `decide()` is called once per decision with five arguments — the bot's own
 view of the board (`observation`), whatever it chose to remember last turn
-(`memory`), its difficulty's row from `params.json` (`params`), one random
+(`memory`), its difficulty's complete row from `ResolveParams` (`params`), one random
 draw for breaking ties (`host_random_draw`), and how many ranked alternatives
 to explain (`options`, 0 when just playing) — and it scores every legal
 `(piece, destination)` pair the host has already worked out, plays the best
@@ -50,12 +58,12 @@ deliver a captured king, which squares are safe) arrives as plain data on
 A row is sixteen named values, in three groups:
 
 **Ten score weights** — each scales one whole category of `decide()`'s
-scoring, and each is a *gate*, not just a multiplier: `tier.star` checks
+scoring, and each is a *gate*, not just a multiplier: `chess-raiders-bot.star` checks
 `if params["X"] > 0` before scoring that category at all, so a weight of `0`
 does not merely make that term worth nothing — it turns the whole category
 off. This is what makes Recruit "moves and captures only": every weight
 below except `material`, `safety`, `advance` and `delivery` is zero on its
-row, so `tier.star` never even considers a tempo, prisoner, or system
+row, so `chess-raiders-bot.star` never even considers a tempo, prisoner, or system
 (training/wall/beacon) action for it.
 
 | Key | What it weighs |
@@ -87,17 +95,18 @@ branches, rather than its scoring:
 |---|---|
 | `advancedTraining` | Whether this tier ever pursues Advanced Engineer Training (Commander only, today). |
 | `contestEnemyWork` | Whether this tier ever proposes dismantling an *enemy* wall — repairing its own is always open regardless. |
-| `sergeantPreference` | The score bonus for wall work an adjacent Sergeant is speeding up. Must be `0` on any row where `contestEnemyWork` is `false` — `tier.star`'s dismantle branch applies this bonus unconditionally *inside* code that only runs when `contestEnemyWork` already fired, so a nonzero value on a row that doesn't contest enemy work is a live inconsistency, not a no-op. |
+| `sergeantPreference` | The score bonus for wall work an adjacent Sergeant is speeding up. Must be `0` on any row where `contestEnemyWork` is `false` — `chess-raiders-bot.star`'s dismantle branch applies this bonus unconditionally *inside* code that only runs when `contestEnemyWork` already fired, so a nonzero value on a row that doesn't contest enemy work is a live inconsistency, not a no-op. |
 
 No difficulty ever raises a *new* wall — that decision was removed outright
-(see `tier.star`'s own `wall_proposals` comment) and there is no parameter
+(see `chess-raiders-bot.star`'s own `wall_proposals` comment) and there is no parameter
 that brings it back.
 
 ## Changing one number
 
 Say you want a braver Recruit — one that stops flinching from every risky
-square. Recruit's row has `"safety": 0.5`. Raise it toward `1.0` (Lieutenant
-and Commander's own value) and Recruit will start declining more of the
+square. Recruit's partial set has `"safety": 0.5`. Raise it toward `1.0` (the
+Commander schema default and Lieutenant's own override) and Recruit will
+start declining more of the
 captures and advances it currently takes, specifically the ones that leave
 the moving piece somewhere dangerous — nothing else about it changes,
 because `safety` only ever scales the risk term `score_move` already
@@ -111,14 +120,15 @@ differently-behaved one, because the scoring itself hasn't changed. Widening
 `candidateSpread` does the same for how many destinations of *each*
 considered piece get scored.
 
-Every other row follows the same rule: a score weight changes *how much a
+Every other effective row follows the same rule: a score weight changes *how much a
 category matters* without touching what triggers it; a scheduling knob
 changes *how much of the board gets looked at*; a doctrine switch changes
 *whether a whole category of action is available at all*. Change one number,
 re-run the conformance suite below, and read the diff in `decide()`'s
 behavior against the empty-board smoke test or your own richer observation —
-there is nothing else to recompile or regenerate, because `params.json` is
-data `tier.star` reads at call time, not something baked into the script.
+there is nothing else to regenerate: `params.schema.json` is the one source of
+defaults, `params.json` contains only named differences, and `ResolveParams`
+produces the inert data `chess-raiders-bot.star` reads at call time.
 
 ## Running the conformance suite
 
@@ -130,18 +140,18 @@ go test ./bots/standardbot/...
 
 This proves, in order:
 
-1. `params.json` parses as JSON, its `version` field matches the
-   `ParamsVersion` constant `script.go` exports, and it carries exactly the
-   four rows (`recruit`, `lieutenant`, `commander`, `adviser`) the private
-   implementation's own `params.go` decodes it INTO (as of that
-   implementation's plan `publish-the-standard-bot` task-6, this file is the
-   table's one author — `params.go` reads it, rather than the other way
-   around) — no row silently dropped in either direction.
-2. `tier.star` compiles under [go/bots/runtime](../runtime)'s dialect and
+1. `params.schema.json` conforms to the supported JSON-Schema profile;
+   `params.json`'s `schema` field matches the `ParameterSetsVersion` constant
+   `script.go` exports; and it carries exactly the four partial sets
+   (`recruit`, `lieutenant`, `commander`, `adviser`) that resolve into the
+   complete rows consumed by the private implementation. The public schema
+   and partial sets remain the only source of those values, with no row
+   silently dropped in either direction.
+2. `chess-raiders-bot.star` compiles under [go/bots/runtime](../runtime)'s dialect and
    binds a callable `decide`.
 3. `decide()` actually runs, once per difficulty, each with that
-   difficulty's own row from `params.json`, on the smallest observation
-   `tier.star`'s own `build_board()` accepts (an empty board, no legal
+   difficulty's fully resolved row, on the smallest observation
+   `chess-raiders-bot.star`'s own `build_board()` accepts (an empty board, no legal
    moves) — proving every field a row declares is one `decide()` can
    actually consume, not just one that happens to parse.
 4. `decide()`'s lifecycle gate still passes cleanly outside an active match.
@@ -152,9 +162,9 @@ board-and-legal-move observation [`bot-script-contract`](../../../spec/features/
 describes, which only the real game engine emits, so that end-to-end
 behavior is verified against the private implementation instead (its own
 `server-go/tests4bot` suite, replayed here byte-for-byte by the conformance
-corpus below). **Both files are edited HERE now, not there:** `tier.star`
-and `params.json` are this module's own source — the private implementation
-requires this module at a released tag (`go.mod`) and reads both through it,
+corpus below). **All closure files are edited HERE now, not there:** the script,
+schema, named partial sets and manifest are this module's own source — the private implementation
+requires this module at a released tag (`go.mod`) and reads them through it,
 never the other way around. A `git diff` in this package IS the diff a
 released tag ships; the private repository's own `go.work`-based local
 iteration (its `CLAUDE.md`) points a checkout at an unreleased edit here
@@ -169,8 +179,8 @@ genuine board-and-legal-move observation, recorded from the private engine's
 own behavioural suite (`server-go/tests4bot`, `sneat-co/chessraiders`, plan
 task-8) and published here byte-for-byte — see
 [`testdata/corpus/README.md`](testdata/corpus/README.md) for exactly what
-each case is and why 53 decisions from 30 of that suite's 41 tests, not all
-41.
+each case is and why the capture contains 53 decisions from 30 of the private
+suite's then-41 tests, not all 41.
 
 [`corpus_replay_test.go`](corpus_replay_test.go)'s
 `TestCorpusReplayAgreesWithThePublishedScript` is the replayer plan task-9
@@ -178,18 +188,21 @@ asks for: it feeds every one of those 53 cases' own recorded `{observation,
 memory, parameters, randomDraw, options}` into THIS checkout's own
 `runtime.Compile(Script)` and reports every decision that disagrees with what
 was recorded, naming the case and the field. It resolves which script
-version it is checking against from each case's own declared `script.version`
-— never from this module's `go.mod`, which has no version for a module that
-does not require itself — so a corpus that quietly mixed two recordings, or
-declared the wrong module, is caught before a single `decide()` call runs.
+version it is checking against by pinning the exact recorded Chess Raiders Go
+module v0.0.2 release and requiring every case's own declared `script.version`
+to match — never by inferring a version from this module's `go.mod`, which has
+no version for a module that does not require itself. It also pins the reviewed
+53 `(test, case)` identities to their exact filenames, so a corpus that quietly
+retags or substitutes a recording is caught before a single `decide()` call runs.
 [`corpus_replay_detects_disagreement_test.go`](corpus_replay_detects_disagreement_test.go)
-proves the detector itself: it perturbs a recorded intent, a parameter row
-and the declared script version, one at a time, and asserts each one is
-caught with a legible, case-naming error — a replayer that can only report
-agreement is not proven to detect disagreement.
+proves the detector itself: it perturbs a recorded intent and parameter row,
+retags one case and the whole corpus, and substitutes a source identity while
+preserving aggregate counts. Each mutation must be caught with a legible,
+case-naming error — a replayer that can only report agreement is not proven to
+detect disagreement.
 
 This still does not prove the bot plays well against a *live, moving*
-opponent, or that a change to `tier.star` was intentional rather than a
+opponent, or that a change to `chess-raiders-bot.star` was intentional rather than a
 regression the corpus happens not to cover — only that, for these 53
 recorded decisions, this checkout's script still decides exactly what the
 private engine's own tests once observed it decide.

@@ -1,0 +1,14 @@
+{
+  "name": "@sneat-games/chessraiders-trajectory-suite",
+  "private": true,
+  "type": "module",
+  "description": "Plan task-20 (spec/plans/publish-the-standard-bot.md): plays whole matches against the published engine wasm and the published bot script, in Node, with no checkout of sneat-co/chessraiders and no credentials.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

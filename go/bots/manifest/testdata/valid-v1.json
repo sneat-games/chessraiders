@@ -1,0 +1,21 @@
+{
+  "schema": "chess-raiders-bot-manifest/v1",
+  "display": {"name": "Fixture bot", "description": "Portable manifest fixture."},
+  "author": {"name": "Fixture author"},
+  "source": {"repository": "example.test/fixture", "attribution": "Fixture author"},
+  "license": {"spdx": "Apache-2.0"},
+  "compatibility": {
+    "game": "chess-raiders",
+    "rules": {"minimum": "chess-raiders-rules/v1", "maximum": "chess-raiders-rules/v1"},
+    "runtime": {"minimum": "chess-raiders-starlark-runtime/v1", "maximum": "chess-raiders-starlark-runtime/v1"}
+  },
+  "runtime": {"kind": "starlark", "protocol": "chess-raiders-bot-script/v1", "entrypoint": "bot.star"},
+  "stateMode": "stateless",
+  "parameters": {
+    "schemaPath": "parameters.schema.json",
+    "setsPath": "parameters.json",
+    "defaultSet": "default"
+  },
+  "requiredCapabilities": ["legal-actions"],
+  "sources": ["chess-raiders-bot.json", "bot.star", "parameters.schema.json", "parameters.json"]
+}

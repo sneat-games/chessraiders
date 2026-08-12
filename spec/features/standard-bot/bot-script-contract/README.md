@@ -1,12 +1,12 @@
 ---
 format: https://specscore.md/feature-specification
-status: Draft
+status: Implementing
 ---
 
 # Feature: Bot Script Contract
 
 > [SpecScore.**Studio**](https://specscore.studio): | [Explore](https://specscore.studio/app/github.com/sneat-games/chessraiders/spec/features/standard-bot/bot-script-contract?op=explore) | [Edit](https://specscore.studio/app/github.com/sneat-games/chessraiders/spec/features/standard-bot/bot-script-contract?op=edit) | [Ask question](https://specscore.studio/app/github.com/sneat-games/chessraiders/spec/features/standard-bot/bot-script-contract?op=ask) | [Request change](https://specscore.studio/app/github.com/sneat-games/chessraiders/spec/features/standard-bot/bot-script-contract?op=request-change) |
-**Status:** Draft
+**Status:** Implementing
 **Source Ideas:** —
 
 ## Summary
