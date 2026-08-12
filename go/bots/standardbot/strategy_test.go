@@ -685,6 +685,33 @@ func TestRecruitRouteReplacementValuesRemainingTimeAgainstRetention(t *testing.T
 	})
 }
 
+// TestCommanderRetainsFirstEngineerConvoyUntilItsTwoSecondChargeSettles is
+// the mutation pin for the Commander Master Engineer ladder. StandardRules
+// invokes Commander every second but a convoy step takes two seconds: before
+// the dedicated retention gate, e4→d3 was replaced by e4→f3 at this point,
+// and each following tick replaced it back, so the first captive never got
+// home. This is deliberately a real decide() scenario, not a helper-level
+// score assertion: deleting priority_captive_delivery_in_flight makes this
+// selected replacement observable.
+func TestCommanderRetainsFirstEngineerConvoyUntilItsTwoSecondChargeSettles(t *testing.T) {
+	o := strategyObservation(t, strategyCell("escort", "e4", "white", "pawn"))
+	escort := strategyPieceAt(o, "e4")
+	escort["convoy"] = true
+	escort["cargoCount"] = 1
+	escort["charging"] = map[string]any{"square": "d3", "remainingMs": 1_000}
+	o["legal"] = map[string]any{"e4": []any{"d3", "f3"}}
+	o["candidates"] = map[string]any{} // active routes deliberately omit settled facts
+	rules := o["rules"].(map[string]any)
+	rules["veteranProgression"] = true
+	rules["cargoBasedDelivery"] = true
+	rules["baseSquares"] = map[string]any{"pawn": []any{"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2"}}
+
+	intent, _, options := decisionWithParams(t, o, nil, decodedTierParams(t, "commander"))
+	if intent != nil || len(options) != 0 {
+		t.Fatalf("first-Engineer convoy route was replaced before its 2s charge settled: intent=%#v options=%#v", intent, options)
+	}
+}
+
 func TestMultipleChargingRoutesOnlyConsiderTheirOwnReplacements(t *testing.T) {
 	o := strategyObservation(t,
 		strategyCell("first", "a2", "white", "pawn"),

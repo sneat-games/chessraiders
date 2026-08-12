@@ -1432,6 +1432,40 @@ def priority_captive_delivery_proposal(observation, board, params):
     return None
 
 
+def priority_captive_delivery_in_flight(observation, board):
+    """Whether the one active route is the first Master Engineer's own
+    pawn-convoy delivery. Such a route is a hard commitment, not a candidate
+    to re-score at the Commander's next (one-second) cadence: StandardRules
+    takes two seconds to settle a convoy step, so letting another equally
+    homeward square replace it restarts the charge forever.
+
+    This is intentionally narrower than retaining every route. It excludes
+    king cargo, non-Pawn escorts, empty convoys, and routes that do not make
+    homeward delivery progress. A threatened retreat, an ordinary tactical
+    route, or a captured-king delivery therefore keeps the existing
+    replacement behaviour. Once the route settles, there are no charging
+    units and priority_captive_delivery_proposal above resumes its normal
+    safe, one-step-at-a-time control flow.
+
+    A convoy already on its delivery rank is also retained: its pending quiet
+    departure is the only command that unloads the captive (apply.go unloads
+    on departure), even though its destination need not reduce distance."""
+    if not board["needs_first_master_engineer"]:
+        return False
+    for cell in board["own"]:
+        charging = cell.get("charging")
+        if (not charging or not cell["convoy"] or cell["cargoCount"] == 0 or
+                cell["kingCargo"] or cell["rank"] != "pawn"):
+            continue
+        prisoner_rank = "pawn" if observation["rules"]["cargoBasedDelivery"] else cell["rank"]
+        base_squares = observation["rules"]["baseSquares"].get(prisoner_rank, [])
+        if cell["square"] in base_squares:
+            return True
+        if distance_to_nearest_square(charging["square"], base_squares) < distance_to_nearest_square(cell["square"], base_squares):
+            return True
+    return False
+
+
 def most_advanced_adjacent_ally(board):
     """Picks the own, non-king, non-convoy, not-busy unit standing exactly
     one king-step from the king (Chebyshev distance 1) with the greatest
@@ -2256,6 +2290,12 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     # A visible enemy-king charge is already the highest-value objective.
     # Retain it even when it originated outside this bot's memory.
     if board["protected_charging_units"]:
+        return None, build_memory(observation, memory, None), []
+
+    # StandardRules' convoy charge (2s) is longer than the Commander
+    # cadence (1s). Keep this precise first-Engineer delivery route until it
+    # settles instead of letting an equally-homeward alternative reset it.
+    if priority_captive_delivery_in_flight(observation, board):
         return None, build_memory(observation, memory, None), []
 
     # See this function's own doc comment above: gated identically to
