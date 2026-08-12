@@ -41,8 +41,9 @@ type ParameterType string
 const (
 	// ParameterTypeNumber preserves the runtime's JSON numeric tag: integer
 	// syntax becomes an exact Starlark int; decimal/exponent syntax is rounded
-	// once to a finite float64 and emitted canonically as float syntax. Equality
-	// uses Starlark's numeric semantics, including exact int/float comparison.
+	// once to a finite float64 at runtime, but resolution preserves the accepted
+	// decimal spelling so exact range validation stays stable and idempotent.
+	// Equality uses Starlark's semantics, including exact int/float comparison.
 	ParameterTypeNumber ParameterType = "number"
 	// ParameterTypeInteger accepts only mathematically integral values and
 	// always emits canonical arbitrary-precision integer syntax.
@@ -692,11 +693,10 @@ func normalizeNumericValue(kind ParameterType, minimumNumber, maximumNumber json
 		if value.Sign() != 0 && floatValue == 0 {
 			return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, "nonzero value collapses to zero in the runtime float representation")
 		}
-		canonical := strconv.FormatFloat(floatValue, 'g', -1, 64)
-		if !strings.ContainsAny(canonical, ".eE") {
-			canonical += ".0"
-		}
-		return normalizedParameterValue{raw: json.RawMessage(canonical), number: &runtimeNumber{isFloat: true, floating: floatValue}}, nil
+		return normalizedParameterValue{
+			raw:    json.RawMessage(number.String()),
+			number: &runtimeNumber{isFloat: true, floating: floatValue},
+		}, nil
 	}
 	integer := new(big.Int).Set(value.Num())
 	return normalizedParameterValue{raw: json.RawMessage(integer.String()), number: &runtimeNumber{integer: integer}}, nil

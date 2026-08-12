@@ -208,15 +208,15 @@ func TestNamedParameterSetsUseRuntimeNumericEqualityRecursively(t *testing.T) {
 	}
 }
 
-func TestNumberNormalizationEmitsTheRuntimeFloatValue(t *testing.T) {
+func TestNumberResolutionPreservesAcceptedSpellingAndRuntimeValue(t *testing.T) {
 	schema := strings.Replace(scalarParameterSchema, `"default":1.5`, `"default":0.1`, 1)
 	resolved, err := ResolveParameterConfig([]byte(schema), []byte(`{"weight":0.10000000000000001}`), testParameterLimits)
 	if err != nil {
 		t.Fatalf("ResolveParameterConfig() = %v", err)
 	}
-	const wantResolved = `{"count":4,"enabled":true,"lanes":[1,2],"mode":"steady","weight":0.1}`
+	const wantResolved = `{"count":4,"enabled":true,"lanes":[1,2],"mode":"steady","weight":0.10000000000000001}`
 	if string(resolved) != wantResolved {
-		t.Fatalf("resolved config = %s, want %s with the canonical runtime float", resolved, wantResolved)
+		t.Fatalf("resolved config = %s, want %s with the accepted decimal spelling preserved", resolved, wantResolved)
 	}
 	program, err := runtime.Compile(`def inspect(params):
     return params["weight"]
@@ -229,7 +229,81 @@ func TestNumberNormalizationEmitsTheRuntimeFloatValue(t *testing.T) {
 		t.Fatalf("Program.Call() = %v", err)
 	}
 	if got != "0.1" {
-		t.Fatalf("runtime float = %s, want the normalized value 0.1", got)
+		t.Fatalf("runtime float = %s, want the float64 runtime value 0.1", got)
+	}
+}
+
+func TestNumberResolutionIsRangeStableAndIdempotent(t *testing.T) {
+	const (
+		decimalMinimum  = "0.100000000000000005"
+		decimalMaximum  = "0.100000000000000006"
+		exponentMinimum = "1.00000000000000005e-1"
+		exponentMaximum = "1.00000000000000006e-1"
+	)
+	scalarSchema := func(defaultValue, minimum, maximum string) string {
+		return `{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "type":"object",
+  "properties":{"weight":{"type":"number","default":` + defaultValue + `,"minimum":` + minimum + `,"maximum":` + maximum + `}},
+  "additionalProperties":false
+}`
+	}
+	arraySchema := func(defaultValue, minimum, maximum string) string {
+		return `{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "type":"object",
+  "properties":{"weights":{"type":"array","default":[` + defaultValue + `],"items":{"type":"number","minimum":` + minimum + `,"maximum":` + maximum + `}}},
+  "additionalProperties":false
+}`
+	}
+	tests := []struct {
+		name   string
+		schema string
+		config string
+		want   string
+	}{
+		{
+			name:   "scalar default decimal",
+			schema: scalarSchema(decimalMinimum, decimalMinimum, decimalMaximum),
+			config: `{}`,
+			want:   `{"weight":` + decimalMinimum + `}`,
+		},
+		{
+			name:   "scalar override exponent",
+			schema: scalarSchema(exponentMaximum, exponentMinimum, exponentMaximum),
+			config: `{"weight":` + exponentMinimum + `}`,
+			want:   `{"weight":` + exponentMinimum + `}`,
+		},
+		{
+			name:   "array default decimal",
+			schema: arraySchema(decimalMaximum, decimalMinimum, decimalMaximum),
+			config: `{}`,
+			want:   `{"weights":[` + decimalMaximum + `]}`,
+		},
+		{
+			name:   "array item override exponent",
+			schema: arraySchema(exponentMaximum, exponentMinimum, exponentMaximum),
+			config: `{"weights":[` + exponentMinimum + `]}`,
+			want:   `{"weights":[` + exponentMinimum + `]}`,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			resolved, err := ResolveParameterConfig([]byte(test.schema), []byte(test.config), testParameterLimits)
+			if err != nil {
+				t.Fatalf("first ResolveParameterConfig() = %v", err)
+			}
+			resolvedAgain, err := ResolveParameterConfig([]byte(test.schema), resolved, testParameterLimits)
+			if err != nil {
+				t.Fatalf("ResolveParameterConfig(resolved config) = %v; accepted output must remain valid", err)
+			}
+			if string(resolvedAgain) != string(resolved) {
+				t.Fatalf("second resolved config = %s, want idempotent %s", resolvedAgain, resolved)
+			}
+			if string(resolved) != test.want {
+				t.Fatalf("resolved config = %s, want range-valid %s", resolved, test.want)
+			}
+		})
 	}
 }
 
