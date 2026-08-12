@@ -45,6 +45,7 @@ func decodedRecruitParams(t *testing.T) map[string]any {
 
 func decideJSON(t *testing.T, observation map[string]any, params map[string]any) (string, error) {
 	t.Helper()
+	observation = currentStrategyFixture(t, observation)
 	program, err := runtime.Compile(standardbot.Script)
 	if err != nil {
 		t.Fatal(err)
@@ -62,6 +63,7 @@ func decideJSON(t *testing.T, observation map[string]any, params map[string]any)
 
 func decideWithMemoryJSON(t *testing.T, observation map[string]any, memory json.RawMessage, params map[string]any) string {
 	t.Helper()
+	observation = currentStrategyFixture(t, observation)
 	program, err := runtime.Compile(standardbot.Script)
 	if err != nil {
 		t.Fatal(err)
@@ -259,6 +261,7 @@ func TestCurrentStrategyFitsRecruitStepBudgetOnRepresentativeBoard(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
+	observation = currentStrategyFixture(t, observation)
 	obs, _ := json.Marshal(observation)
 	params, _ := json.Marshal(decodedRecruitParams(t))
 	if _, steps, err := program.CallWithStepLimit(250_000, "decide", string(obs), `{}`, string(params), `0`); err != nil {
@@ -308,6 +311,75 @@ func strategyCell(id, square, side, rank string) map[string]any {
 		"convoy": false, "cargoCount": 0, "kingCargo": false, "ghost": false,
 		"refitting": false,
 	}
+}
+
+// currentStrategyFixture is deliberately test-only serialization, not a
+// compatibility layer in the published bot.  The older strategy fixtures name
+// pieces for readability, whereas the public contract carries numeric unit IDs
+// and indexes every per-piece fact by source square.  Resolve those names while
+// building the JSON input, and reject a map entry that cannot name a current
+// square so a stale fixture never silently reaches the script.
+func currentStrategyFixture(t *testing.T, observation map[string]any) map[string]any {
+	t.Helper()
+	encoded, err := json.Marshal(observation)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wire map[string]any
+	if err := json.Unmarshal(encoded, &wire); err != nil {
+		t.Fatal(err)
+	}
+	observation = wire
+	pieces := observation["pieces"].(map[string]any)
+	byName := make(map[string]string, len(pieces))
+	byUnitID := make(map[int64]string, len(pieces))
+	for square, raw := range pieces {
+		piece := raw.(map[string]any)
+		if name, ok := piece["unitId"].(string); ok {
+			byName[name] = square
+			unitID := strategyUnitID(name)
+			if other, exists := byUnitID[unitID]; exists {
+				t.Fatalf("fixture labels %q and %q have the same numeric unitId", name, other)
+			}
+			byUnitID[unitID] = name
+			piece["unitId"] = unitID
+		}
+	}
+	for _, field := range []string{"legal", "candidates", "affordability", "enPassant"} {
+		raw, ok := observation[field]
+		if !ok {
+			continue
+		}
+		byPiece, ok := raw.(map[string]any)
+		if !ok {
+			t.Fatalf("%s is %T, want source-square map", field, raw)
+		}
+		for key, value := range byPiece {
+			square, named := byName[key]
+			if !named {
+				if _, isSquare := pieces[key]; isSquare {
+					continue
+				}
+				t.Fatalf("%s contains stale unit key %q", field, key)
+			}
+			delete(byPiece, key)
+			if _, exists := byPiece[square]; exists {
+				t.Fatalf("%s duplicates source square %q", field, square)
+			}
+			byPiece[square] = value
+		}
+	}
+	return observation
+}
+
+func strategyUnitID(name string) int64 {
+	// Fixture labels are short ASCII identifiers.  This polynomial encoding is
+	// stable across runs and safely below JSON's exact integer ceiling.
+	var value int64 = 1
+	for i := 0; i < len(name); i++ {
+		value = value*127 + int64(name[i])
+	}
+	return value
 }
 
 func putStrategyPiece(observation map[string]any, cell map[string]any) {
@@ -404,6 +476,7 @@ func decision(t *testing.T, observation map[string]any, memory map[string]int64)
 
 func decisionWithParams(t *testing.T, observation map[string]any, memory map[string]int64, parameterRow map[string]any) (map[string]any, map[string]int64, []map[string]any) {
 	t.Helper()
+	observation = currentStrategyFixture(t, observation)
 	program, err := runtime.Compile(standardbot.Script)
 	if err != nil {
 		t.Fatal(err)
@@ -1444,7 +1517,7 @@ func TestFormationLeaderPriorityLetsRecruitBuildNeededMoraleButNotExcess(t *test
 			"near3": map[string]any{"h6": map[string]any{"destinationVisible": true, "guardedBy": relationTestSquares('a', 1), "threatenedBy": relationTestSquares('f', 0), "patrolGain": 0}},
 			"near4": map[string]any{"f6": map[string]any{"destinationVisible": true, "guardedBy": relationTestSquares('a', 1), "threatenedBy": relationTestSquares('f', 0), "patrolGain": 0}},
 		}
-		o["affordability"] = map[string]any{"probe": map[string]any{"x": map[string]any{
+		o["affordability"] = map[string]any{kingSquare: map[string]any{"h8": map[string]any{
 			"capture": map[string]any{"affordable": false, "requiredMorale": requiredMorale},
 		}}}
 		return o
@@ -1826,7 +1899,7 @@ func TestMoraleReserveExcessRetreatAndIncursionPenalty(t *testing.T) {
 		// This visible capture threshold is deliberately unrelated to the king's
 		// legal move. It makes current_morale_need, rather than a zero default,
 		// determine the desired reserve band.
-		o["affordability"] = map[string]any{"probe": map[string]any{"x": map[string]any{
+		o["affordability"] = map[string]any{from: map[string]any{"h8": map[string]any{
 			"capture": map[string]any{"affordable": false, "requiredMorale": 2},
 		}}}
 		return o
