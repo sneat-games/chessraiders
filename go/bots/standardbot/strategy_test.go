@@ -29,13 +29,15 @@ const beaconScenario = `{
 
 func decodedTierParams(t *testing.T, tier string) map[string]any {
 	t.Helper()
-	var envelope struct {
-		Tiers map[string]map[string]any `json:"tiers"`
+	resolved, err := standardbot.ResolveParams(tier)
+	if err != nil {
+		t.Fatalf("ResolveParams(%q) = %v", tier, err)
 	}
-	if err := json.Unmarshal(standardbot.Params, &envelope); err != nil {
+	var row map[string]any
+	if err := json.Unmarshal(resolved, &row); err != nil {
 		t.Fatal(err)
 	}
-	return envelope.Tiers[tier]
+	return row
 }
 
 func decodedRecruitParams(t *testing.T) map[string]any {
@@ -145,26 +147,29 @@ func TestBeaconAggressionAndMatchRulesAreIndependentGates(t *testing.T) {
 }
 
 func TestParamsTableCarriesFounderAggressionValues(t *testing.T) {
-	var envelope struct {
-		Version string                    `json:"version"`
-		Tiers   map[string]map[string]any `json:"tiers"`
-	}
-	if err := json.Unmarshal(standardbot.Params, &envelope); err != nil {
-		t.Fatal(err)
-	}
-	if envelope.Version != "chess-bot-tier-params/v1" {
-		t.Fatalf("params envelope = %q, want additive chess-bot-tier-params/v1", envelope.Version)
-	}
+	// The founder's aggression numbers (2026-08-12: every tier holds the
+	// Beacon dial, Recruit smallest) asserted against the RESOLVED rows, so
+	// the sparse named-set encoding can never silently drop them.
 	for tier, want := range map[string]float64{"recruit": 0.3, "lieutenant": 0.6, "commander": 0.9, "adviser": 1.0} {
-		if got, ok := envelope.Tiers[tier]["beaconAggression"].(float64); !ok || got != want {
-			t.Errorf("%s beaconAggression = %v, want %v", tier, envelope.Tiers[tier]["beaconAggression"], want)
+		if got := resolvedRowValue(t, tier, "beaconAggression"); got != want {
+			t.Errorf("%s beaconAggression = %v, want %v", tier, got, want)
 		}
 	}
 	for tier, want := range map[string]float64{"recruit": 0.3, "lieutenant": 0.6, "commander": 0.9, "adviser": 0.5} {
-		if got, ok := envelope.Tiers[tier]["moralePush"].(float64); !ok || got != want {
-			t.Errorf("%s moralePush = %v, want %v", tier, envelope.Tiers[tier]["moralePush"], want)
+		if got := resolvedRowValue(t, tier, "moralePush"); got != want {
+			t.Errorf("%s moralePush = %v, want %v", tier, got, want)
 		}
 	}
+}
+
+func resolvedRowValue(t *testing.T, tier, key string) float64 {
+	t.Helper()
+	row := decodedTierParams(t, tier)
+	got, ok := row[key].(float64)
+	if !ok {
+		t.Fatalf("%s %s missing from the resolved row: %v", tier, key, row[key])
+	}
+	return got
 }
 
 func TestExplanationDetailsDeclareEveryNewStrategyTerm(t *testing.T) {

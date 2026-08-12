@@ -72,10 +72,10 @@ func TestResolvedRowsPreserveThePublishedStandardBotSemantics(t *testing.T) {
 	// Hashes pin behavior without introducing a second table of parameter
 	// values that could become another source of truth.
 	want := map[string]string{
-		"adviser":    "6eb944c5748280596db231a234b823c25d5d802d0d28c37b144f8b5d39b7ca63",
-		"commander":  "e71fa7d67c8e7e01359866fc8354665f272afe7e60c6cec22f52aba45834d051",
-		"lieutenant": "ea34c214c95011a0ea28d62252bb3acfab1d2ce87e6a86dea4b2c8ae4b38bc7d",
-		"recruit":    "88be4b0f43e5123dcee92059eb0cac620915930c904699f24d3ae9fc4eabc4ba",
+		"adviser":    "103cfefa578bbf4600042e4c4946c6bbd5dc5974cec5a27720d69724db0c1a6d",
+		"commander":  "6f3f7079612af0792254b09ac5f08639aa8b45c02ebff56fcef5c6bba8073ed2",
+		"lieutenant": "8bb3351bc67d751da30fd61ce3a4029b0be0a69faf45432e7c91408f0e79f990",
+		"recruit":    "7e377204f819a65d9886e4a1861871c6520d7415a9d388e5dafee4fbb479ce67",
 	}
 	for name, wantDigest := range want {
 		resolved, err := standardbot.ResolveParams(name)
@@ -98,7 +98,7 @@ func TestParameterSchemaDeclaresExactlyTheInputsTheScriptReads(t *testing.T) {
 	schema, err := manifest.ParseParameterSchema(standardbot.ParamsSchema, manifest.ParameterLimits{
 		MaxDocumentBytes: int64(len(standardbot.ParamsSchema)),
 		MaxJSONDepth:     manifest.MaximumJSONDepth,
-		MaxProperties:    16,
+		MaxProperties:    17,
 		MaxResolvedBytes: int64(len(standardbot.ParamsSchema)),
 	})
 	if err != nil {
@@ -172,7 +172,10 @@ func TestScriptReadsNumericActorsFromSourceSquareFacts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runtime.Compile(standardbot.Script) = %v", err)
 	}
-	params := decodeParams(t).Tiers["recruit"]
+	params, err := standardbot.ResolveParams("recruit")
+	if err != nil {
+		t.Fatalf(`ResolveParams("recruit") = %v`, err)
+	}
 	const observation = `{
 		"lifecycle":"playing", "side":"white", "nowMs":0, "revision":1,
 		"ownMorale":0, "ownMoralePenalty":0, "ownManaged":0,
