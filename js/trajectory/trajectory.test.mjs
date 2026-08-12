@@ -11,7 +11,7 @@
 // (chessbots.wasm) from the newest `engine/<12-hex>` GitHub Release on THIS
 // repository (task-19's own release asset), verifies it against that
 // release's own SHA256SUMS.txt, and loads THIS repository's own
-// go/bots/standardbot/tier.star — the published bot, read from the exact
+// go/bots/standardbot/chess-raiders-bot.star — the published bot, read from the exact
 // same checkout this test file lives in — into it. No checkout of
 // sneat-co/chessraiders and no credential of any kind is used anywhere in
 // this file: everything it touches is either already on disk in this public
@@ -52,7 +52,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '..', '..');
 const REPO_SLUG = 'sneat-games/chessraiders';
 
-const PUBLISHED_SCRIPT = readFileSync(path.join(REPO_ROOT, 'go', 'bots', 'standardbot', 'tier.star'), 'utf8');
+const PUBLISHED_SCRIPT = readFileSync(path.join(REPO_ROOT, 'go', 'bots', 'standardbot', 'chess-raiders-bot.star'), 'utf8');
 
 // A fixture this test file owns, never the published bot: a script that
 // compiles and answers every decide() call, but never proposes a move — the
@@ -81,7 +81,7 @@ describe('the public trajectory suite (task-20)', () => {
     // -> convoy -> delivery win in 244 decisions here, while several OTHER
     // seeds stall indefinitely (one oscillates between two squares under
     // King Incursion for 1500+ simulated seconds without ever winning). That
-    // is a real finding about tier.star's own play quality against a truly
+    // is a real finding about chess-raiders-bot.star's own play quality against a truly
     // passive opponent, not a harness defect — see this suite's own README,
     // "Known finding", for the seeds and event counts recorded. This test
     // pins the one scenario proven to converge, the same way a golden

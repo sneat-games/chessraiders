@@ -3,7 +3,7 @@
 Plan task-20 (`spec/plans/publish-the-standard-bot.md`, repository
 `sneat-games/chessraiders`): a Node suite that loads the published engine
 wasm through `wasm_exec.js` and plays whole matches with the published bot
-script (`go/bots/standardbot/tier.star`) against an opponent that issues no
+script (`go/bots/standardbot/chess-raiders-bot.star`) against an opponent that issues no
 commands at all. This is CI for the public module — Task 12's own in-product
 browser replayer (repository `sneat-co/chessraiders`) is the creator-facing
 twin; both drive the identical engine and the identical script, but this one
@@ -103,13 +103,13 @@ run against the Commander tier across five seeds (`shippedDefaultRules`,
 This suite's own CI-facing test pins seed 2 — the one scenario proven to
 converge — the same way a golden fixture pins one case rather than
 asserting a property that does not yet hold everywhere. **This is a real
-finding about `tier.star`'s own play quality, not a defect in this
+finding about `chess-raiders-bot.star`'s own play quality, not a defect in this
 harness**: seed 2's own run completes the full capture -> morale -> convoy
 -> delivery pipeline the plan's own Approach section names as never having
 been asserted end-to-end unattended before. The plan's own text anticipated
 exactly this ("a bot that genuinely cannot force a win is a finding to
 route, not a cap to loosen") — routed here rather than fixed, since fixing
-`tier.star`'s scoring is not this task's scope. Worth a follow-up task.
+`chess-raiders-bot.star`'s scoring is not this task's scope. Worth a follow-up task.
 
 ## What this suite needs from CI (routed to Task 10)
 
