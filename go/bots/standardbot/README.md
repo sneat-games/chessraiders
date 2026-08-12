@@ -76,14 +76,19 @@ other systems remain disabled because `system` is zero.
 | `prisoner` | Taking and holding prisoners, independent of delivering the king itself. |
 | `system` | Non-Beacon actions: training, wall repair/dismantle and interrogation. |
 
-The observation has one board shape: `pieces[square]`. A cell carries an
-opaque `unitId`, explicit `side`, rank and physical/activity state, but no
-redundant square. Optional sorted relation lists `threatens`, `threatenedBy`,
-`guards`, and `guardedBy` replace the removed top-level danger summaries; an
-omitted list is empty, and ghosts expose no live relations.
+The observation has one board shape: `pieces[square]`. A live cell carries its
+numeric `unitId` (1 through 32), explicit authoritative `side`, rank and
+physical/activity state, but no redundant square. `0` is `NoUnitID`: it is
+used only by a fog ghost, never as a command actor or lookup key. A recruited
+piece can change side, so the script always reads `side` from the current
+cell rather than deriving it from the numeric ID. Optional sorted relation
+lists `threatens`, `threatenedBy`, `guards`, and `guardedBy` replace the
+removed top-level danger summaries; an omitted list is empty, and ghosts
+expose no live relations.
 
 Deterministic non-capture choices use
-`candidates[unitId][destination]`. Each fact separately says whether the
+`candidates[sourceSquare][destination]`; `legal`, `affordability`, and
+`enPassant` use that same source-square outer key. Each fact separately says whether the
 destination is visible, supplies fog-safe `patrolGain`, `nextPossibleMoves`,
 and the same four post-state relations. Unknown, unguarded or threatened
 destinations do not earn safe positional credit. Exact `nextPossibleMoves`

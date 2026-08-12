@@ -111,6 +111,34 @@ func TestScriptTreatsPiecesObjectOrderAsNonSemantic(t *testing.T) {
 	}
 }
 
+func TestScriptReadsNumericActorsFromSourceSquareFacts(t *testing.T) {
+	program, err := runtime.Compile(standardbot.Script)
+	if err != nil {
+		t.Fatalf("runtime.Compile(standardbot.Script) = %v", err)
+	}
+	params := decodeParams(t).Tiers["recruit"]
+	const observation = `{
+		"lifecycle":"playing", "side":"white", "nowMs":0, "revision":1,
+		"ownMorale":0, "ownMoralePenalty":0, "ownManaged":0,
+		"pieces":{"a2":{"unitId":9,"side":"white","rank":"pawn","convoy":false,"cargoCount":0,"kingCargo":false,"ghost":false,"refitting":false}},
+		"legal":{"a2":["a3"]}, "affordability":{}, "enPassant":{},
+		"candidates":{"a2":{"a3":{"destinationVisible":true,"patrolGain":0,"nextPossibleMoves":[],"threatens":[],"threatenedBy":[],"guards":[],"guardedBy":["a2"]}}},
+		"deliverySquares":[], "convoyHome":{}, "blockingBase":[],
+		"rules":{"veteranProgression":false,"allowsKill":true,"allowsCapture":true,"pieceChargeMs":{},"baseSquares":{},"beaconEnabled":false,"beaconForgeEnabled":false,"beaconKingStartsAsBearer":false,"specialistsEnabled":false,"woodWallsEnabled":false,"stoneWallsEnabled":false},
+		"systems":{"training":false,"walls":false,"beacon":false,"prisoners":false,"morale":false,"espionage":false},
+		"beacon":{"lifecycle":"undeployed","bearerSquare":"","everHandedOff":false}, "walls":[], "enemyManaged":0
+	}`
+
+	result, err := program.Call("decide", observation, `{}`, string(params), `0`)
+	if err != nil {
+		t.Fatalf("decide() with numeric actor and source-square facts = %v", err)
+	}
+	decision := decideThreeTuple(t, result)
+	if !strings.Contains(string(decision[0]), `"from":"a2"`) {
+		t.Fatalf("decide() = %s, want the numeric actor's move from source square a2", decision[0])
+	}
+}
+
 // emptyBoardObservation is the smallest observation build_board() (chess-raiders-bot.star)
 // accepts: a "playing" match with no pieces on either side and no legal
 // moves. It deliberately never reaches move_proposals/score_move — proving

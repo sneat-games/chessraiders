@@ -297,12 +297,12 @@ def distance_to_nearest_square(square, candidate_squares):
 
 EMPTY_CANDIDATE = {}
 
-def candidate_at(observation, unit_id, destination):
-    return observation.get("candidates", {}).get(unit_id, {}).get(destination, EMPTY_CANDIDATE)
+def candidate_at(observation, source_square, destination):
+    return observation.get("candidates", {}).get(source_square, {}).get(destination, EMPTY_CANDIDATE)
 
-def has_candidate(observation, unit_id, destination):
+def has_candidate(observation, source_square, destination):
     """Whether the host supplied a deterministic post-state candidate."""
-    return observation.get("candidates", {}).get(unit_id, {}).get(destination) != None
+    return observation.get("candidates", {}).get(source_square, {}).get(destination) != None
 
 def relation_squares(subject, relation):
     """Relationship arrays are sorted/deduplicated by the host and omitted
@@ -347,7 +347,7 @@ def is_quiet_move(observation, board, cell, destination):
     en-passant victim. Captures retain their tactical scoring unchanged."""
     if board["enemy_by_square"].get(destination):
         return False
-    return not observation.get("enPassant", {}).get(cell["unitId"], {}).get(destination)
+    return not observation.get("enPassant", {}).get(cell["square"], {}).get(destination)
 
 def protection_factor(candidate):
     return min(1.0, guarded_count(candidate) / 2.0)
@@ -556,14 +556,14 @@ def unit_priority(observation, board, params, cell):
         for enemy in board["enemy"]:
             if enemy["rank"] != "king" or enemy["ghost"]:
                 continue
-            if (enemy["square"] in observation["legal"].get(cell["unitId"], []) and
+            if (enemy["square"] in observation["legal"].get(cell["square"], []) and
                     capture_choice_available(observation, board, cell, enemy["square"])):
                 priority += KING_VALUE
                 break
-            for destination in observation["legal"].get(cell["unitId"], []):
-                fact = candidate_at(observation, cell["unitId"], destination)
+            for destination in observation["legal"].get(cell["square"], []):
+                fact = candidate_at(observation, cell["square"], destination)
                 if (is_quiet_move(observation, board, cell, destination) and
-                        has_candidate(observation, cell["unitId"], destination) and fact.get("destinationVisible", False) and
+                        has_candidate(observation, cell["square"], destination) and fact.get("destinationVisible", False) and
                         supported_and_unthreatened(fact) and
                         enemy["square"] in (fact.get("nextPossibleMoves", []) or [])):
                     priority += UNIT_PRIORITY_KING_VISIBLE_ATTACK
@@ -577,7 +577,7 @@ EMPTY_OUTCOME = {
     "oddsKnown": False, "odds": {"success": 0, "defenderKilled": 0, "repelled": 0},
 }
 
-def outcomes_at(observation, unit_id, destination):
+def outcomes_at(observation, source_square, destination):
     """The host's own per-choice affordability AND odds facts for one (unit,
     destination) pair (observation.affordability — observation.go's
     DestinationOutcomes), keyed exactly like observation.legal itself.
@@ -585,7 +585,7 @@ def outcomes_at(observation, unit_id, destination):
     script never computes the morale rule OR the odds that fill it in, only
     reads the engine's own answer (observation.go's CaptureOutcome, sourced
     from chess.BeliefCaptureBands)."""
-    return observation["affordability"].get(unit_id, EMPTY_OUTCOMES).get(destination, EMPTY_OUTCOMES)
+    return observation["affordability"].get(source_square, EMPTY_OUTCOMES).get(destination, EMPTY_OUTCOMES)
 
 def capture_expected_success(outcome):
     """The fraction (0.0-1.0) of the time `outcome` (one CaptureOutcome —
@@ -626,7 +626,7 @@ def effective_capture_target(observation, board, cell, destination):
         return target_cell
     if cell["convoy"] or cell["rank"] != "pawn":
         return None
-    victim_square = observation["enPassant"].get(cell["unitId"], {}).get(destination)
+    victim_square = observation["enPassant"].get(cell["square"], {}).get(destination)
     if not victim_square:
         return None
     return board["enemy_by_square"].get(victim_square)
@@ -655,7 +655,7 @@ def capture_choice_available(observation, board, cell, destination):
     target_cell = effective_capture_target(observation, board, cell, destination)
     if not target_cell:
         return True
-    outcomes = outcomes_at(observation, cell["unitId"], destination)
+    outcomes = outcomes_at(observation, cell["square"], destination)
     if target_cell["rank"] == "king" or target_cell["convoy"]:
         return outcomes.get("capture", EMPTY_OUTCOME)["affordable"]
     if observation["rules"]["allowsKill"] and outcomes.get("kill", EMPTY_OUTCOME)["affordable"]:
@@ -764,7 +764,7 @@ def formation_leader_priority(observation, board, params, cell):
     a Beacon bearer needs real support gain, so neither becomes a hero."""
     if cell["convoy"]:
         return 0.0
-    destinations = observation["legal"].get(cell["unitId"], [])
+    destinations = observation["legal"].get(cell["square"], [])
     if cell["rank"] == "king":
         if params["moralePush"] <= 0:
             return 0.0
@@ -775,10 +775,10 @@ def formation_leader_priority(observation, board, params, cell):
         # same regroup, but shallow tiers must first get to consider it.
         if observation.get("ownMorale", 0) - needed >= LEADER_EXCESS_MORALE:
             for destination in destinations:
-                fact = candidate_at(observation, cell["unitId"], destination)
+                fact = candidate_at(observation, cell["square"], destination)
                 after = post_move_morale(observation, board, cell["square"], destination)
                 if (is_quiet_move(observation, board, cell, destination) and
-                        has_candidate(observation, cell["unitId"], destination) and fact.get("destinationVisible", False) and
+                        has_candidate(observation, cell["square"], destination) and fact.get("destinationVisible", False) and
                         supported_and_unthreatened(fact) and
                         after < current and after >= needed + 1):
                     return UNIT_PRIORITY_FORMATION_LEADER
@@ -788,10 +788,10 @@ def formation_leader_priority(observation, board, params, cell):
         if current >= needed + 1:
             return 0.0
         for destination in destinations:
-            fact = candidate_at(observation, cell["unitId"], destination)
+            fact = candidate_at(observation, cell["square"], destination)
             after = post_move_morale(observation, board, cell["square"], destination)
             if (is_quiet_move(observation, board, cell, destination) and
-                    has_candidate(observation, cell["unitId"], destination) and fact.get("destinationVisible", False) and
+                    has_candidate(observation, cell["square"], destination) and fact.get("destinationVisible", False) and
                     supported_and_unthreatened(fact) and
                     after > current and after <= needed + 2):
                 return UNIT_PRIORITY_FORMATION_LEADER
@@ -800,9 +800,9 @@ def formation_leader_priority(observation, board, params, cell):
         return 0.0
     current_support = leader_support(observation, board, cell, cell["square"])
     for destination in destinations:
-        fact = candidate_at(observation, cell["unitId"], destination)
+        fact = candidate_at(observation, cell["square"], destination)
         if (not (cell["rank"] == "pawn" and is_promotion_square(board["side"], destination)) and is_quiet_move(observation, board, cell, destination) and
-                has_candidate(observation, cell["unitId"], destination) and fact.get("destinationVisible", False) and
+                has_candidate(observation, cell["square"], destination) and fact.get("destinationVisible", False) and
                 supported_and_unthreatened(fact) and
                 leader_support(observation, board, cell, destination) > current_support):
             return UNIT_PRIORITY_FORMATION_LEADER
@@ -812,7 +812,7 @@ def has_other_ordinary_choice(observation, board, current_cell):
     for cell in board["actionable_units"]:
         if cell["unitId"] == current_cell["unitId"] or cell["convoy"] or cell["rank"] == "king" or is_current_beacon_bearer(observation, cell):
             continue
-        for destination in observation["legal"].get(cell["unitId"], []):
+        for destination in observation["legal"].get(cell["square"], []):
             if destination != cell["square"]:
                 return True
     return False
@@ -833,8 +833,8 @@ def score_move(observation, board, params, memory, cell, destination):
     assumed — see the accompanying report."""
     target_cell = effective_capture_target(observation, board, cell, destination)
     quiet_move = is_quiet_move(observation, board, cell, destination)
-    candidate_known = has_candidate(observation, cell["unitId"], destination)
-    candidate = candidate_at(observation, cell["unitId"], destination)
+    candidate_known = has_candidate(observation, cell["square"], destination)
+    candidate = candidate_at(observation, cell["square"], destination)
     score = 0.0
     captured_value = 0.0
     terms = []
@@ -852,7 +852,7 @@ def score_move(observation, board, params, memory, cell, destination):
     success_chance = 1.0
     capture_choice = None
     if target_cell and target_cell["rank"] != "king" and not target_cell["convoy"]:
-        outcomes = outcomes_at(observation, cell["unitId"], destination)
+        outcomes = outcomes_at(observation, cell["square"], destination)
         if (params["prisoner"] > 0 and observation["rules"]["allowsCapture"] and
                 outcomes.get("capture", EMPTY_OUTCOME)["affordable"]):
             capture_choice = "capture"
@@ -1142,7 +1142,7 @@ def score_move(observation, board, params, memory, cell, destination):
     return {
         "intent": intent, "score": score, "terms": terms,
         "actor": cell["unitId"],
-        "key": "move|" + cell["unitId"] + "|" + destination,
+        "key": "move|" + str(cell["unitId"]) + "|" + destination,
     }
 
 
@@ -1298,7 +1298,7 @@ def move_proposals(observation, board, params, memory):
     leader_guard = active_leader_guard(observation, memory)
     for entry in ranked_units[:breadth]:
         cell = entry["cell"]
-        destinations = observation["legal"].get(cell["unitId"], [])
+        destinations = observation["legal"].get(cell["square"], [])
         candidates = []
         for destination in destinations:
             if destination == cell["square"]:
@@ -1386,7 +1386,7 @@ def priority_captive_delivery_proposal(observation, board, params):
                 cell["rank"] != "pawn" or board["busy_units"].get(cell["unitId"])):
             continue
         prisoner_rank = "pawn" if observation["rules"]["cargoBasedDelivery"] else cell["rank"]
-        destinations = observation["legal"].get(cell["unitId"], [])
+        destinations = observation["legal"].get(cell["square"], [])
         if not destinations:
             continue
         base_squares = observation["rules"]["baseSquares"].get(prisoner_rank, [])
@@ -1395,9 +1395,9 @@ def priority_captive_delivery_proposal(observation, board, params):
         if cell["square"] in base_squares:
             fallback = None
             for candidate in destinations:
-                fact = candidate_at(observation, cell["unitId"], candidate)
+                fact = candidate_at(observation, cell["square"], candidate)
                 if (candidate == cell["square"] or board["enemy_by_square"].get(candidate) or
-                        not has_candidate(observation, cell["unitId"], candidate) or
+                        not has_candidate(observation, cell["square"], candidate) or
                         not fact.get("destinationVisible", False) or not is_safe_subject(fact)):
                     continue  # an attack (not the quiet departure that unloads), or unsafe
                 if candidate in base_squares:
@@ -1411,9 +1411,9 @@ def priority_captive_delivery_proposal(observation, board, params):
             here = distance_to_nearest_square(cell["square"], base_squares)
             best_gain = 0
             for candidate in destinations:
-                fact = candidate_at(observation, cell["unitId"], candidate)
+                fact = candidate_at(observation, cell["square"], candidate)
                 if (candidate == cell["square"] or board["enemy_by_square"].get(candidate) or
-                        not has_candidate(observation, cell["unitId"], candidate) or
+                        not has_candidate(observation, cell["square"], candidate) or
                         not fact.get("destinationVisible", False) or not is_safe_subject(fact)):
                     continue
                 gain = here - distance_to_nearest_square(candidate, base_squares)
@@ -1427,7 +1427,7 @@ def priority_captive_delivery_proposal(observation, board, params):
             "score": PRIORITY_CAPTIVE_DELIVERY_SCORE,
             "terms": [{"term": "prisoner", "value": PRIORITY_CAPTIVE_DELIVERY_SCORE, "detail": "priorityDelivery"}],
             "actor": cell["unitId"],
-            "key": "priority-captive-delivery|" + cell["unitId"] + "|" + to,
+            "key": "priority-captive-delivery|" + str(cell["unitId"]) + "|" + to,
         }
     return None
 
@@ -1443,7 +1443,7 @@ def most_advanced_adjacent_ally(board):
     square (chess/beacon.go), so the most advanced candidate puts that
     radius over the most board, not merely over whichever ally happens to
     be listed first. Ties keep the FIRST candidate found — board["own"]'s
-    own square-ascending order (BuildObservation's sort), so this is
+    own board-index order (piece_squares), so this is
     deterministic across the native-Go and TinyGo-wasm runtimes for the
     identical observation. Returns None when the king has no eligible
     neighbour at all."""
@@ -1624,7 +1624,7 @@ def training_proposals(observation, board, params):
                 "score": score,
                 "terms": [{"term": "system", "value": score, "detail": "train"}],
                 "actor": cell["unitId"],
-                "key": "train|" + cell["unitId"] + "|" + profession,
+                "key": "train|" + str(cell["unitId"]) + "|" + profession,
             })
             continue
         if (params["advancedTraining"] and cell.get("profession", "") == "engineer" and
@@ -1638,7 +1638,7 @@ def training_proposals(observation, board, params):
                 "score": score,
                 "terms": [{"term": "system", "value": score, "detail": "advancedTrain"}],
                 "actor": cell["unitId"],
-                "key": "advanced|" + cell["unitId"],
+                "key": "advanced|" + str(cell["unitId"]),
             })
     return proposals
 
@@ -1730,7 +1730,7 @@ def wall_proposals(observation, board, params):
                     "intent": {"kind": "action", "from": cell["square"], "to": cell["square"],
                                "action": "repair_wall", "direction": direction},
                     "score": score, "terms": terms, "actor": cell["unitId"],
-                    "key": "repair|" + cell["unitId"] + "|" + wall["edge"],
+                    "key": "repair|" + str(cell["unitId"]) + "|" + wall["edge"],
                 })
             elif wall["side"] != board["side"] and params["contestEnemyWork"]:
                 # Contesting enemy work is offensive play a Lieutenant leaves
@@ -1743,7 +1743,7 @@ def wall_proposals(observation, board, params):
                     "intent": {"kind": "action", "from": cell["square"], "to": cell["square"],
                                "action": "dismantle_wall", "direction": direction},
                     "score": score, "terms": terms, "actor": cell["unitId"],
-                    "key": "dismantle|" + cell["unitId"] + "|" + wall["edge"],
+                    "key": "dismantle|" + str(cell["unitId"]) + "|" + wall["edge"],
                 })
     return proposals
 
@@ -1859,7 +1859,7 @@ def beacon_forge_proposals(observation, board, params):
             "score": score,
             "terms": [{"term": "beaconAggression", "value": score, "detail": "forge"}],
             "actor": cell["unitId"],
-            "key": "beacon-forge|" + cell["unitId"],
+            "key": "beacon-forge|" + str(cell["unitId"]),
         })
     return proposals
 
@@ -1923,7 +1923,7 @@ def espionage_proposals(observation, board, params):
             "score": score,
             "terms": terms,
             "actor": king_cell["unitId"],
-            "key": "interrogate|" + suspect["unitId"],
+            "key": "interrogate|" + str(suspect["unitId"]),
         })
     return proposals
 
@@ -2044,7 +2044,7 @@ RANK_BIT_SLOTS = {"pawn": 0, "knight": 1, "bishop": 2, "rook": 3, "queen": 4, "k
 def signed_bitboard(value):
     return value - BITBOARD_MODULUS if value >= BITBOARD_SIGN_BIT else value
 
-def placement_bitboards(observation, moved_unit_id = "", moved_to = ""):
+def placement_bitboards(observation, moved_unit_id = 0, moved_to = ""):
     bitboards = [0] * 12
     for occupied_square in piece_squares(observation):
         cell = observation["pieces"][occupied_square]

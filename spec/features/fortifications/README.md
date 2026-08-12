@@ -87,6 +87,13 @@ faster for a more qualified Engineer or with
 [Sergeant](../pawn-specialisation/README.md) support. An edge that already
 carries a wall, or is already under construction, cannot be started again.
 
+#### INV: one-active-operation-per-unit
+
+A unit has at most one active fortification operation. Construction, repair,
+and dismantling are all that unit's one channel: while it is active on one
+edge, it cannot begin work on another edge. Several different units may still
+contribute to the same edge, as described by cooperative work below.
+
 #### REQ: construction-cancellation
 
 If the building Engineer moves, dies, is captured, or is otherwise removed

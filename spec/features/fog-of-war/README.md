@@ -117,6 +117,12 @@ actually saw; it never reveals an enemy piece's live charge state, its
 ordinary route plan, or any cargo change that happened while it was out of
 your sight.
 
+The bot observation makes one identity exception for that stale record: a
+live projected piece has a numeric unit ID from 1 through 32, while a ghost
+carries `NoUnitID` (`0`). The ghost keeps its projected `side` as the
+authoritative current-view field, but its sentinel ID can never be used as a
+command actor or to infer ownership.
+
 #### REQ: visible-enemy-charge-progress-without-target
 
 A currently visible enemy piece reveals whether it is actively charging and,

@@ -55,7 +55,7 @@ rather than a person.
 
 #### REQ: legal-moves-are-already-worked-out
 
-Alongside that view, `legal[unitId]` gives the host-offered actionable
+Alongside that view, `legal[sourceSquare]` gives the host-offered actionable
 destinations for each own piece, including replacement destinations for a
 piece whose route is already charging. A script never computes where a piece
 is allowed to go — it can plan around that set (a route home for a captured
@@ -70,12 +70,13 @@ reaches the board.
 
 #### REQ: pieces-map-is-the-only-board-shape
 
-The board is `pieces`, one map keyed by algebraic square. Each value carries
-an opaque stable `unitId`, an explicit `side`, rank and physical state; it
-does not repeat its square. Side is never inferred from the unit ID because
-recruitment can change ownership. Scripts sort the square keys before
-iteration, and the published standard bot reconstructs a transient square
-field without mutating the observation.
+The board is `pieces`, one map keyed by algebraic square. A live value carries
+a stable numeric `unitId` from 1 through 32, an explicit `side`, rank and
+physical state; it does not repeat its square. `0` is `NoUnitID`, reserved for
+a fog ghost and never a command actor or outer-map key. Side is never inferred
+from the unit ID because recruitment can change ownership. Scripts iterate the
+square keys in board-index order, and the published standard bot reconstructs
+a transient square field without mutating the observation.
 
 There is no parallel `own`/`enemy` board and no top-level `danger` summary.
 Every visible non-ghost piece may instead carry sorted, duplicate-free square
@@ -85,7 +86,7 @@ cooldown and morale affordability. Ghosts carry no live relations.
 
 #### REQ: deterministic-candidates-describe-the-exact-post-state
 
-`candidates[unitId][destination]` exists for deterministic non-capture
+`candidates[sourceSquare][destination]` exists for deterministic non-capture
 relocations. It carries `destinationVisible`, the host's fog-safe `patrolGain`,
 `nextPossibleMoves`, and the same four post-move relation lists. Presence of a
 candidate does not make its destination visible, and omitted lists mean empty.
@@ -102,6 +103,11 @@ Candidate facts are unconditionally omitted for every already charging unit.
 fully scored from affordability and the target's current visible relations,
 while an absent quiet fact earns no speculative safety or other future-state
 bonus.
+
+`affordability[sourceSquare]` and `enPassant[sourceSquare]` use the same
+source-square outer key as `legal` and `candidates`. This keeps every
+actionable fact attached to the actor's current position, while the cell's
+numeric ID is reserved for command identity.
 
 #### REQ: activity-fields-preserve-command-privacy
 
@@ -201,7 +207,8 @@ can call gives it a way to ask about one
 **Given** a current bot observation
 **When** its board is decoded
 **Then** every projected occupant appears exactly once under its algebraic
-key in `pieces`, carries explicit `side` and opaque `unitId`, and no
+key in `pieces`, carries explicit `side` and numeric `unitId` (or `0` for a
+fog ghost), and no
 `own`/`enemy` arrays, cell `square`, top-level `danger`, or removed boolean
 specialist summary is present
 
