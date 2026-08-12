@@ -94,9 +94,11 @@ func TestResolvedRowsPreserveThePublishedStandardBotSemantics(t *testing.T) {
 }
 
 func TestParameterSchemaDeclaresExactlyTheInputsTheScriptReads(t *testing.T) {
-	schema, err := manifest.ParseParameterSchema(standardbot.ParamsSchema, manifest.JSONLimits{
-		MaxBytes: int64(len(standardbot.ParamsSchema)),
-		MaxDepth: manifest.MaximumJSONDepth,
+	schema, err := manifest.ParseParameterSchema(standardbot.ParamsSchema, manifest.ParameterLimits{
+		MaxDocumentBytes: int64(len(standardbot.ParamsSchema)),
+		MaxJSONDepth:     manifest.MaximumJSONDepth,
+		MaxProperties:    16,
+		MaxResolvedBytes: int64(len(standardbot.ParamsSchema)),
 	})
 	if err != nil {
 		t.Fatalf("ParseParameterSchema() = %v", err)

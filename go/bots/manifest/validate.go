@@ -9,6 +9,7 @@ import (
 	"io"
 	"math/big"
 	"strings"
+	"unicode"
 )
 
 // MaximumJSONDepth is the parser's hard safety ceiling. Callers still choose a
@@ -29,8 +30,8 @@ func parseWithDepth(raw []byte, maxDepth int) (Manifest, error) {
 		return Manifest{}, err
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.DisallowUnknownFields()
 	decoder.UseNumber()
+	decoder.DisallowUnknownFields()
 	var manifest Manifest
 	if err := decoder.Decode(&manifest); err != nil {
 		return Manifest{}, jsonError(err)
@@ -72,6 +73,7 @@ func scanJSON(raw []byte, maxDepth int, enforceManifestFieldCase bool) error {
 		return &Error{Code: ErrInvalidLimit, Field: "maxJSONDepth", Detail: fmt.Sprintf("must be between 1 and %d", MaximumJSONDepth)}
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
 	if err := scanJSONValue(decoder, "", 1, maxDepth, enforceManifestFieldCase); err != nil {
 		return err
 	}
@@ -110,7 +112,7 @@ func scanJSONValue(decoder *json.Decoder, objectPath string, depth, maxDepth int
 			if _, exists := seen[key]; exists {
 				return &Error{Code: ErrInvalidJSON, Detail: "duplicate object key " + key}
 			}
-			foldedKey := strings.ToLower(key)
+			foldedKey := foldJSONKey(key)
 			if prior, exists := seenFolded[foldedKey]; exists {
 				return &Error{Code: ErrInvalidJSON, Field: objectPath, Detail: "case-fold-equivalent duplicate object keys " + prior + " and " + key}
 			}
@@ -140,8 +142,24 @@ func scanJSONValue(decoder *json.Decoder, objectPath string, depth, maxDepth int
 }
 
 func exactCaseField(expected map[string]string, key string) (string, bool) {
-	canonical, found := expected[strings.ToLower(key)]
+	canonical, found := expected[foldJSONKey(key)]
 	return canonical, found
+}
+
+// foldJSONKey returns the canonical representative of each Unicode simple-
+// fold equivalence class. It matches strings.EqualFold semantics without an
+// O(n²) prior-key scan, so aliases such as the long-s in "ſchema" cannot
+// evade exact fixed-field checks or duplicate detection.
+func foldJSONKey(value string) string {
+	return strings.Map(func(character rune) rune {
+		canonical := character
+		for folded := unicode.SimpleFold(character); folded != character; folded = unicode.SimpleFold(folded) {
+			if folded < canonical {
+				canonical = folded
+			}
+		}
+		return canonical
+	}, value)
 }
 
 func childObjectPath(parent, key string) string {
@@ -155,7 +173,7 @@ func expectedFields(path string) map[string]string {
 	fields := func(values ...string) map[string]string {
 		result := make(map[string]string, len(values))
 		for _, value := range values {
-			result[strings.ToLower(value)] = value
+			result[foldJSONKey(value)] = value
 		}
 		return result
 	}

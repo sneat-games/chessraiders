@@ -31,7 +31,7 @@ const validParameterSchema = `{
   "additionalProperties":false
 }`
 
-const validParameterSets = `{"schema":"chess-raiders-bot-parameter-sets/v1","sets":{"default":{"search":4}}}`
+const validParameterSets = `{"schema":"chess-raiders-bot-parameter-sets/v1","sets":{"default":{}}}`
 
 func validEntries(raw []byte) []TreeEntry {
 	return []TreeEntry{
@@ -42,7 +42,23 @@ func validEntries(raw []byte) []TreeEntry {
 	}
 }
 
-var testLimits = ValidationLimits{MaxFiles: 4, MaxFileBytes: 10_000, MaxTotalBytes: 40_000, MaxManifestBytes: 10_000, MaxJSONDepth: 32}
+var testLimits = ValidationLimits{
+	MaxFiles:                  4,
+	MaxFileBytes:              10_000,
+	MaxTotalBytes:             40_000,
+	MaxManifestBytes:          10_000,
+	MaxJSONDepth:              32,
+	MaxParameterProperties:    100,
+	MaxParameterSets:          100,
+	MaxResolvedParameterBytes: 10_000,
+}
+
+func testLimitsFor(maxFiles int, maxTotalBytes int64) ValidationLimits {
+	limits := testLimits
+	limits.MaxFiles = maxFiles
+	limits.MaxTotalBytes = maxTotalBytes
+	return limits
+}
 
 var testProfile = CompatibilityProfile{
 	Game:                "chess-raiders",
@@ -110,12 +126,12 @@ func TestValidateArtifactRejectsUnsafeAndNonCanonicalClosures(t *testing.T) {
 		limits  ValidationLimits
 		code    ErrorCode
 	}{
-		{name: "traversal", entries: append(validEntries(raw), TreeEntry{Path: "../secret", Kind: EntryKindRegular}), limits: ValidationLimits{MaxFiles: 5, MaxFileBytes: 10_000, MaxTotalBytes: 50_000, MaxManifestBytes: 10_000, MaxJSONDepth: 32}, code: ErrInvalidPath},
+		{name: "traversal", entries: append(validEntries(raw), TreeEntry{Path: "../secret", Kind: EntryKindRegular}), limits: testLimitsFor(5, 50_000), code: ErrInvalidPath},
 		{name: "symlink", entries: []TreeEntry{{Path: ManifestPath, Kind: EntryKindRegular, Content: raw}, {Path: "bot.star", Kind: EntryKindSymlink}, {Path: "parameters.json", Kind: EntryKindRegular, Content: []byte(`{}`)}}, limits: testLimits, code: ErrNonRegularFile},
 		{name: "submodule", entries: []TreeEntry{{Path: ManifestPath, Kind: EntryKindRegular, Content: raw}, {Path: "bot.star", Kind: EntryKindSubmodule}}, limits: testLimits, code: ErrNonRegularFile},
 		{name: "lfs", entries: []TreeEntry{{Path: ManifestPath, Kind: EntryKindRegular, Content: raw}, {Path: "bot.star", Kind: EntryKindRegular, Content: []byte("version https://git-lfs.github.com/spec/v1\noid sha256:abc\n")}, {Path: "parameters.json", Kind: EntryKindRegular, Content: []byte(`{}`)}}, limits: testLimits, code: ErrLFSPointer},
-		{name: "undeclared", entries: append(validEntries(raw), TreeEntry{Path: "README.md", Kind: EntryKindRegular}), limits: ValidationLimits{MaxFiles: 5, MaxFileBytes: 10_000, MaxTotalBytes: 50_000, MaxManifestBytes: 10_000, MaxJSONDepth: 32}, code: ErrUndeclaredFile},
-		{name: "file limit", entries: validEntries(raw), limits: ValidationLimits{MaxFiles: 3, MaxFileBytes: 10_000, MaxTotalBytes: 40_000, MaxManifestBytes: 10_000, MaxJSONDepth: 32}, code: ErrFileLimit},
+		{name: "undeclared", entries: append(validEntries(raw), TreeEntry{Path: "README.md", Kind: EntryKindRegular}), limits: testLimitsFor(5, 50_000), code: ErrUndeclaredFile},
+		{name: "file limit", entries: validEntries(raw), limits: testLimitsFor(3, 40_000), code: ErrFileLimit},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -231,6 +247,25 @@ func TestValidateArtifactRejectsMalformedDeclaredParameterBytes(t *testing.T) {
 	}
 }
 
+func TestValidateArtifactAttributesMalformedParameterSchemaBytes(t *testing.T) {
+	raw := []byte(validManifest)
+	entries := validEntries(raw)
+	entries[2].Content = []byte(strings.Replace(
+		validParameterSchema,
+		`"$schema":"https://json-schema.org/draft/2020-12/schema"`,
+		`"$schema":"https://json-schema.org/draft/2020-12/schema","$ſchema":"https://json-schema.org/draft/2020-12/schema"`,
+		1,
+	))
+	_, err := ValidateArtifact(raw, entries, testLimits, testProfile)
+	if err == nil {
+		t.Fatal("ValidateArtifact() = nil, want malformed schema rejection")
+	}
+	var validationError *Error
+	if !errors.As(err, &validationError) || validationError.Path != "parameters.schema.json" {
+		t.Fatalf("ValidateArtifact() error = %T %v, want schema-path validation error", err, err)
+	}
+}
+
 func TestValidateArtifactBoundsRawManifestAndJSONDepthBeforeDecode(t *testing.T) {
 	tooSmall := testLimits
 	tooSmall.MaxManifestBytes = int64(len(validManifest) - 1)
@@ -258,8 +293,10 @@ func TestValidateArtifactBoundsRawManifestAndJSONDepthBeforeDecode(t *testing.T)
 func TestParseRejectsCaseFoldedSchemaAndNestedFieldAliases(t *testing.T) {
 	for _, raw := range []string{
 		strings.Replace(validManifest, `"schema"`, `"Schema"`, 1),
+		strings.Replace(validManifest, `"schema"`, `"ſchema"`, 1),
 		strings.Replace(validManifest, `"name":"Test bot"`, `"Name":"Test bot"`, 1),
 		`{"schema":"chess-raiders-bot-manifest/v1","Schema":"chess-raiders-bot-manifest/v1"}`,
+		`{"schema":"chess-raiders-bot-manifest/v1","ſchema":"chess-raiders-bot-manifest/v1"}`,
 	} {
 		_, err := Parse([]byte(raw))
 		if err == nil {

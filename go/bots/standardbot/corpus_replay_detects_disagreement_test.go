@@ -35,6 +35,16 @@ func sampleCase(t *testing.T) (string, corpusCase) {
 	return entries[0], readCorpusCase(t, entries[0])
 }
 
+func allCorpusCases(t *testing.T) []corpusCase {
+	t.Helper()
+	entries := corpusEntries(t)
+	cases := make([]corpusCase, len(entries))
+	for index, path := range entries {
+		cases[index] = readCorpusCase(t, path)
+	}
+	return cases
+}
+
 // TestReplayCaseDetectsAWrongRecordedIntent perturbs the one field that
 // matters most: what the corpus claims decide() returned.
 func TestReplayCaseDetectsAWrongRecordedIntent(t *testing.T) {
@@ -160,6 +170,69 @@ func TestCheckCorpusMetadataDetectsAWrongScriptModule(t *testing.T) {
 		t.Errorf("checkCorpusMetadata's error does not name the case (%q): %v", c.Test, err)
 	}
 	t.Logf("confirmed detection: %v", err)
+}
+
+// TestCheckCorpusMetadataDetectsAWrongParamsVersion proves that a case whose
+// resolved parameter row uses a different protocol cannot quietly enter the
+// corpus merely because its current JSON object happens to look compatible.
+func TestCheckCorpusMetadataDetectsAWrongParamsVersion(t *testing.T) {
+	path, c := sampleCase(t)
+	modulePath := thisModulePath(t)
+
+	if err := checkCorpusMetadata(path, c, modulePath, c.Script.Version); err != nil {
+		t.Fatalf("sample case %s does not pass metadata checks before perturbation (fix the sample, not this test): %v", path, err)
+	}
+
+	c.ParamsVersion = "not-the-resolved-row-contract/v1"
+	err := checkCorpusMetadata(path, c, modulePath, c.Script.Version)
+	if err == nil {
+		t.Fatal("checkCorpusMetadata accepted a case declaring the wrong resolved-parameter-row protocol")
+	}
+	if !strings.Contains(err.Error(), "paramsVersion") {
+		t.Errorf("checkCorpusMetadata's error does not name the mismatching field (\"paramsVersion\"): %v", err)
+	}
+}
+
+// TestCheckCorpusInventoryDetectsCountIdentityAndSourceCoverageDrift proves
+// that the public corpus cannot silently shrink, duplicate a decision, or
+// stop representing one of the 30 source tests recorded at capture time.
+func TestCheckCorpusInventoryDetectsCountIdentityAndSourceCoverageDrift(t *testing.T) {
+	cases := allCorpusCases(t)
+	if err := checkCorpusInventory(cases); err != nil {
+		t.Fatalf("unmodified corpus inventory is invalid: %v", err)
+	}
+
+	t.Run("missing case", func(t *testing.T) {
+		err := checkCorpusInventory(append([]corpusCase(nil), cases[:len(cases)-1]...))
+		if err == nil || !strings.Contains(err.Error(), "want exactly 53") {
+			t.Fatalf("missing case error = %v, want exact-count failure", err)
+		}
+	})
+
+	t.Run("duplicate identity", func(t *testing.T) {
+		mutated := append([]corpusCase(nil), cases...)
+		mutated[len(mutated)-1] = mutated[0]
+		err := checkCorpusInventory(mutated)
+		if err == nil || !strings.Contains(err.Error(), "duplicate identity") {
+			t.Fatalf("duplicate identity error = %v, want duplicate-identity failure", err)
+		}
+	})
+
+	t.Run("missing source test", func(t *testing.T) {
+		mutated := append([]corpusCase(nil), cases...)
+		removedSource := mutated[len(mutated)-1].Test
+		replacementSource := mutated[0].Test
+		for index := range mutated {
+			if mutated[index].Test == removedSource {
+				mutated[index].Test = replacementSource
+				mutated[index].Case = 10000 + index
+			}
+		}
+		err := checkCorpusInventory(mutated)
+		if err == nil || !strings.Contains(err.Error(), "source tests") {
+			t.Fatalf("missing source-test error = %v, want source-coverage failure", err)
+		}
+	})
 }
 
 // TestCheckCorpusMetadataDetectsAnInconsistentScriptVersion perturbs

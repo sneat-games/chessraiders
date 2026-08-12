@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"reflect"
 	"sort"
 	"strings"
@@ -31,11 +30,10 @@ func ValidateArtifact(manifestBytes []byte, entries []TreeEntry, limits Validati
 	if err != nil {
 		return Artifact{}, err
 	}
-	resolved := validated.ResolvedSets[plan.Manifest.Parameters.DefaultSet]
 	return Artifact{
 		Manifest:           plan.Manifest,
 		Digest:             validated.Digest,
-		ResolvedParameters: append([]byte(nil), resolved...),
+		ResolvedParameters: append([]byte(nil), validated.ResolvedParameters...),
 	}, nil
 }
 
@@ -111,8 +109,8 @@ func ValidateClosure(manifest Manifest, manifestBytes []byte, entries []TreeEntr
 }
 
 type closureValidation struct {
-	Digest       Digest
-	ResolvedSets map[string]json.RawMessage
+	Digest             Digest
+	ResolvedParameters json.RawMessage
 }
 
 func validateClosure(manifest Manifest, manifestBytes []byte, entries []TreeEntry, limits ValidationLimits) (closureValidation, error) {
@@ -180,27 +178,30 @@ func validateClosure(manifest Manifest, manifestBytes []byte, entries []TreeEntr
 			return closureValidation{}, &Error{Code: ErrInvalidManifest, Path: ManifestPath, Detail: "tree bytes differ from the parsed manifest bytes"}
 		}
 	}
-	jsonLimits := JSONLimits{MaxBytes: limits.MaxFileBytes, MaxDepth: limits.MaxJSONDepth}
-	resolvedSets, err := ResolveParameterSets(
-		files[manifest.Parameters.SchemaPath],
+	parameterLimits := ParameterLimits{
+		MaxDocumentBytes: limits.MaxFileBytes,
+		MaxJSONDepth:     limits.MaxJSONDepth,
+		MaxProperties:    limits.MaxParameterProperties,
+		MaxSets:          limits.MaxParameterSets,
+		MaxResolvedBytes: limits.MaxResolvedParameterBytes,
+	}
+	parameterSchema, err := ParseParameterSchema(files[manifest.Parameters.SchemaPath], parameterLimits)
+	if err != nil {
+		return closureValidation{}, &Error{Code: ErrInvalidManifest, Path: manifest.Parameters.SchemaPath, Detail: "declared parameter schema is invalid: " + err.Error()}
+	}
+	resolved, err := resolveParameterSet(
+		parameterSchema,
 		files[manifest.Parameters.SetsPath],
-		jsonLimits,
+		manifest.Parameters.DefaultSet,
+		parameterLimits,
 	)
 	if err != nil {
-		path := manifest.Parameters.SetsPath
-		var validationError *Error
-		if errors.As(err, &validationError) && validationError.Code == ErrParameterSchema {
-			path = manifest.Parameters.SchemaPath
-		}
-		return closureValidation{}, &Error{Code: ErrInvalidManifest, Path: path, Detail: "declared parameter schema/configurations are invalid: " + err.Error()}
-	}
-	if _, ok := resolvedSets[manifest.Parameters.DefaultSet]; !ok {
-		return closureValidation{}, &Error{Code: ErrInvalidManifest, Path: manifest.Parameters.SetsPath, Detail: "defaultSet is absent from the named parameter configurations"}
+		return closureValidation{}, &Error{Code: ErrInvalidManifest, Path: manifest.Parameters.SetsPath, Detail: "declared parameter configurations are invalid: " + err.Error()}
 	}
 	if err := runtime.ValidateEntrypoint(string(files[manifest.Runtime.Entrypoint]), "decide", 5); err != nil {
 		return closureValidation{}, &Error{Code: ErrEntrypoint, Path: manifest.Runtime.Entrypoint, Detail: err.Error()}
 	}
-	return closureValidation{Digest: DigestClosure(files), ResolvedSets: resolvedSets}, nil
+	return closureValidation{Digest: DigestClosure(files), ResolvedParameters: resolved}, nil
 }
 
 // DigestClosure deterministically hashes an already-validated regular-file
@@ -235,8 +236,8 @@ func isLFSPointer(content []byte) bool {
 }
 
 func validateLimits(limits ValidationLimits) error {
-	if limits.MaxFiles <= 0 || limits.MaxFileBytes <= 0 || limits.MaxTotalBytes <= 0 || limits.MaxManifestBytes <= 0 || limits.MaxJSONDepth <= 0 {
-		return &Error{Code: ErrInvalidLimit, Detail: "caller must supply positive file, byte, raw-manifest and JSON-depth limits"}
+	if limits.MaxFiles <= 0 || limits.MaxFileBytes <= 0 || limits.MaxTotalBytes <= 0 || limits.MaxManifestBytes <= 0 || limits.MaxJSONDepth <= 0 || limits.MaxParameterProperties <= 0 || limits.MaxParameterSets <= 0 || limits.MaxResolvedParameterBytes <= 0 {
+		return &Error{Code: ErrInvalidLimit, Detail: "caller must supply positive file, byte, raw-manifest, JSON-depth and parameter resolution limits"}
 	}
 	if limits.MaxFileBytes > limits.MaxTotalBytes {
 		return &Error{Code: ErrInvalidLimit, Detail: "maximum file bytes cannot exceed maximum total bytes"}

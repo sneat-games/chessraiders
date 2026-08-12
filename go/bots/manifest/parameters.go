@@ -5,8 +5,11 @@ package manifest
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -20,11 +23,16 @@ const (
 	ParameterSetsSchemaVersion = "chess-raiders-bot-parameter-sets/v1"
 )
 
-// JSONLimits bounds an exported parser of untrusted JSON. MaxBytes applies to
-// each raw document supplied to one call.
-type JSONLimits struct {
-	MaxBytes int64
-	MaxDepth int
+// ParameterLimits bound every public parameter parser and resolver. They are
+// caller policy: this portable package owns no Cup- or Season-specific values.
+// MaxDocumentBytes applies independently to the schema and sets documents;
+// MaxResolvedBytes caps the one complete runtime-facing object returned.
+type ParameterLimits struct {
+	MaxDocumentBytes int64
+	MaxJSONDepth     int
+	MaxProperties    int
+	MaxSets          int
+	MaxResolvedBytes int64
 }
 
 type ParameterType string
@@ -39,7 +47,9 @@ const (
 
 // ParameterSchema is the supported JSON Schema draft 2020-12 profile. It is
 // intentionally flat: nested objects and schema-composition features are not
-// part of the bot parameter contract.
+// part of the bot parameter contract. Every JSON object key is exact, including
+// developer-chosen property and set names, and one object may not contain two
+// names that are Unicode simple-fold equivalents.
 type ParameterSchema struct {
 	Schema               string                       `json:"$schema"`
 	Type                 ParameterType                `json:"type"`
@@ -76,8 +86,11 @@ type ParameterSets struct {
 
 // ParseParameterSchema parses and validates the supported JSON Schema profile.
 // It applies caller-supplied raw byte and nesting limits before decoding.
-func ParseParameterSchema(raw []byte, limits JSONLimits) (ParameterSchema, error) {
-	if err := validateJSONInput(raw, limits); err != nil {
+func ParseParameterSchema(raw []byte, limits ParameterLimits) (ParameterSchema, error) {
+	if err := validateParameterLimits(limits, false); err != nil {
+		return ParameterSchema{}, err
+	}
+	if err := validateJSONInput(raw, limits.MaxDocumentBytes, limits.MaxJSONDepth); err != nil {
 		return ParameterSchema{}, err
 	}
 	root, err := rawObject(raw)
@@ -102,6 +115,9 @@ func ParseParameterSchema(raw []byte, limits JSONLimits) (ParameterSchema, error
 	propertyObjects, err := rawObject(propertiesRaw)
 	if err != nil {
 		return ParameterSchema{}, parameterError(ErrParameterSchema, "properties", "must be an object")
+	}
+	if len(propertyObjects) > limits.MaxProperties {
+		return ParameterSchema{}, parameterError(ErrParameterLimit, "properties", "schema declares more properties than the caller permits")
 	}
 	properties := make(map[string]ParameterProperty, len(propertyObjects))
 	propertyNames := make([]string, 0, len(propertyObjects))
@@ -129,64 +145,31 @@ func ParseParameterSchema(raw []byte, limits JSONLimits) (ParameterSchema, error
 // ResolveParameterConfig validates one partial configuration against rawSchema
 // and returns a deterministic complete JSON object with every omitted default
 // filled. Both documents are independently bounded before decoding.
-func ResolveParameterConfig(rawSchema, raw []byte, limits JSONLimits) (json.RawMessage, error) {
+func ResolveParameterConfig(rawSchema, raw []byte, limits ParameterLimits) (json.RawMessage, error) {
 	schema, err := ParseParameterSchema(rawSchema, limits)
 	if err != nil {
 		return nil, err
 	}
-	return resolveParameterConfig(schema, raw, limits)
+	return validatePartialParameterConfig(schema, raw, limits, true, false)
 }
 
-func resolveParameterConfig(schema ParameterSchema, raw []byte, limits JSONLimits) (json.RawMessage, error) {
-	if err := validateJSONInput(raw, limits); err != nil {
+// ResolveParameterSet validates every named partial set, then expands only
+// selected. Work is O(schema properties + supplied override bytes), never the
+// Cartesian product of properties and sets. Iteration is sorted so the first
+// reported invalid set is stable.
+func ResolveParameterSet(rawSchema, raw []byte, selected string, limits ParameterLimits) (json.RawMessage, error) {
+	if err := validateParameterLimits(limits, true); err != nil {
 		return nil, err
 	}
-	if err := validateParameterSchema(schema); err != nil {
-		return nil, err
-	}
-	supplied, err := rawObject(raw)
-	if err != nil {
-		return nil, parameterError(ErrParameterConfig, "configuration", "must be an object")
-	}
-	for name := range supplied {
-		if _, ok := schema.Properties[name]; !ok {
-			return nil, parameterError(ErrParameterConfig, name, "is not declared; additionalProperties is false")
-		}
-	}
-
-	resolved := make(map[string]json.RawMessage, len(schema.Properties))
-	names := make([]string, 0, len(schema.Properties))
-	for name := range schema.Properties {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	for _, name := range names {
-		property := schema.Properties[name]
-		value := property.Default
-		if suppliedValue, ok := supplied[name]; ok {
-			value = suppliedValue
-		}
-		normalized, err := validateParameterValue(property, value, name)
-		if err != nil {
-			return nil, err
-		}
-		resolved[name] = normalized
-	}
-	encoded, err := json.Marshal(resolved)
-	if err != nil {
-		return nil, parameterError(ErrParameterConfig, "configuration", err.Error())
-	}
-	return encoded, nil
-}
-
-// ResolveParameterSets validates every named partial configuration through one
-// raw schema. Iteration is sorted so the first reported invalid set is stable.
-func ResolveParameterSets(rawSchema, raw []byte, limits JSONLimits) (map[string]json.RawMessage, error) {
 	schema, err := ParseParameterSchema(rawSchema, limits)
 	if err != nil {
 		return nil, err
 	}
-	if err := validateJSONInput(raw, limits); err != nil {
+	return resolveParameterSet(schema, raw, selected, limits)
+}
+
+func resolveParameterSet(schema ParameterSchema, raw []byte, selected string, limits ParameterLimits) (json.RawMessage, error) {
+	if err := validateJSONInput(raw, limits.MaxDocumentBytes, limits.MaxJSONDepth); err != nil {
 		return nil, err
 	}
 	root, err := rawObject(raw)
@@ -206,24 +189,126 @@ func ResolveParameterSets(rawSchema, raw []byte, limits JSONLimits) (map[string]
 	if len(envelope.Sets) == 0 {
 		return nil, parameterError(ErrParameterConfig, "sets", "must contain at least one named configuration")
 	}
+	if len(envelope.Sets) > limits.MaxSets {
+		return nil, parameterError(ErrParameterLimit, "sets", "document declares more named sets than the caller permits")
+	}
+	if strings.TrimSpace(selected) == "" {
+		return nil, parameterError(ErrParameterConfig, "selected", "set name is required")
+	}
 
 	names := make([]string, 0, len(envelope.Sets))
 	for name := range envelope.Sets {
 		names = append(names, name)
 	}
 	sort.Strings(names)
-	resolved := make(map[string]json.RawMessage, len(names))
+	var resolved json.RawMessage
 	for _, name := range names {
 		if strings.TrimSpace(name) == "" {
 			return nil, parameterError(ErrParameterConfig, "sets", "contains an empty set name")
 		}
-		row, err := resolveParameterConfig(schema, envelope.Sets[name], limits)
+		row, err := validatePartialParameterConfig(schema, envelope.Sets[name], limits, name == selected, true)
 		if err != nil {
-			return nil, parameterError(ErrParameterConfig, "sets."+name, err.Error())
+			return nil, parameterSetError(name, err)
 		}
-		resolved[name] = row
+		if name == selected {
+			resolved = row
+		}
+	}
+	if resolved == nil {
+		return nil, parameterError(ErrParameterConfig, "selected", "named set is absent")
 	}
 	return resolved, nil
+}
+
+func parameterSetError(name string, err error) error {
+	var validationError *Error
+	if !errors.As(err, &validationError) {
+		return parameterError(ErrParameterConfig, "sets."+name, err.Error())
+	}
+	copy := *validationError
+	if copy.Field == "" {
+		copy.Field = "sets." + name
+	} else {
+		copy.Field = "sets." + name + "." + copy.Field
+	}
+	return &copy
+}
+
+func validatePartialParameterConfig(schema ParameterSchema, raw []byte, limits ParameterLimits, expand, enforceDelta bool) (json.RawMessage, error) {
+	if err := validateJSONInput(raw, limits.MaxDocumentBytes, limits.MaxJSONDepth); err != nil {
+		return nil, err
+	}
+	supplied, err := rawObject(raw)
+	if err != nil {
+		return nil, parameterError(ErrParameterConfig, "configuration", "must be an object")
+	}
+	if len(supplied) > limits.MaxProperties {
+		return nil, parameterError(ErrParameterLimit, "configuration", "supplies more properties than the caller permits")
+	}
+	names := make([]string, 0, len(supplied))
+	for name := range supplied {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	normalizedOverrides := make(map[string]json.RawMessage, len(supplied))
+	for _, name := range names {
+		property, ok := schema.Properties[name]
+		if !ok {
+			return nil, parameterError(ErrParameterConfig, name, "is not declared; additionalProperties is false")
+		}
+		normalized, err := validateParameterValue(property, supplied[name], name)
+		if err != nil {
+			return nil, err
+		}
+		if enforceDelta {
+			equal, err := parameterValuesEqual(property, supplied[name], property.Default)
+			if err != nil {
+				return nil, err
+			}
+			if equal {
+				return nil, parameterError(ErrParameterConfig, name, "duplicates its schema default; named sets must contain differences only")
+			}
+		}
+		normalizedOverrides[name] = normalized
+	}
+	if !expand {
+		return json.RawMessage{}, nil
+	}
+	resolved := make(map[string]json.RawMessage, len(schema.Properties))
+	propertyNames := make([]string, 0, len(schema.Properties))
+	for name := range schema.Properties {
+		propertyNames = append(propertyNames, name)
+	}
+	sort.Strings(propertyNames)
+	resolvedSize := int64(2) // opening and closing braces
+	for index, name := range propertyNames {
+		property := schema.Properties[name]
+		value, ok := normalizedOverrides[name]
+		if !ok {
+			value, err = validateParameterValue(property, property.Default, name)
+			if err != nil {
+				return nil, err
+			}
+		}
+		encodedName, _ := json.Marshal(name)
+		componentSize := int64(len(encodedName) + 1 + len(value)) // key, colon, value
+		if index != 0 {
+			componentSize++ // comma
+		}
+		if componentSize > limits.MaxResolvedBytes-resolvedSize {
+			return nil, parameterError(ErrParameterLimit, "configuration", "resolved object exceeds the caller's byte limit")
+		}
+		resolvedSize += componentSize
+		resolved[name] = value
+	}
+	encoded, err := json.Marshal(resolved)
+	if err != nil {
+		return nil, parameterError(ErrParameterConfig, "configuration", err.Error())
+	}
+	if int64(len(encoded)) != resolvedSize || int64(len(encoded)) > limits.MaxResolvedBytes {
+		return nil, parameterError(ErrParameterLimit, "configuration", "resolved object exceeds the caller's byte limit")
+	}
+	return encoded, nil
 }
 
 func parseParameterProperty(raw json.RawMessage, field string) (ParameterProperty, error) {
@@ -485,6 +570,62 @@ func validateParameterValue(property ParameterProperty, raw json.RawMessage, fie
 	}
 }
 
+func parameterValuesEqual(property ParameterProperty, left, right json.RawMessage) (bool, error) {
+	switch property.Type {
+	case ParameterTypeInteger, ParameterTypeNumber:
+		var leftNumber, rightNumber json.Number
+		if err := decodeRaw(left, &leftNumber); err != nil {
+			return false, parameterError(ErrParameterConfig, "configuration", err.Error())
+		}
+		if err := decodeRaw(right, &rightNumber); err != nil {
+			return false, parameterError(ErrParameterSchema, "default", err.Error())
+		}
+		leftValue, err := exactDecimal(leftNumber.String())
+		if err != nil {
+			return false, err
+		}
+		rightValue, err := exactDecimal(rightNumber.String())
+		if err != nil {
+			return false, err
+		}
+		return leftValue.Cmp(rightValue) == 0, nil
+	case ParameterTypeArray:
+		var leftValues, rightValues []json.RawMessage
+		if err := decodeRaw(left, &leftValues); err != nil {
+			return false, err
+		}
+		if err := decodeRaw(right, &rightValues); err != nil {
+			return false, err
+		}
+		if len(leftValues) != len(rightValues) {
+			return false, nil
+		}
+		itemProperty := ParameterProperty{
+			Type:    property.Items.Type,
+			Minimum: property.Items.Minimum,
+			Maximum: property.Items.Maximum,
+			Enum:    property.Items.Enum,
+		}
+		for index := range leftValues {
+			equal, err := parameterValuesEqual(itemProperty, leftValues[index], rightValues[index])
+			if err != nil || !equal {
+				return equal, err
+			}
+		}
+		return true, nil
+	default:
+		leftNormalized, err := validateParameterValue(property, left, "configuration")
+		if err != nil {
+			return false, err
+		}
+		rightNormalized, err := validateParameterValue(property, right, "default")
+		if err != nil {
+			return false, err
+		}
+		return bytes.Equal(leftNormalized, rightNormalized), nil
+	}
+}
+
 func validateNumericValue(kind ParameterType, minimumNumber, maximumNumber json.Number, raw json.RawMessage, field string) (json.RawMessage, error) {
 	var decoded any
 	if err := decodeRaw(raw, &decoded); err != nil {
@@ -509,17 +650,33 @@ func validateNumericValue(kind ParameterType, minimumNumber, maximumNumber json.
 	if kind == ParameterTypeInteger {
 		return json.RawMessage(value.Num().String()), nil
 	}
+	if strings.ContainsAny(number.String(), ".eE") {
+		floatValue, err := strconv.ParseFloat(number.String(), 64)
+		if err != nil || math.IsInf(floatValue, 0) || math.IsNaN(floatValue) {
+			return nil, parameterError(ErrParameterConfig, field, "is not a finite runtime float")
+		}
+		if value.Sign() != 0 && floatValue == 0 {
+			return nil, parameterError(ErrParameterConfig, field, "nonzero value collapses to zero in the runtime float representation")
+		}
+	}
 	return json.RawMessage(number.String()), nil
 }
 
-func validateJSONInput(raw []byte, limits JSONLimits) error {
-	if limits.MaxBytes <= 0 || limits.MaxDepth <= 0 {
+func validateParameterLimits(limits ParameterLimits, requireSets bool) error {
+	if limits.MaxDocumentBytes <= 0 || limits.MaxJSONDepth <= 0 || limits.MaxProperties <= 0 || limits.MaxResolvedBytes <= 0 || (requireSets && limits.MaxSets <= 0) {
+		return &Error{Code: ErrInvalidLimit, Detail: "caller must supply positive parameter document, JSON depth, property, set and resolved-byte limits"}
+	}
+	return nil
+}
+
+func validateJSONInput(raw []byte, maxBytes int64, maxDepth int) error {
+	if maxBytes <= 0 || maxDepth <= 0 {
 		return &Error{Code: ErrInvalidLimit, Detail: "caller must supply positive JSON byte and depth limits"}
 	}
-	if int64(len(raw)) > limits.MaxBytes {
+	if int64(len(raw)) > maxBytes {
 		return &Error{Code: ErrByteLimit, Detail: "JSON exceeds the caller's raw byte limit"}
 	}
-	return scanJSON(raw, limits.MaxDepth, false)
+	return scanJSON(raw, maxDepth, false)
 }
 
 func rawObject(raw []byte) (map[string]json.RawMessage, error) {

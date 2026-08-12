@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 
+	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 )
@@ -50,7 +51,11 @@ func ValidateEntrypoint(source, name string, arity int) error {
 		module, position := program.Load(0)
 		return &EntrypointError{Name: name, Want: arity, Reason: fmt.Sprintf("load is forbidden (%q at %s)", module, position)}
 	}
-	if cycle := staticRecursionCycle(file); len(cycle) != 0 {
+	cycle, unsupportedCall := staticRecursionCycle(file)
+	if unsupportedCall != "" {
+		return &EntrypointError{Name: name, Want: arity, Reason: unsupportedCall}
+	}
+	if len(cycle) != 0 {
 		return &EntrypointError{Name: name, Want: arity, Reason: "recursion is forbidden: " + joinCycle(cycle)}
 	}
 
@@ -87,7 +92,7 @@ func ValidateEntrypoint(source, name string, arity int) error {
 	return nil
 }
 
-func staticRecursionCycle(file *syntax.File) []string {
+func staticRecursionCycle(file *syntax.File) ([]string, string) {
 	var functions []*syntax.DefStmt
 	bindingNames := map[any]string{}
 	bindingPositions := map[any]string{}
@@ -101,8 +106,56 @@ func staticRecursionCycle(file *syntax.File) []string {
 		}
 		return true
 	})
+	aliasTargets := map[any]any{}
+	for _, statement := range file.Stmts {
+		assignment, ok := statement.(*syntax.AssignStmt)
+		if !ok || assignment.Op != syntax.EQ {
+			continue
+		}
+		alias, aliasOK := assignment.LHS.(*syntax.Ident)
+		target, targetOK := assignment.RHS.(*syntax.Ident)
+		if aliasOK && targetOK && alias.Binding != nil && target.Binding != nil {
+			aliasTargets[alias.Binding] = target.Binding
+		}
+	}
+	resolveFunction := func(binding any) (any, bool) {
+		seen := map[any]struct{}{}
+		for binding != nil {
+			if _, ok := bindingNames[binding]; ok {
+				return binding, true
+			}
+			if _, duplicate := seen[binding]; duplicate {
+				return nil, false
+			}
+			seen[binding] = struct{}{}
+			next, ok := aliasTargets[binding]
+			if !ok {
+				return nil, false
+			}
+			binding = next
+		}
+		return nil, false
+	}
+	resolveCallable := func(expression syntax.Expr) (target any, userFunction bool, reason string) {
+		identifier, ok := expression.(*syntax.Ident)
+		if !ok {
+			return nil, false, fmt.Sprintf("indirect callable expression at %s is forbidden", expressionStart(expression))
+		}
+		binding, ok := identifier.Binding.(*resolve.Binding)
+		if !ok {
+			return nil, false, fmt.Sprintf("unresolved callable %q at %s is forbidden", identifier.Name, identifier.NamePos)
+		}
+		if binding.Scope == resolve.Universal || binding.Scope == resolve.Predeclared {
+			return nil, false, ""
+		}
+		if target, ok := resolveFunction(identifier.Binding); ok {
+			return target, true, ""
+		}
+		return nil, false, fmt.Sprintf("indirect callable %q at %s is forbidden", identifier.Name, identifier.NamePos)
+	}
 
 	edges := make(map[any]map[any]struct{}, len(functions))
+	unsupportedCall := ""
 	for _, definition := range functions {
 		from := definition.Name.Binding
 		if from == nil {
@@ -111,6 +164,9 @@ func staticRecursionCycle(file *syntax.File) []string {
 		edges[from] = map[any]struct{}{}
 		for _, statement := range definition.Body {
 			syntax.Walk(statement, func(node syntax.Node) bool {
+				if unsupportedCall != "" {
+					return false
+				}
 				if nested, ok := node.(*syntax.DefStmt); ok && nested != definition {
 					return false
 				}
@@ -118,16 +174,45 @@ func staticRecursionCycle(file *syntax.File) []string {
 				if !ok {
 					return true
 				}
-				identifier, ok := call.Fn.(*syntax.Ident)
-				if !ok || identifier.Binding == nil {
+				identifier, directIdentifier := call.Fn.(*syntax.Ident)
+				if !directIdentifier {
+					if _, methodCall := call.Fn.(*syntax.DotExpr); !methodCall {
+						unsupportedCall = fmt.Sprintf("indirect callable expression at %s is forbidden", call.Lparen)
+						return false
+					}
 					return true
 				}
-				if _, ok := bindingNames[identifier.Binding]; ok {
-					edges[from][identifier.Binding] = struct{}{}
+				target, userFunction, reason := resolveCallable(identifier)
+				if reason != "" {
+					unsupportedCall = reason
+					return false
+				}
+				if userFunction {
+					edges[from][target] = struct{}{}
+					return true
+				}
+				if callback := builtinKeyCallback(call, identifier.Name); callback != nil {
+					target, userFunction, reason := resolveCallable(callback)
+					if reason != "" {
+						unsupportedCall = reason
+						return false
+					}
+					if userFunction {
+						edges[from][target] = struct{}{}
+					}
 				}
 				return true
 			})
+			if unsupportedCall != "" {
+				break
+			}
 		}
+		if unsupportedCall != "" {
+			break
+		}
+	}
+	if unsupportedCall != "" {
+		return nil, unsupportedCall
 	}
 
 	state := map[any]uint8{}
@@ -175,11 +260,38 @@ func staticRecursionCycle(file *syntax.File) []string {
 	for _, binding := range bindings {
 		if state[binding] == 0 {
 			if cycle := visit(binding); len(cycle) != 0 {
-				return cycle
+				return cycle, ""
 			}
 		}
 	}
+	return nil, ""
+}
+
+func builtinKeyCallback(call *syntax.CallExpr, callee string) syntax.Expr {
+	if callee != "sorted" && callee != "min" && callee != "max" {
+		return nil
+	}
+	for _, argument := range call.Args {
+		keyword, ok := argument.(*syntax.BinaryExpr)
+		if !ok || keyword.Op != syntax.EQ {
+			continue
+		}
+		name, ok := keyword.X.(*syntax.Ident)
+		if ok && name.Name == "key" {
+			return keyword.Y
+		}
+	}
+	if callee == "sorted" && len(call.Args) >= 2 {
+		if _, keyword := call.Args[1].(*syntax.BinaryExpr); !keyword {
+			return call.Args[1]
+		}
+	}
 	return nil
+}
+
+func expressionStart(expression syntax.Expr) syntax.Position {
+	start, _ := expression.Span()
+	return start
 }
 
 func staticFunctionSortKey(binding any, names, positions map[any]string) string {

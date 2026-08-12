@@ -82,6 +82,42 @@ def decide(observation, memory, params, random_draw, options):
     return first()
 `,
 		},
+		{
+			name: "recursion through top-level alias",
+			source: `
+def recurse():
+    return alias()
+alias = recurse
+def decide(observation, memory, params, random_draw, options):
+    return alias()
+`,
+		},
+		{
+			name: "recursion through local callable alias",
+			source: `
+def recurse():
+    alias = recurse
+    return alias()
+def decide(observation, memory, params, random_draw, options):
+    return recurse()
+`,
+		},
+		{
+			name: "recursion through higher-order call",
+			source: `
+def invoke(fn):
+    return fn()
+def decide(observation, memory, params, random_draw, options):
+    return invoke(decide)
+`,
+		},
+		{
+			name: "recursion through higher-order builtin callback",
+			source: `
+def decide(observation, memory, params, random_draw, options):
+    return sorted([observation], key=decide)
+`,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -92,15 +128,28 @@ def decide(observation, memory, params, random_draw, options):
 	}
 }
 
-func TestValidateEntrypointDoesNotMistakeAShadowedFunctionParameterForRecursion(t *testing.T) {
+func TestValidateEntrypointResolvesBenignTopLevelFunctionAliases(t *testing.T) {
+	const source = `
+def helper():
+    return None
+alias = helper
+def decide(observation, memory, params, random_draw, options):
+    return alias()
+`
+	if err := ValidateEntrypoint(source, "decide", 5); err != nil {
+		t.Fatalf("ValidateEntrypoint(benign function alias) = %v, want nil", err)
+	}
+}
+
+func TestValidateEntrypointRejectsAnUnresolvedCallableParameter(t *testing.T) {
 	const source = `
 def helper(helper):
     return helper()
 def decide(observation, memory, params, random_draw, options):
     return helper(random_draw)
 `
-	if err := ValidateEntrypoint(source, "decide", 5); err != nil {
-		t.Fatalf("ValidateEntrypoint(shadowed callable parameter) = %v, want nil", err)
+	if err := ValidateEntrypoint(source, "decide", 5); err == nil {
+		t.Fatal("ValidateEntrypoint(callable parameter) = nil, want conservative indirect-call rejection")
 	}
 }
 

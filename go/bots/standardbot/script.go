@@ -29,7 +29,6 @@ package standardbot
 
 import (
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -79,27 +78,32 @@ const ParamsVersion = "chess-bot-tier-params/v1"
 // ParameterSetsVersion identifies Params' named-partial-set envelope.
 const ParameterSetsVersion = manifest.ParameterSetsSchemaVersion
 
-var resolvedParamsOnce = sync.OnceValues(func() (map[string]json.RawMessage, error) {
+var resolvedParamsCache sync.Map
+
+func parameterLimits() manifest.ParameterLimits {
 	maxBytes := len(Params)
 	if len(ParamsSchema) > maxBytes {
 		maxBytes = len(ParamsSchema)
 	}
-	return manifest.ResolveParameterSets(ParamsSchema, Params, manifest.JSONLimits{
-		MaxBytes: int64(maxBytes),
-		MaxDepth: manifest.MaximumJSONDepth,
-	})
-})
+	return manifest.ParameterLimits{
+		MaxDocumentBytes: int64(maxBytes),
+		MaxJSONDepth:     manifest.MaximumJSONDepth,
+		MaxProperties:    len(ParamsSchema),
+		MaxSets:          len(Params),
+		MaxResolvedBytes: int64(len(ParamsSchema) + len(Params)),
+	}
+}
 
 // ResolveParams returns one validated, complete, deterministic parameter row.
 // The returned bytes are a copy, so callers cannot mutate the package cache.
 func ResolveParams(name string) ([]byte, error) {
-	sets, err := resolvedParamsOnce()
+	if cached, ok := resolvedParamsCache.Load(name); ok {
+		return append([]byte(nil), cached.([]byte)...), nil
+	}
+	row, err := manifest.ResolveParameterSet(ParamsSchema, Params, name, parameterLimits())
 	if err != nil {
-		return nil, fmt.Errorf("standardbot: resolve parameter sets: %w", err)
+		return nil, fmt.Errorf("standardbot: resolve parameter set %q: %w", name, err)
 	}
-	row, ok := sets[name]
-	if !ok {
-		return nil, fmt.Errorf("standardbot: unknown parameter set %q", name)
-	}
-	return append([]byte(nil), row...), nil
+	stored, _ := resolvedParamsCache.LoadOrStore(name, append([]byte(nil), row...))
+	return append([]byte(nil), stored.([]byte)...), nil
 }

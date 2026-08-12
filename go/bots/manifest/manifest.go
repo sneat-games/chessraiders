@@ -102,11 +102,14 @@ type Parameters struct {
 // ValidationLimits are supplied by the caller. This package deliberately
 // owns no Season 1 resource-limit numbers.
 type ValidationLimits struct {
-	MaxFiles         int
-	MaxFileBytes     int64
-	MaxTotalBytes    int64
-	MaxManifestBytes int64
-	MaxJSONDepth     int
+	MaxFiles                  int
+	MaxFileBytes              int64
+	MaxTotalBytes             int64
+	MaxManifestBytes          int64
+	MaxJSONDepth              int
+	MaxParameterProperties    int
+	MaxParameterSets          int
+	MaxResolvedParameterBytes int64
 }
 
 // CompatibilityProfile is caller-supplied execution policy. The portable

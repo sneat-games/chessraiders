@@ -179,8 +179,8 @@ genuine board-and-legal-move observation, recorded from the private engine's
 own behavioural suite (`server-go/tests4bot`, `sneat-co/chessraiders`, plan
 task-8) and published here byte-for-byte — see
 [`testdata/corpus/README.md`](testdata/corpus/README.md) for exactly what
-each case is and why 53 decisions from 30 of that suite's 41 tests, not all
-41.
+each case is and why the capture contains 53 decisions from 30 of the private
+suite's then-41 tests, not all 41.
 
 [`corpus_replay_test.go`](corpus_replay_test.go)'s
 `TestCorpusReplayAgreesWithThePublishedScript` is the replayer plan task-9

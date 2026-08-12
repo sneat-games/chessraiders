@@ -15,11 +15,14 @@ import (
 )
 
 var standardBotLimits = manifest.ValidationLimits{
-	MaxFiles:         4,
-	MaxFileBytes:     200_000,
-	MaxTotalBytes:    400_000,
-	MaxManifestBytes: 20_000,
-	MaxJSONDepth:     32,
+	MaxFiles:                  4,
+	MaxFileBytes:              200_000,
+	MaxTotalBytes:             400_000,
+	MaxManifestBytes:          20_000,
+	MaxJSONDepth:              32,
+	MaxParameterProperties:    32,
+	MaxParameterSets:          8,
+	MaxResolvedParameterBytes: 20_000,
 }
 
 var standardBotProfile = manifest.CompatibilityProfile{
@@ -84,7 +87,9 @@ func TestStandardBotManifestRejectsAByteThatDoesNotMatchTheEmbeddedArtifact(t *t
 
 func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 	entries := append(standardBotEntries(), manifest.TreeEntry{Path: "notes.txt", Kind: manifest.EntryKindRegular, Content: []byte("not source")})
-	_, err := manifest.ValidateArtifact(standardbot.Manifest, entries, manifest.ValidationLimits{MaxFiles: 5, MaxFileBytes: 200_000, MaxTotalBytes: 400_000, MaxManifestBytes: 20_000, MaxJSONDepth: 32}, standardBotProfile)
+	limits := standardBotLimits
+	limits.MaxFiles = 5
+	_, err := manifest.ValidateArtifact(standardbot.Manifest, entries, limits, standardBotProfile)
 	if err == nil {
 		t.Fatal("ValidateArtifact() = nil, want undeclared-file rejection")
 	}

@@ -21,6 +21,7 @@ const (
 	ErrByteLimit          ErrorCode = "byte-limit"
 	ErrEntrypoint         ErrorCode = "invalid-entrypoint"
 	ErrJSONDepth          ErrorCode = "json-depth"
+	ErrParameterLimit     ErrorCode = "parameter-limit"
 	ErrParameterSchema    ErrorCode = "invalid-parameter-schema"
 	ErrParameterConfig    ErrorCode = "invalid-parameter-config"
 	ErrUnsupportedProfile ErrorCode = "unsupported-profile"

@@ -36,8 +36,10 @@ import (
 // and no credentials for any private module") rather than merely asserting
 // it: there is no import path by which this test COULD reach either.
 const (
-	corpusDir    = "testdata/corpus"
-	corpusFormat = "chess-bot-conformance-case/v1"
+	corpusDir                     = "testdata/corpus"
+	corpusFormat                  = "chess-bot-conformance-case/v1"
+	expectedCorpusCaseCount       = 53
+	expectedCorpusSourceTestCount = 30
 )
 
 // scriptRef mirrors a corpus case's own "script" field —
@@ -96,6 +98,13 @@ func TestCorpusReplayAgreesWithThePublishedScript(t *testing.T) {
 			"decisions; an empty corpus is a regression in what shipped, not a reason for this test to pass",
 			corpusDir)
 	}
+	cases := make([]corpusCase, len(entries))
+	for index, path := range entries {
+		cases[index] = readCorpusCase(t, path)
+	}
+	if err := checkCorpusInventory(cases); err != nil {
+		t.Fatal(err)
+	}
 
 	program, err := runtime.Compile(standardbot.Script)
 	if err != nil {
@@ -105,8 +114,8 @@ func TestCorpusReplayAgreesWithThePublishedScript(t *testing.T) {
 
 	var expectedVersion string
 	agree := 0
-	for _, path := range entries {
-		c := readCorpusCase(t, path)
+	for index, path := range entries {
+		c := cases[index]
 		if expectedVersion == "" {
 			expectedVersion = c.Script.Version
 		}
@@ -127,6 +136,30 @@ func TestCorpusReplayAgreesWithThePublishedScript(t *testing.T) {
 		return
 	}
 	t.Logf("%d/%d recorded decisions agree with a replay against %s@%s", agree, len(entries), modulePath, expectedVersion)
+}
+
+func checkCorpusInventory(cases []corpusCase) error {
+	type identity struct {
+		test       string
+		caseNumber int
+	}
+	seen := make(map[identity]struct{}, len(cases))
+	sourceTests := make(map[string]struct{}, expectedCorpusSourceTestCount)
+	for _, corpusCase := range cases {
+		key := identity{test: corpusCase.Test, caseNumber: corpusCase.Case}
+		if _, duplicate := seen[key]; duplicate {
+			return fmt.Errorf("corpus contains duplicate identity (%s, %d)", corpusCase.Test, corpusCase.Case)
+		}
+		seen[key] = struct{}{}
+		sourceTests[corpusCase.Test] = struct{}{}
+	}
+	if len(cases) != expectedCorpusCaseCount {
+		return fmt.Errorf("corpus contains %d cases, want exactly %d", len(cases), expectedCorpusCaseCount)
+	}
+	if len(sourceTests) != expectedCorpusSourceTestCount {
+		return fmt.Errorf("corpus names %d source tests, want exactly %d as documented at capture", len(sourceTests), expectedCorpusSourceTestCount)
+	}
+	return nil
 }
 
 // corpusEntries returns every *.json path under corpusDir, sorted, so a
@@ -197,7 +230,8 @@ func thisModulePath(t *testing.T) string {
 // entirely, or whose script.version disagrees with every other case in the
 // same corpus, is wrong regardless of whether decide() happens to still
 // agree with its recorded intent: this corpus's whole point is "this is what
-// v0.0.2 decided", and a caller resolving that claim from the corpus's own
+// Chess Raiders Go module v0.0.2 decided", and a caller resolving that claim
+// from the corpus's own
 // declared field — never by asking go.mod what version IT thinks is
 // current, which has no meaning for a module that does not require itself —
 // is exactly what plan task-9 asks this replayer to get right.
@@ -209,6 +243,10 @@ func thisModulePath(t *testing.T) string {
 func checkCorpusMetadata(path string, c corpusCase, expectedModule, expectedVersion string) error {
 	if c.Format != corpusFormat {
 		return fmt.Errorf("%s (%s case %d): format %q, want %q", path, c.Test, c.Case, c.Format, corpusFormat)
+	}
+	if c.ParamsVersion != standardbot.ParamsVersion {
+		return fmt.Errorf("%s (%s case %d): paramsVersion %q, want standardbot.ParamsVersion %q for the resolved-row contract",
+			path, c.Test, c.Case, c.ParamsVersion, standardbot.ParamsVersion)
 	}
 	if c.Script.Module != expectedModule {
 		return fmt.Errorf("%s (%s case %d): script.module %q, want %q (this module's own go.mod path) — "+
