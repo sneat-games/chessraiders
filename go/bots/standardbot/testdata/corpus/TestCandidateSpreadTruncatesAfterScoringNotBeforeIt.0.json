@@ -3,7 +3,7 @@
   "paramsVersion": "chess-bot-tier-params/v1",
   "script": {
     "module": "github.com/sneat-games/chessraiders/go",
-    "version": "v0.0.2"
+    "version": "v0.0.4"
   },
   "test": "TestCandidateSpreadTruncatesAfterScoringNotBeforeIt",
   "case": 0,
@@ -15,7 +15,8 @@
     "advance": 0.15,
     "targetLock": 0,
     "kingSafety": 0,
-    "moralePush": 0,
+    "moralePush": 0.3,
+    "beaconAggression": 0.3,
     "delivery": 2,
     "prisoner": 0,
     "system": 0,
@@ -31,10 +32,9 @@
     "lifecycle": "playing",
     "nowMs": 10000,
     "revision": 0,
-    "own": [
-      {
-        "unitId": "wq",
-        "square": "a1",
+    "pieces": {
+      "a1": {
+        "unitId": 4,
         "side": "white",
         "rank": "queen",
         "convoy": false,
@@ -42,19 +42,13 @@
         "kingCargo": false,
         "ghost": false,
         "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "threatens": [
+          "h1",
+          "h8"
+        ]
       },
-      {
-        "unitId": "wk",
-        "square": "b8",
+      "b8": {
+        "unitId": 5,
         "side": "white",
         "rank": "king",
         "convoy": false,
@@ -62,21 +56,12 @@
         "kingCargo": false,
         "ghost": false,
         "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
-      }
-    ],
-    "enemy": [
-      {
-        "unitId": "bk",
-        "square": "h1",
+        "threatenedBy": [
+          "h8"
+        ]
+      },
+      "h1": {
+        "unitId": 29,
         "side": "black",
         "rank": "king",
         "convoy": false,
@@ -84,19 +69,15 @@
         "kingCargo": false,
         "ghost": false,
         "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "threatenedBy": [
+          "a1"
+        ],
+        "guardedBy": [
+          "h8"
+        ]
       },
-      {
-        "unitId": "br",
-        "square": "h8",
+      "h8": {
+        "unitId": 25,
         "side": "black",
         "rank": "rook",
         "convoy": false,
@@ -104,19 +85,19 @@
         "kingCargo": false,
         "ghost": false,
         "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": true,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "threatens": [
+          "b8"
+        ],
+        "threatenedBy": [
+          "a1"
+        ],
+        "guards": [
+          "h1"
+        ]
       }
-    ],
+    },
     "legal": {
-      "wq": [
+      "a1": [
         "a2",
         "a3",
         "a4",
@@ -130,7 +111,7 @@
       ]
     },
     "affordability": {
-      "wq": {
+      "a1": {
         "h8": {
           "kill": {
             "affordable": true,
@@ -158,189 +139,9 @@
       }
     },
     "enPassant": {},
-    "danger": {
-      "a2": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a4": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a5": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a6": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a7": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 2
-      },
-      "a8": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 2
-      },
-      "b1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "b2": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "b7": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "b8": {
-        "threat": 1,
-        "cheapest": 5,
-        "guarded": 0
-      },
-      "c1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "c3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "c7": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "c8": {
-        "threat": 1,
-        "cheapest": 5,
-        "guarded": 1
-      },
-      "d1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "d4": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "d8": {
-        "threat": 1,
-        "cheapest": 5,
-        "guarded": 0
-      },
-      "e1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "e5": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "e8": {
-        "threat": 1,
-        "cheapest": 5,
-        "guarded": 0
-      },
-      "f1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "f6": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "f8": {
-        "threat": 1,
-        "cheapest": 5,
-        "guarded": 0
-      },
-      "g1": {
-        "threat": 1,
-        "cheapest": 60,
-        "guarded": 1
-      },
-      "g2": {
-        "threat": 1,
-        "cheapest": 60,
-        "guarded": 0
-      },
-      "g7": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "g8": {
-        "threat": 1,
-        "cheapest": 5,
-        "guarded": 0
-      },
-      "h1": {
-        "threat": 1,
-        "cheapest": 5,
-        "guarded": 1
-      },
-      "h2": {
-        "threat": 2,
-        "cheapest": 5,
-        "guarded": 0
-      },
-      "h3": {
-        "threat": 1,
-        "cheapest": 5,
-        "guarded": 0
-      },
-      "h4": {
-        "threat": 1,
-        "cheapest": 5,
-        "guarded": 0
-      },
-      "h5": {
-        "threat": 1,
-        "cheapest": 5,
-        "guarded": 0
-      },
-      "h6": {
-        "threat": 1,
-        "cheapest": 5,
-        "guarded": 0
-      },
-      "h7": {
-        "threat": 1,
-        "cheapest": 5,
-        "guarded": 0
-      },
-      "h8": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      }
-    },
+    "candidates": {},
     "ownMorale": 0,
+    "ownMoralePenalty": 0,
     "ownManaged": 0,
     "ownSpecialists": 0,
     "enemyManaged": 0,

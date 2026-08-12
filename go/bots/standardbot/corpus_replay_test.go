@@ -42,7 +42,7 @@ const (
 	expectedCorpusSourceTestCount = 30
 	// recordedCorpusScriptVersion is the exact Chess Raiders Go module release
 	// whose decisions this immutable corpus records.
-	recordedCorpusScriptVersion = "v0.0.2"
+	recordedCorpusScriptVersion = "v0.0.4"
 )
 
 // expectedCorpusFilenames is the reviewed identity allowlist. Each filename is

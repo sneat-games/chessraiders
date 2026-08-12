@@ -3,7 +3,7 @@
   "paramsVersion": "chess-bot-tier-params/v1",
   "script": {
     "module": "github.com/sneat-games/chessraiders/go",
-    "version": "v0.0.2"
+    "version": "v0.0.4"
   },
   "test": "TestTargetLockRewardsDodgingALockedPieceAndTheExtraSafeBonus",
   "case": 0,
@@ -15,7 +15,8 @@
     "advance": 0.25,
     "targetLock": 1.5,
     "kingSafety": 3,
-    "moralePush": 0,
+    "moralePush": 0.6,
+    "beaconAggression": 0.6,
     "delivery": 3,
     "prisoner": 0,
     "system": 1,
@@ -31,10 +32,9 @@
     "lifecycle": "playing",
     "nowMs": 10000,
     "revision": 0,
-    "own": [
-      {
-        "unitId": "wr",
-        "square": "a1",
+    "pieces": {
+      "a1": {
+        "unitId": 1,
         "side": "white",
         "rank": "rook",
         "convoy": false,
@@ -42,19 +42,15 @@
         "kingCargo": false,
         "ghost": false,
         "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "guards": [
+          "b1"
+        ],
+        "guardedBy": [
+          "b2"
+        ]
       },
-      {
-        "unitId": "wn",
-        "square": "b1",
+      "b1": {
+        "unitId": 2,
         "side": "white",
         "rank": "knight",
         "convoy": false,
@@ -62,19 +58,13 @@
         "kingCargo": false,
         "ghost": false,
         "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "guardedBy": [
+          "a1",
+          "b2"
+        ]
       },
-      {
-        "unitId": "wk",
-        "square": "e1",
+      "b2": {
+        "unitId": 5,
         "side": "white",
         "rank": "king",
         "convoy": false,
@@ -82,137 +72,64 @@
         "kingCargo": false,
         "ghost": false,
         "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
-      }
-    ],
-    "enemy": [
-      {
-        "unitId": "bk",
-        "square": "h8",
+        "guards": [
+          "a1",
+          "b1"
+        ]
+      },
+      "b5": {
+        "unitId": 12,
+        "side": "white",
+        "rank": "pawn",
+        "convoy": false,
+        "cargoCount": 0,
+        "kingCargo": false,
+        "ghost": false,
+        "refitting": false
+      },
+      "h8": {
+        "unitId": 29,
         "side": "black",
         "rank": "king",
         "convoy": false,
         "cargoCount": 0,
         "kingCargo": false,
         "ghost": false,
-        "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "refitting": false
       }
-    ],
+    },
     "legal": {
-      "wn": [
-        "c1"
+      "a1": [
+        "a6"
       ],
-      "wr": [
-        "a4"
+      "b1": [
+        "c3"
       ]
     },
     "affordability": {},
     "enPassant": {},
-    "danger": {
-      "a2": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 2
-      },
-      "a4": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a5": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a6": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a7": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a8": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
+    "candidates": {
+      "a1": {
+        "a6": {
+          "destinationVisible": true,
+          "patrolGain": 0,
+          "guardedBy": [
+            "b5"
+          ]
+        }
       },
       "b1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "c3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "d1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "d2": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 2
-      },
-      "e2": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "f1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "f2": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "g7": {
-        "threat": 1,
-        "cheapest": 60,
-        "guarded": 0
-      },
-      "g8": {
-        "threat": 1,
-        "cheapest": 60,
-        "guarded": 0
-      },
-      "h7": {
-        "threat": 1,
-        "cheapest": 60,
-        "guarded": 0
+        "c3": {
+          "destinationVisible": true,
+          "patrolGain": 0,
+          "guardedBy": [
+            "b2"
+          ]
+        }
       }
     },
     "ownMorale": 0,
+    "ownMoralePenalty": 0,
     "ownManaged": 0,
     "ownSpecialists": 0,
     "enemyManaged": 0,
@@ -301,6 +218,6 @@
   "intent": {
     "kind": "move",
     "from": "a1",
-    "to": "a4"
+    "to": "a6"
   }
 }

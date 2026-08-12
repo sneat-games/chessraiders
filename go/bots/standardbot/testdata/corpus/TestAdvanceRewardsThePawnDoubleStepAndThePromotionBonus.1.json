@@ -3,7 +3,7 @@
   "paramsVersion": "chess-bot-tier-params/v1",
   "script": {
     "module": "github.com/sneat-games/chessraiders/go",
-    "version": "v0.0.2"
+    "version": "v0.0.4"
   },
   "test": "TestAdvanceRewardsThePawnDoubleStepAndThePromotionBonus",
   "case": 1,
@@ -15,7 +15,8 @@
     "advance": 0.15,
     "targetLock": 0,
     "kingSafety": 0,
-    "moralePush": 0,
+    "moralePush": 0.3,
+    "beaconAggression": 0.3,
     "delivery": 2,
     "prisoner": 0,
     "system": 0,
@@ -31,30 +32,29 @@
     "lifecycle": "playing",
     "nowMs": 10000,
     "revision": 0,
-    "own": [
-      {
-        "unitId": "wr2",
-        "square": "a1",
+    "pieces": {
+      "a1": {
+        "unitId": 1,
         "side": "white",
         "rank": "rook",
         "convoy": false,
         "cargoCount": 0,
         "kingCargo": false,
         "ghost": false,
-        "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "refitting": false
       },
-      {
-        "unitId": "wp2",
-        "square": "d7",
+      "b5": {
+        "unitId": 12,
+        "side": "white",
+        "rank": "pawn",
+        "convoy": false,
+        "cargoCount": 0,
+        "kingCargo": false,
+        "ghost": false,
+        "refitting": false
+      },
+      "d7": {
+        "unitId": 20,
         "side": "white",
         "rank": "pawn",
         "convoy": false,
@@ -62,19 +62,12 @@
         "kingCargo": false,
         "ghost": false,
         "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "guardedBy": [
+          "e7"
+        ]
       },
-      {
-        "unitId": "wk2",
-        "square": "e1",
+      "e7": {
+        "unitId": 5,
         "side": "white",
         "rank": "king",
         "convoy": false,
@@ -82,152 +75,53 @@
         "kingCargo": false,
         "ghost": false,
         "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
-      }
-    ],
-    "enemy": [
-      {
-        "unitId": "bk2",
-        "square": "h8",
+        "guards": [
+          "d7"
+        ]
+      },
+      "h8": {
+        "unitId": 29,
         "side": "black",
         "rank": "king",
         "convoy": false,
         "cargoCount": 0,
         "kingCargo": false,
         "ghost": false,
-        "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "refitting": false
       }
-    ],
+    },
     "legal": {
-      "wp2": [
-        "d8"
-      ],
-      "wr2": [
+      "a1": [
         "a6"
+      ],
+      "d7": [
+        "d8"
       ]
     },
     "affordability": {},
     "enPassant": {},
-    "danger": {
-      "a2": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
+    "candidates": {
+      "a1": {
+        "a6": {
+          "destinationVisible": true,
+          "patrolGain": 0,
+          "guardedBy": [
+            "b5"
+          ]
+        }
       },
-      "a3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a4": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a5": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a6": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a7": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "a8": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "b1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "c1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "c8": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "d1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 2
-      },
-      "d2": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "e1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "e2": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "e8": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "f1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "f2": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "g7": {
-        "threat": 1,
-        "cheapest": 60,
-        "guarded": 0
-      },
-      "g8": {
-        "threat": 1,
-        "cheapest": 60,
-        "guarded": 0
-      },
-      "h7": {
-        "threat": 1,
-        "cheapest": 60,
-        "guarded": 0
+      "d7": {
+        "d8": {
+          "destinationVisible": true,
+          "patrolGain": 0,
+          "guardedBy": [
+            "e7"
+          ]
+        }
       }
     },
     "ownMorale": 0,
+    "ownMoralePenalty": 0,
     "ownManaged": 0,
     "ownSpecialists": 0,
     "enemyManaged": 0,

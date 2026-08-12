@@ -13,6 +13,12 @@ status: Implementing
 
 The built-in Recruit, Lieutenant and Commander opponents: what each difficulty does differently and what stays the same for all three.
 
+**Mechanic:** one published script scores host-supplied legal choices and
+post-move facts, with a parameter row controlling each difficulty.
+**Real-world analogy:** three field commanders use the same doctrine manual
+but differ in caution, attention span, and which support operations they
+authorize.
+
 ## Contents
 
 | Child | Description |
@@ -78,6 +84,33 @@ three. Read the script once and you know how all three commanders think;
 change one number in one difficulty's table and you have a new opponent
 without touching the others.
 
+#### REQ: leaders-advance-under-cover
+
+The king and the current Royal Beacon bearer are enablers, not attackers.
+They advance only when friendly pieces support the destination, with nearer
+pieces ahead contributing most; when the king already has three or more
+morale beyond its visible capture and managed-work needs, it prefers to
+regroup rather than press further. After either leader makes a quiet move,
+the bot rejects its exact immediate reverse while every other piece remains
+in the same placement, unless the leader must reverse to escape a threat.
+
+#### REQ: visible-king-pursuit-and-safe-development
+
+An ordinary unit gets a fixed priority and score bonus only when the host's
+post-move facts say that the exact destination leaves it able to attack a
+visible, non-ghost enemy king next. It also develops on its first forward
+officer move and gains credit for host-confirmed patrol coverage. These
+quiet positional rewards require a visible, guarded, unthreatened post-move
+destination; the bot never guesses attack geometry or pretends a guard at
+its old square protects its destination.
+
+For every safe deterministic relocation, the bot also reads the host's
+relation graph. Newly guarding friendly material and being guarded after
+the move are bounded soft benefits; abandoning a friendly unit is penalised
+only when the mover was its sole guard. Two newly guarded pawns can outweigh
+one abandoned pawn, but a cluster of pawns cannot outweigh exposing a queen
+or taking immediate material.
+
 #### REQ: forking-needs-only-a-browser
 
 The published script and its parameter table are ordinary text — nothing
@@ -92,9 +125,9 @@ compile, no repository to check out.
 
 Exactly three difficulties, and each is honest about what it's doing:
 
-- **Recruit** reacts slowly and sticks to the basics: moves and captures
-  only — no specialist training, no fortification work, no command-chain
-  action — and goes for the obvious material gain.
+- **Recruit** reacts slowly and sticks to the basics: moves, captures, and
+  match-enabled Royal Beacon actions — no specialist training or
+  fortification work — and goes for the obvious material gain.
 - **Lieutenant** reacts at a medium pace and looks one step further: it
   weighs material, tempo, and a threat against its own units, trains an
   idle and undefended base-rank pawn into a specialist when it's safe to,
@@ -136,13 +169,14 @@ Arriving back somewhere it has already been therefore means it has undone
 its own work — that is what a cycle is, and it is how a stalled bot burns
 an entire clock while still looking busy from the outside.
 
-**This is checked, not implemented.** No difficulty tracks the positions
-it has visited, and none should: carrying that history would cost every
-player's browser memory and would change the bot's decisions in order to
-satisfy a test. The check belongs to whatever drives the match, which
-fails at the FIRST repetition and names the state — turning a cycle from
-something you infer from an expired budget into something reported at the
-moment it happens.
+**The full condition is checked outside the script.** The match driver fails
+at the FIRST repeated placement and names both occurrences. The script does
+carry one deliberately smaller defence: three recently vacated squares for
+ordinary quiet moves. If another viable ordinary move exists, it avoids
+returning a piece to one of those squares; captures, delivery, threatened
+escapes, leaders, promotions and forced moves remain exempt. This bounded
+ring breaks the measured two-piece and promoted-queen shuffles without
+turning the browser into a full match-history store.
 
 What counts as the same state is deliberately narrow: **which piece stands
 on which square, and nothing else.** Not fatigue, not charge, not morale,
@@ -202,10 +236,14 @@ moving something else at random.
 
 #### REQ: one-command-at-a-time
 
-A bot commands one piece at a time. While any of its own pieces is
-mid-action, it issues no further command — not even for a free capture or
-to keep the king's convoy moving — so a bot never gets to act on more
-fronts at once than a human player commanding the same army could.
+A bot opens one move-command front at a time. While one or more pieces have
+active move routes, the only permitted command is a host-offered replacement
+move for one of those same charging pieces: idle pieces and system actions
+remain excluded. Retaining the existing route is a zero-score choice,
+remaining charge time makes a nearly settled route harder to replace, and a
+route already aimed at a visible enemy king is always retained. A piece in a
+training, forging, recovery or interrogation activity remains individually
+unavailable under that activity's own rules.
 
 ### Getting advice
 
@@ -260,6 +298,43 @@ judgement still being worked through rather than a gap nobody noticed.
 
 ## Acceptance Criteria
 
+### AC: leaders-do-not-oscillate-or-overextend
+
+**Given** a king or current Royal Beacon bearer has made a quiet advance or
+retreat under friendly cover
+**When** it next decides with every other piece still in the same placement
+**Then** it does not immediately take the exact reverse, unless its current
+square is threatened; a move, capture or promotion by another piece releases
+that one-ply guard, and a charged command keeps it until its layout settles.
+
+### AC: safe-development-and-king-hunt-use-post-move-facts
+
+**Given** an ordinary piece can either make a visible, guarded, unthreatened
+quiet move whose host facts say it can attack the visible non-ghost enemy
+king next, or make an otherwise stronger unknown or unsupported quiet move
+**When** the bot chooses within its breadth
+**Then** the exact king-attack destination receives +30 for both breadth
+admission and destination selection, without any distance or rank-geometry
+guess, and an unknown or unsupported destination receives none
+
+### AC: relation-graph-support-is-bounded-and-material-aware
+
+**Given** two otherwise equal safe quiet moves with different post-move
+`guards` and `guardedBy` relations
+**When** one newly guards two pawns while abandoning one solely guarded pawn,
+and another abandons a solely guarded queen
+**Then** the first gets a positive bounded support preference, the second is
+penalised, redundant guards are not treated as abandonment, and neither soft
+term outranks an immediate promotion or material capture
+
+### AC: beacon-aggression-is-bot-permission
+
+**Given** match rules enable the Royal Beacon
+**When** a bot's `beaconAggression` is zero
+**Then** it proposes no Beacon action; **when** it is positive, Recruit,
+Lieutenant and Commander use 0.3, 0.6 and 0.9 respectively and can propose
+Beacon actions independently of the non-Beacon `systems` permissions.
+
 ### AC: solo-vs-bot-playable
 
 **Given** a player adds a Recruit bot to the enemy team and a Lieutenant
@@ -295,22 +370,19 @@ installed, nothing compiled, and no checkout of any repository
 
 **Given** the three difficulties playing identical starting positions
 **When** each plays out
-**Then** Recruit only moves and captures, Lieutenant additionally trains a
-pawn when it's safe to and keeps its command chain moving, and Commander
+**Then** Recruit moves, captures and uses a match-enabled Royal Beacon,
+Lieutenant additionally trains a pawn when it's safe to and keeps its
+command chain moving, and Commander
 additionally works fortifications, prisoner logistics and incursion
 positioning
 
 ### AC: every-tier-beats-a-passive-opponent
 
-**Given** each of the three difficulties in turn, against an opponent that
-issues no commands at all, across a range of starting seeds rather than one
-**When** each match plays out under a generous time budget — the same one
-for every difficulty, since none is expected to be quicker than another
-here
-**Then** every difficulty delivers the enemy king home and wins, in every
-seed — a single seed that stalls, wanders, or repeats one pair of moves
-until the budget expires fails this criterion, and pinning the check to a
-seed that happens to pass does not satisfy it
+**Given** each of the three difficulties in turn against an opponent that
+issues no commands at all, for exactly 75 starting seeds per difficulty
+**When** all 225 matches play out under the same generous decision budget
+**Then** every match ends by delivering the enemy king home, with no repeated
+piece placement; one stall, wander, repeat or budget expiry fails the gate
 
 ### AC: no-position-repeats-against-a-passive-opponent
 
@@ -366,10 +438,13 @@ unrelated free capture available elsewhere
 
 ### AC: one-command-at-a-time
 
-**Given** a bot match left to run
-**When** any of its own pieces is mid-action
-**Then** the bot issues no further command until that action resolves,
-even when a capture or its own king's convoy would otherwise call for one
+**Given** a bot match with one or more own move routes already charging
+**When** the bot is next due to command
+**Then** it passes, except that an active route aimed below the visible enemy
+king may be replaced by a
+host-offered move for that same charging piece when the replacement beats
+retention; it never commands an idle piece or starts a system action on a
+second front
 
 ### AC: advice-matches-the-bots-own-pick
 

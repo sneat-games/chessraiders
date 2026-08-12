@@ -3,7 +3,7 @@
   "paramsVersion": "chess-bot-tier-params/v1",
   "script": {
     "module": "github.com/sneat-games/chessraiders/go",
-    "version": "v0.0.2"
+    "version": "v0.0.4"
   },
   "test": "TestCommanderTrainsAnEngineerButNeverBuildsAWall",
   "case": 2,
@@ -15,7 +15,8 @@
     "advance": 0.3,
     "targetLock": 2,
     "kingSafety": 4,
-    "moralePush": 1.2,
+    "moralePush": 0.9,
+    "beaconAggression": 0.9,
     "delivery": 4,
     "prisoner": 1,
     "system": 1.4,
@@ -31,10 +32,9 @@
     "lifecycle": "playing",
     "nowMs": 1700000005001,
     "revision": 2,
-    "own": [
-      {
-        "unitId": "wp-b2",
-        "square": "b2",
+    "pieces": {
+      "b2": {
+        "unitId": 10,
         "side": "white",
         "rank": "pawn",
         "convoy": false,
@@ -42,81 +42,46 @@
         "kingCargo": false,
         "ghost": false,
         "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
         "profession": "engineer",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "grade": "basic"
       },
-      {
-        "unitId": "wk",
-        "square": "e4",
+      "e4": {
+        "unitId": 5,
         "side": "white",
         "rank": "king",
         "convoy": false,
         "cargoCount": 0,
         "kingCargo": false,
         "ghost": false,
-        "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
-      }
-    ],
-    "enemy": [
-      {
-        "unitId": "bk",
-        "square": "e8",
+        "refitting": false
+      },
+      "e8": {
+        "unitId": 29,
         "side": "black",
         "rank": "king",
         "convoy": false,
         "cargoCount": 0,
         "kingCargo": false,
         "ghost": false,
-        "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "refitting": false
       },
-      {
-        "unitId": "bp-h7",
-        "square": "h7",
+      "h7": {
+        "unitId": 24,
         "side": "black",
         "rank": "pawn",
         "convoy": false,
         "cargoCount": 0,
         "kingCargo": false,
         "ghost": false,
-        "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "refitting": false
       }
-    ],
+    },
     "legal": {
-      "wk": [
+      "b2": [
+        "b3",
+        "b4"
+      ],
+      "e4": [
         "d3",
         "d4",
         "d5",
@@ -125,102 +90,149 @@
         "f3",
         "f4",
         "f5"
-      ],
-      "wp-b2": [
-        "b3",
-        "b4"
       ]
     },
     "affordability": {},
     "enPassant": {},
-    "danger": {
-      "a3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
+    "candidates": {
+      "b2": {
+        "b3": {
+          "destinationVisible": true,
+          "patrolGain": 2,
+          "nextPossibleMoves": [
+            "b4"
+          ]
+        },
+        "b4": {
+          "destinationVisible": true,
+          "patrolGain": 5,
+          "nextPossibleMoves": [
+            "b5"
+          ]
+        }
       },
-      "c3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "d3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "d4": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "d5": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "d7": {
-        "threat": 1,
-        "cheapest": 60,
-        "guarded": 0
-      },
-      "d8": {
-        "threat": 1,
-        "cheapest": 60,
-        "guarded": 0
-      },
-      "e3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "e5": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "e7": {
-        "threat": 1,
-        "cheapest": 60,
-        "guarded": 0
-      },
-      "f3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "f4": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "f5": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "f7": {
-        "threat": 1,
-        "cheapest": 60,
-        "guarded": 0
-      },
-      "f8": {
-        "threat": 1,
-        "cheapest": 60,
-        "guarded": 0
-      },
-      "g6": {
-        "threat": 1,
-        "cheapest": 1,
-        "guarded": 0
+      "e4": {
+        "d3": {
+          "destinationVisible": true,
+          "patrolGain": 3,
+          "nextPossibleMoves": [
+            "c2",
+            "c3",
+            "c4",
+            "d2",
+            "d4",
+            "e2",
+            "e3",
+            "e4"
+          ]
+        },
+        "d4": {
+          "destinationVisible": true,
+          "patrolGain": 2,
+          "nextPossibleMoves": [
+            "c3",
+            "c4",
+            "c5",
+            "d3",
+            "d5",
+            "e3",
+            "e4",
+            "e5"
+          ]
+        },
+        "d5": {
+          "destinationVisible": true,
+          "patrolGain": 5,
+          "nextPossibleMoves": [
+            "c4",
+            "c5",
+            "c6",
+            "d4",
+            "d6",
+            "e4",
+            "e5",
+            "e6"
+          ]
+        },
+        "e3": {
+          "destinationVisible": true,
+          "patrolGain": 3,
+          "nextPossibleMoves": [
+            "d2",
+            "d3",
+            "d4",
+            "e2",
+            "e4",
+            "f2",
+            "f3",
+            "f4"
+          ]
+        },
+        "e5": {
+          "destinationVisible": true,
+          "patrolGain": 3,
+          "nextPossibleMoves": [
+            "d4",
+            "d5",
+            "d6",
+            "e4",
+            "e6",
+            "f4",
+            "f5",
+            "f6"
+          ]
+        },
+        "f3": {
+          "destinationVisible": true,
+          "patrolGain": 5,
+          "nextPossibleMoves": [
+            "e2",
+            "e3",
+            "e4",
+            "f2",
+            "f4",
+            "g2",
+            "g3",
+            "g4"
+          ]
+        },
+        "f4": {
+          "destinationVisible": true,
+          "patrolGain": 3,
+          "nextPossibleMoves": [
+            "e3",
+            "e4",
+            "e5",
+            "f3",
+            "f5",
+            "g3",
+            "g4",
+            "g5"
+          ]
+        },
+        "f5": {
+          "destinationVisible": true,
+          "patrolGain": 5,
+          "nextPossibleMoves": [
+            "e4",
+            "e5",
+            "e6",
+            "f4",
+            "f6",
+            "g4",
+            "g5",
+            "g6"
+          ]
+        }
       }
     },
     "ownMorale": 3,
+    "ownMoralePenalty": 0,
     "ownManaged": 0,
     "ownSpecialists": 1,
     "enemyManaged": 0,
     "rules": {
-      "cargoBasedDelivery": false,
+      "cargoBasedDelivery": true,
       "allowsKill": true,
       "allowsCapture": false,
       "moraleEnabled": true,
@@ -233,12 +245,12 @@
         "rook": 4
       },
       "pieceChargeMs": {
-        "bishop": 3000,
+        "bishop": 1500,
         "king": 1000,
-        "knight": 3000,
-        "pawn": 2000,
-        "queen": 5000,
-        "rook": 4000
+        "knight": 1500,
+        "pawn": 1000,
+        "queen": 2500,
+        "rook": 2000
       },
       "baseSquares": {
         "bishop": [
@@ -270,11 +282,11 @@
           "h1"
         ]
       },
-      "beaconKingStartsAsBearer": false,
+      "beaconKingStartsAsBearer": true,
       "specialistsEnabled": true,
       "woodWallsEnabled": true,
       "stoneWallsEnabled": true,
-      "veteranProgression": false,
+      "veteranProgression": true,
       "beaconEnabled": false,
       "beaconForgeEnabled": false,
       "specialistCeiling": 3,
@@ -304,6 +316,6 @@
   "intent": {
     "kind": "move",
     "from": "e4",
-    "to": "e5"
+    "to": "f5"
   }
 }

@@ -19,6 +19,12 @@ recruiting team ever knows which enemy piece it turned. The only way to expose
 one is to catch it: a king can interrogate an adjacent piece of its own side
 to find out.
 
+**Mechanic:** an informer contributes fog vision and a hidden timing penalty
+until release, removal or a completed king interrogation ends the relationship.
+**Real-world analogy:** a double agent shares what they can see and quietly
+slows their unit, while counter-intelligence can investigate but not identify
+the leak before the inquiry completes.
+
 ## Problem
 
 [Fog of War](../fog-of-war/README.md) creates missing information, but without
@@ -62,14 +68,13 @@ fatigue bar to the recruiting side, per
 [Real-Time Command](../real-time-command/README.md) — aggregate fatigue only,
 never individual timing.
 
-An active informer also reveals live charge progress — for itself, and for
-any active piece currently inside the patrol-vision footprint the informer
-generates — even in a Classic match where the board would otherwise be fully
-visible anyway. This never reveals the target square, the route, or which
-piece is attacking which; it only shows that a piece is charging and how far
-along it is. That extra charge intelligence ends the instant the observed
-piece leaves the informer's footprint, or the informer itself is released,
-exposed, or removed.
+Informer vision follows the ordinary public charge rule rather than creating a
+second intelligence channel. Any enemy piece it makes currently visible shows
+active charge status and remaining time, but never target square, route, or
+which-piece-is-attacking-which information. The live status disappears when
+that piece leaves all recruiting-side vision, or when the informer is released,
+exposed or removed. In a Classic match, where the piece was already visible,
+the informer adds no charge information.
 
 #### REQ: informer-secrecy
 
@@ -203,15 +208,15 @@ charge completes with no extra delay left behind afterward.
 **Then** their vision from that informer updates to its new position, while
 the informer's own side and any spectator see no marker identifying it.
 
-### AC: charge-intel-reveals-progress-not-target
+### AC: informer-vision-obeys-public-charge-privacy
 
 **Given** an active informer and another friendly piece inside its patrol
 footprint are both charging
 **When** the recruiting side views the board
-**Then** they see live charge progress for both pieces but no target square,
-route, or which-piece-is-attacking-which information, and that extra state
-disappears the moment the observed piece leaves the footprint or the
-informer relationship ends.
+**Then** they see active status and remaining time for both currently visible
+pieces but no target square, route, or which-piece-is-attacking-which
+information, and the live state disappears when the observed piece leaves all
+recruiting-side vision or the informer relationship ends.
 
 ### AC: capacity-is-shared-and-caps-recruitment
 

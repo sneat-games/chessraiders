@@ -13,13 +13,32 @@
 
 How might we make the bot advance its king and Beacon bearer behind a screen of friendly pieces, so neither ever stands ahead of its own formation?
 
+**Mechanic:** safe leader moves are admitted and scored by formation support,
+current morale need, and a one-ply anti-reversal guard.
+**Real-world analogy:** a commander and signal officer move with their line,
+building a small reserve of command capacity instead of leading a reckless
+charge.
+
 ## Context
 
-The standard bot cannot beat a passive opponent: Recruit and Lieutenant won 0 of 75 matches, Commander 13 of 75, and every tier repeated board positions. Commander's cause is that the king-advance term rewards forward movement only, so retreating costs nothing and re-advancing always pays. Making that term symmetric fixes the oscillation but leaves the deeper question unanswered: when should a king advance at all? Founder, 2026-08-11: 'King should not be a hero.'
+The superseded pre-fix measurement found repeated board positions and passive
+opponent stalls across all tiers. Those historical counts are diagnostic
+evidence, not the current acceptance result: the completed behavior is gated
+by a fresh 75-seed run for each of Recruit, Lieutenant and Commander after the
+observation provider and public script are integrated. The root design issue
+remains the founder's instruction from 2026-08-11: “King should not be a
+hero.”
 
 ## Recommended Direction
 
-Scale the king-advance reward by a saturating measure of friendly cover ahead of the king, so advancing into empty space earns nothing. Apply the same discipline to the Beacon bearer.
+Scale the leader reward by a saturating measure of friendly formation support
+ahead of the destination, so advancing into empty space earns nothing. The
+destination must also be visible, guarded and unthreatened in the host's
+`candidates` facts. Apply the same discipline to the current Beacon bearer,
+including regrouping when a move improves its formation support. Beacon
+aggression itself is the bot permission: `0` disables all Beacon actions and
+a positive value enables and scores them, always beneath the match's Beacon
+rule gates.
 
 The founder's model, in his own four statements:
 
@@ -33,20 +52,32 @@ The same discipline applies to the **Beacon bearer**, not only the king. Both ar
 The shape this takes in scoring:
 
 ```
-cover       = SUM over friendly p ahead of the king of  1 / (1 + chebyshev(p, king))
-coverFactor = min(1, cover / COVER_SATURATION)
-advance     = gain * MORALE_PUSH_VALUE * moralePush * coverFactor
+support       = SUM over friendly p ahead of the destination of  1 / chebyshev(p, destination)
+supportFactor = min(1, support / LEADER_SUPPORT_SATURATION)
+advance       = gain * MORALE_PUSH_VALUE * moralePush * supportFactor
 ```
 
 - **"ahead"** means greater `forward_progress` than the king.
 - **Chebyshev** distance, not rank difference, so a piece far off to the side decays as cover rather than counting fully.
-- **The saturation is load-bearing.** Without `min(1, …)` the term is unbounded and the 0–1 aggression dial stops meaning anything. Cover must only ever modulate downward, never rescale.
+- **The saturation is load-bearing.** Without `min(1, …)` the term is unbounded and the 0–1 aggression dial stops meaning anything. Formation support only modulates downward; it never multiplies the tier dial above its stated value.
 
-A property worth keeping: if the retreat penalty is scaled by the same `coverFactor`, a well-screened king is penalised for dropping back — stay with the formation — while an **exposed** king regroups for free. Both behaviours are correct, and neither needs a special case.
+The king is scheduled into shallow breadth while it has less than one point of
+reserve over current visible capture/managed-work need, and advances no farther
+than two reserve points. At three or more excess points, further advance is
+penalised and a safe retreat is scheduled so long as it keeps at least one
+reserve point. The Beacon bearer receives breadth priority only for a safe
+quiet move that actually improves formation support.
+
+After either leader makes a quiet move, a bounded placement fingerprint blocks
+the exact immediate reverse while all other pieces remain unchanged. Threat
+escape, captures, promotion and other tactical state changes release it.
 
 ## Alternatives Considered
 
-**Make the existing king-advance term symmetric and stop there.** Cheapest fix, and it does resolve the oscillation — dropping the one-directional guard alone takes Commander from 13/75 to 53/75 against a passive opponent. It lost because it answers *"should the king give back ground?"* without answering *"should the king have advanced at all?"* A symmetric term still pays a lone king to walk into open space.
+**Make the existing king-advance term symmetric and stop there.** This does
+resolve the simplest oscillation, but it answers *“should the king give back
+ground?”* without answering *“should the king have advanced at all?”* A
+symmetric term still pays a lone king to walk into open space.
 
 **Gate king advance on a hard rule** — for example, forbid it whenever the king would become the most advanced friendly piece. Simple, legible, and enforces the founder's "never in the first line of attack" exactly. It lost because a hard gate cannot express *degree*: it treats one distant covering piece the same as a full screen, and gives the tiers no dial to differ on.
 
@@ -54,34 +85,43 @@ A property worth keeping: if the retreat penalty is scaled by the same `coverFac
 
 ## MVP Scope
 
-Cover-scaling of the king's advance term alone, measured against the existing 75-seed × 3-tier passive-opponent sweep, with the 53-case decision corpus as the regression gate.
-
-Deliberately excluded from the MVP: the Beacon bearer's own cover discipline, and any second factor. Get one piece's behaviour right and measurable first — the Beacon bearer follows the same rule and can adopt it once the shape is proven.
+Formation-scaled king and current-Beacon-bearer movement, using the new
+`pieces` relation graph and host-projected `candidates`, an exact one-ply
+anti-reversal guard, a three-square ordinary quiet-cycle ring, and the
+0.3/0.6/0.9 Recruit/Lieutenant/Commander aggression dials (Adviser 1.0 for
+Beacon, its existing 0.5 for morale). The old 0.2/0.4/0.8 proposal values are
+superseded by this founder decision.
 
 ## Not Doing (and Why)
 
-- A two-move enemy attack map — needs data the observation does not carry, making it a host-side change rather than a bot-script edit
-- The distance-behind-the-front-line factor — correlates strongly with cover, so multiplying both double-counts and would shrink the tier weights fourfold
+- A two-move enemy attack map — the host supplies only exact current and
+  deterministic one-move facts
+- Approximate distance-to-king pursuit — a nearby rook or knight does not
+  necessarily attack the king; only exact `nextPossibleMoves` membership earns
+  the fixed +30 king-hunt value
+- A full visited-position history inside the script — the external 75×3 gate
+  owns strict repeat detection; the script retains only bounded local cycle
+  state
 
 ## Key Assumptions to Validate
 
 | Tier | Assumption | How to validate |
 |------|------------|-----------------|
-| Must-be-true | Cover-scaling does not suppress the king-advance term below the point where the tier weights still move the king | Run the full fix stack with and without cover at 75 seeds × 3 tiers and compare wins; unscaled it reaches recruit 6 / lieutenant 42 / commander 55 |
-| Must-be-true | The bot script can compute cover from the observation alone, with no host-side change | Confirmed: `observation["own"]` carries `square` and `rank` per cell, and `forward_progress` and `chebyshev_distance` already exist in the script |
-| Should-be-true | Cover-scaling leaves already-correct decisions alone | Replay the 53-case decision corpus; the change measured 2/53 intents changed, both Commander |
-| Should-be-true | Computing cover is cheap enough for the CI passive-opponent gate | Cover is computed once per decision rather than per candidate, so it is O(own pieces) per decision — but the CI cost has not been measured |
-| Might-be-true | Distance-behind-the-front-line adds signal that cover does not already carry | Add it as its own sweep row and compare against cover alone; it has never been executed |
+| Must-be-true | Formation scaling still lets every tier create the one-to-two point morale reserve needed to capture | Run the paired provider/script build at exactly 75 seeds × 3 tiers; every match must capture and deliver the king without a repeated placement |
+| Must-be-true | The script reads support and safety from the final observation contract | Confirm `pieces` is the sole board shape and `candidates` provides destination visibility plus relation lists; no `own`, `enemy`, `danger` or scalar move-fact fallback remains |
+| Should-be-true | Anti-reversal and the quiet ring leave tactical necessities open | Mutation-sensitive decisions cover threat escape, capture, promotion, delivery and forced/no-alternative moves alongside the measured rook and promoted-queen cycles |
+| Should-be-true | The strategy stays inside Recruit's public limits | Representative measurement is 34,189/250,000 interpreter steps; worst-case action + move + leader guard + quiet ring is 31/32 integer memory entries |
 
 
 ## SpecScore Integration
 
 - **New Features this would create:** none — this changes how `standard-bot` scores king movement
 - **Existing Features affected:** `standard-bot`; `royal-beacon` and `morale` supply the rules this interacts with
-- **Dependencies:** none in code. Blocked in practice by an open founder decision — see Open Questions
+- **Dependencies:** the paired private observation producer must emit the
+  final `pieces`/`candidates` contract before the public corpus and passive
+  acceptance run can be regenerated
 
 ## Open Questions
 
-- **Can a bot win without the Beacon system at all?** No, and this bounds the whole proposal. `deliverKingIfEligible` is the only function in the engine that sets a winner, so king delivery is the sole terminal condition; capturing a king needs morale ≥ 2, morale is the king's own rank, and the king stays rooted until a never-passed Beacon is handed off — which requires `Systems.Beacon`. Recruit and Lieutenant hold at 0/75 with zero king moves under every weight combination when the capability is withheld. The founder's stated constraint is *"even without it a bot should be able to win"*, which weights cannot deliver. **He must choose:** grant the capability to every tier, change the rooting rule, decouple morale from king rank, or add a second terminal condition.
-- **Do Recruit and Lieutenant keep their intended character once their king advances?** Recruit's published description promises moves and captures only, with no command-chain action. Granting the Beacon capability to reach a winnable state sits in tension with that, unless a near-zero Beacon weight keeps its play as plain as the description claims.
-- **Should `COVER_SATURATION` differ per tier?** It is currently one constant for every difficulty. A tier that reads as cautious might warrant a higher bar for what counts as a full screen — but that is a third knob, and the parameter table is published for outside creators, so it needs to earn its place.
+None. Recruit, Lieutenant and Commander use the shared saturation constant and
+their approved 0.3/0.6/0.9 morale and Beacon weights; zero remains disabled.

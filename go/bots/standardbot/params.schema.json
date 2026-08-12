@@ -48,7 +48,14 @@
     "moralePush": {
       "type": "number",
       "description": "Weight assigned to a safe morale advance.",
-      "default": 1.2,
+      "default": 0.9,
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "beaconAggression": {
+      "type": "number",
+      "description": "How much the bot values Beacon actions (hand-off, deploy, restore) - the tier-side permission AND appetite in one 0-1 dial. Zero disables every Beacon proposal; the match rules' own beacon.enabled still gates independently, so a weight never authorises what the rules forbid.",
+      "default": 0.9,
       "minimum": 0,
       "maximum": 1000000
     },

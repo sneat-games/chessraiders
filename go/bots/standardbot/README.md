@@ -41,6 +41,11 @@ difficulties differ, how convoy escort and advice work) and
 [`bot-script-contract`](../../../spec/features/standard-bot/bot-script-contract/README.md)
 for exactly what `decide()` is handed each turn and what it may return.
 
+Mechanically, the host supplies a fog-correct reconnaissance map and an
+approved set of actionable choices; the script prices those choices. Think of
+it as a commander reading a field report and order sheet, not redrawing the
+battlefield from memory.
+
 `decide()` is called once per decision with five arguments — the bot's own
 view of the board (`observation`), whatever it chose to remember last turn
 (`memory`), its difficulty's complete row from `ResolveParams` (`params`), one random
@@ -49,22 +54,21 @@ to explain (`options`, 0 when just playing) — and it scores every legal
 `(piece, destination)` pair the host has already worked out, plays the best
 one, or passes if nothing clears the bar. It never invents a square, never
 computes whether a move is legal, and never sees anything Fog of War would
-hide from a human on the same side: every fact it weighs (danger, routes to
-deliver a captured king, which squares are safe) arrives as plain data on
-`observation`, computed by the host.
+hide from a human on the same side: relations, capture affordability, routes
+to deliver a captured king, and deterministic post-move facts arrive as plain
+host-computed data on `observation`.
 
 ## What a single tier row means
 
-A row is sixteen named values, in three groups:
+A row is seventeen named values, in three groups:
 
-**Ten score weights** — each scales one whole category of `decide()`'s
+**Eleven score weights** — each scales one whole category of `decide()`'s
 scoring, and each is a *gate*, not just a multiplier: `chess-raiders-bot.star` checks
 `if params["X"] > 0` before scoring that category at all, so a weight of `0`
 does not merely make that term worth nothing — it turns the whole category
-off. This is what makes Recruit "moves and captures only": every weight
-below except `material`, `safety`, `advance` and `delivery` is zero on its
-row, so `chess-raiders-bot.star` never even considers a tempo, prisoner, or system
-(training/wall/beacon) action for it.
+off. Recruit's 0.3 `moralePush` and 0.3 `beaconAggression` are intentional:
+it can make guarded leader moves and use the match-enabled Beacon, while its
+other systems remain disabled because `system` is zero.
 
 | Key | What it weighs |
 |---|---|
@@ -75,9 +79,45 @@ row, so `chess-raiders-bot.star` never even considers a tempo, prisoner, or syst
 | `targetLock` | Dodging a piece the enemy has target-locked. |
 | `kingSafety` | Escaping or guarding a threatened king. |
 | `moralePush` | The morale gain from advancing the king (Chess Raiders' king can safely advance further than in traditional chess — see the [Standard Bot spec](../../../spec/features/standard-bot/README.md)). |
+| `beaconAggression` | Both the bot's Royal Beacon permission and its preference: `0` never proposes Beacon actions; a positive value proposes and scores them, still subject to the match's Beacon rules. Recruit/Lieutenant/Commander use 0.3/0.6/0.9; Adviser uses 1.0. |
 | `delivery` | Escorting a captured enemy king home, and clearing a blocked delivery lane. |
 | `prisoner` | Taking and holding prisoners, independent of delivering the king itself. |
-| `system` | Every non-move action: training, wall repair/dismantle, Beacon deploy/restore/forge/hand-off, interrogation. |
+| `system` | Non-Beacon actions: training, wall repair/dismantle and interrogation. |
+
+The observation has one board shape: `pieces[square]`. A live cell carries its
+numeric `unitId` (1 through 32), explicit authoritative `side`, rank and
+physical/activity state, but no redundant square. `0` is `NoUnitID`: it is
+used only by a fog ghost, never as a command actor or lookup key. A recruited
+piece can change side, so the script always reads `side` from the current
+cell rather than deriving it from the numeric ID. Optional sorted relation
+lists `threatens`, `threatenedBy`, `guards`, and `guardedBy` replace the
+removed top-level danger summaries; an omitted list is empty, and ghosts
+expose no live relations.
+
+Deterministic non-capture choices use
+`candidates[sourceSquare][destination]`; `legal`, `affordability`, and
+`enPassant` use that same source-square outer key. Each fact separately says whether the
+destination is visible, supplies fog-safe `patrolGain`, `nextPossibleMoves`,
+and the same four post-state relations. Unknown, unguarded or threatened
+destinations do not earn safe positional credit. Exact `nextPossibleMoves`
+membership—not Chebyshev proximity or reimplemented piece geometry—gives a
+safe move +30 when it attacks a visible enemy king, and lets a pawn value an
+exact next promotion square. Captures have no fabricated deterministic
+post-state fact; affordability/outcomes and the current target's guards price
+them instead.
+
+Candidate facts are unconditionally omitted for every already charging actor.
+`legal` still offers actionable same-actor replacements: capture alternatives
+use affordability and the target's current visible relations normally, while
+a quiet alternative without a fact receives no speculative safety,
+development, support or future-attack bonus.
+
+Activity follows the same privacy boundary. Own routes expose destination and
+remaining milliseconds; a currently visible enemy exposes active status and
+remaining milliseconds but never its target; ghosts expose neither. Training,
+forging, recovery and target-only interrogation state arrive on the affected
+cells. There is no compatibility path for the removed `own`/`enemy` arrays,
+`danger`, scalar move facts, or boolean advanced-engineer fields.
 
 **Three scheduling knobs** — bound how much of the board one decision looks
 at, not what it values:
@@ -87,6 +127,19 @@ at, not what it values:
 | `breadth` | How many of the bot's own units get a proposal considered at all, out of every actionable unit, ranked by priority. |
 | `candidateSpread` | How many destinations of *one* chosen unit get scored, out of its legal moves. |
 | `passBelow` | The score floor: a proposal scoring below this is never played — the bot passes instead. |
+
+An active route narrows the command front regardless of breadth: the bot may
+only retain it or choose a host-offered replacement for that same charging
+actor. Idle-piece moves and system actions are excluded until all routes
+settle. Remaining time contributes a bounded, tier-independent replacement
+cost, retaining the route is the zero-score baseline, and a route already
+aimed at the visible enemy king is never replaced.
+
+The script also stores three recently vacated ordinary quiet-move squares.
+When another viable ordinary move exists it avoids returning to that short
+ring, while captures, delivery, threatened escapes, promotions, leaders and
+forced moves remain open. The external passive-opponent gate still performs
+strict full-placement repeat detection across 75 seeds for each playing tier.
 
 **Three doctrine switches** — the only place a difficulty's *behavior*
 branches, rather than its scoring:

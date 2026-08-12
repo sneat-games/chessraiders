@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/sneat-games/chessraiders/go/bots/manifest"
@@ -71,10 +72,10 @@ func TestResolvedRowsPreserveThePublishedStandardBotSemantics(t *testing.T) {
 	// Hashes pin behavior without introducing a second table of parameter
 	// values that could become another source of truth.
 	want := map[string]string{
-		"adviser":    "6eb944c5748280596db231a234b823c25d5d802d0d28c37b144f8b5d39b7ca63",
-		"commander":  "e71fa7d67c8e7e01359866fc8354665f272afe7e60c6cec22f52aba45834d051",
-		"lieutenant": "ea34c214c95011a0ea28d62252bb3acfab1d2ce87e6a86dea4b2c8ae4b38bc7d",
-		"recruit":    "88be4b0f43e5123dcee92059eb0cac620915930c904699f24d3ae9fc4eabc4ba",
+		"adviser":    "103cfefa578bbf4600042e4c4946c6bbd5dc5974cec5a27720d69724db0c1a6d",
+		"commander":  "6f3f7079612af0792254b09ac5f08639aa8b45c02ebff56fcef5c6bba8073ed2",
+		"lieutenant": "8bb3351bc67d751da30fd61ce3a4029b0be0a69faf45432e7c91408f0e79f990",
+		"recruit":    "7e377204f819a65d9886e4a1861871c6520d7415a9d388e5dafee4fbb479ce67",
 	}
 	for name, wantDigest := range want {
 		resolved, err := standardbot.ResolveParams(name)
@@ -97,7 +98,7 @@ func TestParameterSchemaDeclaresExactlyTheInputsTheScriptReads(t *testing.T) {
 	schema, err := manifest.ParseParameterSchema(standardbot.ParamsSchema, manifest.ParameterLimits{
 		MaxDocumentBytes: int64(len(standardbot.ParamsSchema)),
 		MaxJSONDepth:     manifest.MaximumJSONDepth,
-		MaxProperties:    16,
+		MaxProperties:    17,
 		MaxResolvedBytes: int64(len(standardbot.ParamsSchema)),
 	})
 	if err != nil {
@@ -141,6 +142,62 @@ func TestScriptCompiles(t *testing.T) {
 	}
 }
 
+func TestScriptUsesTargetOnlyInterrogationActivity(t *testing.T) {
+	if !strings.Contains(standardbot.Script, `"interrogationRemainingMs"`) {
+		t.Fatal("script no longer consumes the target-side interrogation timer")
+	}
+	for _, forbidden := range []string{`"interrogating"`, `"interrogatedBy"`, `"beingInterrogated"`} {
+		if strings.Contains(standardbot.Script, forbidden) {
+			t.Fatalf("script consumes forbidden king/source-side interrogation field %s", forbidden)
+		}
+	}
+}
+
+func TestScriptTreatsPiecesObjectOrderAsNonSemantic(t *testing.T) {
+	if !strings.Contains(standardbot.Script, `sorted(observation["pieces"].keys(), key = square_index)`) {
+		t.Fatal("script does not explicitly recover engine square order from the unordered pieces object")
+	}
+	for _, forbidden := range []string{
+		`for square in observation["pieces"]`,
+		`for occupied_square in observation["pieces"]`,
+	} {
+		if strings.Contains(standardbot.Script, forbidden) {
+			t.Fatalf("script behavior depends on pieces object member order: %s", forbidden)
+		}
+	}
+}
+
+func TestScriptReadsNumericActorsFromSourceSquareFacts(t *testing.T) {
+	program, err := runtime.Compile(standardbot.Script)
+	if err != nil {
+		t.Fatalf("runtime.Compile(standardbot.Script) = %v", err)
+	}
+	params, err := standardbot.ResolveParams("recruit")
+	if err != nil {
+		t.Fatalf(`ResolveParams("recruit") = %v`, err)
+	}
+	const observation = `{
+		"lifecycle":"playing", "side":"white", "nowMs":0, "revision":1,
+		"ownMorale":0, "ownMoralePenalty":0, "ownManaged":0,
+		"pieces":{"a2":{"unitId":9,"side":"white","rank":"pawn","convoy":false,"cargoCount":0,"kingCargo":false,"ghost":false,"refitting":false}},
+		"legal":{"a2":["a3"]}, "affordability":{}, "enPassant":{},
+		"candidates":{"a2":{"a3":{"destinationVisible":true,"patrolGain":0,"nextPossibleMoves":[],"threatens":[],"threatenedBy":[],"guards":[],"guardedBy":["a2"]}}},
+		"deliverySquares":[], "convoyHome":{}, "blockingBase":[],
+		"rules":{"veteranProgression":false,"allowsKill":true,"allowsCapture":true,"pieceChargeMs":{},"baseSquares":{},"beaconEnabled":false,"beaconForgeEnabled":false,"beaconKingStartsAsBearer":false,"specialistsEnabled":false,"woodWallsEnabled":false,"stoneWallsEnabled":false},
+		"systems":{"training":false,"walls":false,"beacon":false,"prisoners":false,"morale":false,"espionage":false},
+		"beacon":{"lifecycle":"undeployed","bearerSquare":"","everHandedOff":false}, "walls":[], "enemyManaged":0
+	}`
+
+	result, err := program.Call("decide", observation, `{}`, string(params), `0`)
+	if err != nil {
+		t.Fatalf("decide() with numeric actor and source-square facts = %v", err)
+	}
+	decision := decideThreeTuple(t, result)
+	if !strings.Contains(string(decision[0]), `"from":"a2"`) {
+		t.Fatalf("decide() = %s, want the numeric actor's move from source square a2", decision[0])
+	}
+}
+
 // emptyBoardObservation is the smallest observation build_board() (chess-raiders-bot.star)
 // accepts: a "playing" match with no pieces on either side and no legal
 // moves. It deliberately never reaches move_proposals/score_move — proving
@@ -153,8 +210,7 @@ const emptyBoardObservation = `{
 	"lifecycle": "playing",
 	"side": "white",
 	"nowMs": 0,
-	"own": [],
-	"enemy": [],
+	"pieces": {},
 	"legal": {},
 	"rules": {"veteranProgression": false, "allowsCapture": true}
 }`

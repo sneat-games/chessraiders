@@ -3,7 +3,7 @@
   "paramsVersion": "chess-bot-tier-params/v1",
   "script": {
     "module": "github.com/sneat-games/chessraiders/go",
-    "version": "v0.0.2"
+    "version": "v0.0.4"
   },
   "test": "TestConvoyPathCostIgnoresAnOccupiedHomeSquare",
   "case": 0,
@@ -15,7 +15,8 @@
     "advance": 0.25,
     "targetLock": 1.5,
     "kingSafety": 3,
-    "moralePush": 0,
+    "moralePush": 0.6,
+    "beaconAggression": 0.6,
     "delivery": 3,
     "prisoner": 0,
     "system": 1,
@@ -31,30 +32,29 @@
     "lifecycle": "playing",
     "nowMs": 1700000005001,
     "revision": 1,
-    "own": [
-      {
-        "unitId": "wk",
-        "square": "e4",
+    "pieces": {
+      "a7": {
+        "unitId": 17,
+        "side": "black",
+        "rank": "pawn",
+        "convoy": false,
+        "cargoCount": 0,
+        "kingCargo": false,
+        "ghost": false,
+        "refitting": false
+      },
+      "e4": {
+        "unitId": 5,
         "side": "white",
         "rank": "king",
         "convoy": false,
         "cargoCount": 0,
         "kingCargo": false,
         "ghost": false,
-        "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "refitting": false
       },
-      {
-        "unitId": "escort",
-        "square": "g1",
+      "g1": {
+        "unitId": 1,
         "side": "white",
         "rank": "rook",
         "convoy": true,
@@ -62,19 +62,16 @@
         "kingCargo": true,
         "ghost": false,
         "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "moved": true,
+        "guards": [
+          "h1"
+        ],
+        "guardedBy": [
+          "h1"
+        ]
       },
-      {
-        "unitId": "wr-h1",
-        "square": "h1",
+      "h1": {
+        "unitId": 8,
         "side": "white",
         "rank": "rook",
         "convoy": false,
@@ -82,57 +79,22 @@
         "kingCargo": false,
         "ghost": false,
         "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
+        "guards": [
+          "g1"
+        ],
+        "guardedBy": [
+          "g1"
+        ]
       }
-    ],
-    "enemy": [
-      {
-        "unitId": "bp-a7",
-        "square": "a7",
-        "side": "black",
-        "rank": "pawn",
-        "convoy": false,
-        "cargoCount": 0,
-        "kingCargo": false,
-        "ghost": false,
-        "refitting": false,
-        "recoveryUntil": 0,
-        "charging": false,
-        "training": false,
-        "attacksKing": false,
-        "profession": "",
-        "veteran": false,
-        "advanced": false,
-        "advancedEligible": false,
-        "forging": false
-      }
-    ],
+    },
     "legal": {
-      "escort": [
+      "g1": [
         "f1",
         "f2",
         "g2",
         "h2"
       ],
-      "wk": [
-        "d3",
-        "d4",
-        "d5",
-        "e3",
-        "e5",
-        "f3",
-        "f4",
-        "f5"
-      ],
-      "wr-h1": [
+      "h1": [
         "h2",
         "h3",
         "h4",
@@ -144,166 +106,271 @@
     },
     "affordability": {},
     "enPassant": {},
-    "danger": {
-      "b6": {
-        "threat": 1,
-        "cheapest": 1,
-        "guarded": 0
-      },
-      "d3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "d4": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "d5": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "e3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "e5": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "f3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "f4": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "f5": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
+    "candidates": {
       "g1": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
+        "f1": {
+          "destinationVisible": true,
+          "patrolGain": 2,
+          "nextPossibleMoves": [
+            "e1",
+            "e2",
+            "f2",
+            "g1",
+            "g2"
+          ],
+          "guardedBy": [
+            "h1"
+          ]
+        },
+        "f2": {
+          "destinationVisible": true,
+          "patrolGain": 7,
+          "nextPossibleMoves": [
+            "e1",
+            "e2",
+            "g2"
+          ]
+        },
+        "g2": {
+          "destinationVisible": true,
+          "patrolGain": 6,
+          "nextPossibleMoves": [
+            "f2",
+            "h2"
+          ]
+        },
+        "h2": {
+          "destinationVisible": true,
+          "patrolGain": 6,
+          "nextPossibleMoves": [
+            "g2"
+          ],
+          "guardedBy": [
+            "h1"
+          ]
+        }
       },
-      "h2": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "h3": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "h4": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "h5": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "h6": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "h7": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
-      },
-      "h8": {
-        "threat": 0,
-        "cheapest": 0,
-        "guarded": 1
+      "h1": {
+        "h2": {
+          "destinationVisible": true,
+          "patrolGain": 6,
+          "nextPossibleMoves": [
+            "a2",
+            "b2",
+            "c2",
+            "d2",
+            "e2",
+            "f2",
+            "g2",
+            "h1",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "h7",
+            "h8"
+          ],
+          "guardedBy": [
+            "g1"
+          ]
+        },
+        "h3": {
+          "destinationVisible": true,
+          "patrolGain": 5,
+          "nextPossibleMoves": [
+            "a3",
+            "b3",
+            "c3",
+            "d3",
+            "e3",
+            "f3",
+            "g3",
+            "h1",
+            "h2",
+            "h4",
+            "h5",
+            "h6",
+            "h7",
+            "h8"
+          ]
+        },
+        "h4": {
+          "destinationVisible": true,
+          "patrolGain": 3,
+          "nextPossibleMoves": [
+            "f4",
+            "g4",
+            "h1",
+            "h2",
+            "h3",
+            "h5",
+            "h6",
+            "h7",
+            "h8"
+          ],
+          "guards": [
+            "e4"
+          ]
+        },
+        "h5": {
+          "destinationVisible": true,
+          "patrolGain": 6,
+          "nextPossibleMoves": [
+            "a5",
+            "b5",
+            "c5",
+            "d5",
+            "e5",
+            "f5",
+            "g5",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h6",
+            "h7",
+            "h8"
+          ]
+        },
+        "h6": {
+          "destinationVisible": true,
+          "patrolGain": 9,
+          "nextPossibleMoves": [
+            "a6",
+            "b6",
+            "c6",
+            "d6",
+            "e6",
+            "f6",
+            "g6",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h7",
+            "h8"
+          ]
+        },
+        "h7": {
+          "destinationVisible": true,
+          "patrolGain": 9,
+          "nextPossibleMoves": [
+            "a7",
+            "b7",
+            "c7",
+            "d7",
+            "e7",
+            "f7",
+            "g7",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "h8"
+          ],
+          "threatens": [
+            "a7"
+          ]
+        },
+        "h8": {
+          "destinationVisible": true,
+          "patrolGain": 8,
+          "nextPossibleMoves": [
+            "a8",
+            "b8",
+            "c8",
+            "d8",
+            "e8",
+            "f8",
+            "g8",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "h7"
+          ]
+        }
       }
     },
     "convoyHome": {
-      "a1": 0,
-      "a2": 1,
-      "a3": 2,
+      "a1": 3,
+      "a2": 3,
+      "a3": 3,
       "a4": 3,
       "a5": 4,
       "a6": 5,
       "a8": 7,
-      "b1": 1,
-      "b2": 1,
+      "b1": 2,
+      "b2": 2,
       "b3": 2,
       "b4": 3,
       "b5": 4,
       "b6": 5,
       "b7": 6,
       "b8": 7,
-      "c1": 2,
-      "c2": 2,
+      "c1": 1,
+      "c2": 1,
       "c3": 2,
       "c4": 3,
       "c5": 4,
       "c6": 5,
       "c7": 6,
       "c8": 7,
-      "d1": 3,
-      "d2": 3,
-      "d3": 3,
+      "d1": 0,
+      "d2": 1,
+      "d3": 2,
       "d4": 3,
       "d5": 4,
       "d6": 5,
       "d7": 6,
       "d8": 7,
-      "e1": 4,
-      "e2": 4,
-      "e3": 4,
+      "e1": 0,
+      "e2": 1,
+      "e3": 2,
       "e5": 4,
       "e6": 5,
       "e7": 6,
       "e8": 7,
-      "f1": 5,
-      "f2": 5,
-      "f3": 5,
-      "f4": 5,
-      "f5": 5,
+      "f1": 1,
+      "f2": 1,
+      "f3": 2,
+      "f4": 3,
+      "f5": 4,
       "f6": 5,
       "f7": 6,
       "f8": 7,
-      "g1": 6,
-      "g2": 6,
-      "g3": 6,
-      "g4": 6,
-      "g5": 6,
-      "g6": 6,
+      "g1": 2,
+      "g2": 2,
+      "g3": 2,
+      "g4": 3,
+      "g5": 4,
+      "g6": 5,
       "g7": 6,
       "g8": 7,
-      "h2": 7,
-      "h3": 7,
-      "h4": 7,
-      "h5": 7,
-      "h6": 7,
-      "h7": 7,
+      "h2": 3,
+      "h3": 3,
+      "h4": 3,
+      "h5": 4,
+      "h6": 5,
+      "h7": 6,
       "h8": 7
     },
     "deliverySquares": [
-      "a1",
-      "h1"
+      "e1",
+      "d1"
     ],
     "ownMorale": 3,
-    "ownManaged": 0,
+    "ownMoralePenalty": 0,
+    "ownManaged": 1,
     "ownSpecialists": 0,
     "enemyManaged": 0,
     "rules": {
-      "cargoBasedDelivery": false,
+      "cargoBasedDelivery": true,
       "allowsKill": true,
       "allowsCapture": false,
       "moraleEnabled": true,
@@ -316,12 +383,12 @@
         "rook": 4
       },
       "pieceChargeMs": {
-        "bishop": 3000,
+        "bishop": 1500,
         "king": 1000,
-        "knight": 3000,
-        "pawn": 2000,
-        "queen": 5000,
-        "rook": 4000
+        "knight": 1500,
+        "pawn": 1000,
+        "queen": 2500,
+        "rook": 2000
       },
       "baseSquares": {
         "bishop": [
@@ -353,13 +420,13 @@
           "h1"
         ]
       },
-      "beaconKingStartsAsBearer": false,
+      "beaconKingStartsAsBearer": true,
       "specialistsEnabled": true,
       "woodWallsEnabled": true,
       "stoneWallsEnabled": true,
-      "veteranProgression": false,
+      "veteranProgression": true,
       "beaconEnabled": true,
-      "beaconForgeEnabled": false,
+      "beaconForgeEnabled": true,
       "specialistCeiling": 3,
       "permittedProfessions": [
         "engineer",
@@ -375,8 +442,8 @@
       "espionage": false
     },
     "beacon": {
-      "lifecycle": "undeployed",
-      "bearerSquare": "",
+      "lifecycle": "deployed",
+      "bearerSquare": "e4",
       "everHandedOff": false
     },
     "walls": []
