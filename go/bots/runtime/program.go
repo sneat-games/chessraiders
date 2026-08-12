@@ -99,7 +99,7 @@ type Program struct {
 // just shorter-lived.
 func Compile(source string) (*Program, error) {
 	thread := &starlark.Thread{Name: "starlarkbot-program-compile"}
-	predeclared := starlark.StringDict{"json": starlarkjson.Module}
+	predeclared := programPredeclared()
 	globals, err := starlark.ExecFileOptions(DialectOptions, thread, "script.star", source, predeclared)
 	if err != nil {
 		return nil, fmt.Errorf("starlarkbot: compile: %w", err)
@@ -141,12 +141,19 @@ func Compile(source string) (*Program, error) {
 // newThread builds.
 func CompileWithStepLimit(source string, maxSteps uint64) (*Program, error) {
 	thread := &starlark.Thread{Name: "starlarkbot-program-compile-bounded"}
-	predeclared := starlark.StringDict{"json": starlarkjson.Module}
+	predeclared := programPredeclared()
 	globals, err := starlark.ExecFileOptions(DialectOptions, thread, "script.star", source, predeclared)
 	if err != nil {
 		return nil, fmt.Errorf("starlarkbot: compile: %w", err)
 	}
 	return &Program{globals: globals, maxSteps: maxSteps}, nil
+}
+
+// programPredeclared is the single source for names visible to a compiled bot
+// module. Static entrypoint validation uses this same dictionary's Has method,
+// so a name cannot resolve during admission and then disappear at execution.
+func programPredeclared() starlark.StringDict {
+	return starlark.StringDict{"json": starlarkjson.Module}
 }
 
 // newThread builds the fresh *starlark.Thread every single Call gets — see
@@ -194,7 +201,7 @@ func (p *Program) newThread() *starlark.Thread {
 // starlark.ExecFileOptions calls globals.Freeze() immediately after
 // mod.Init succeeds (go.starlark.net's own eval.go), before Compile ever
 // returns, so even a MUTABLE top-level binding (a script-level list or
-// dict) is permanently frozen the moment compilation finishes. tier.star
+// dict) is permanently frozen the moment compilation finishes. chess-raiders-bot.star
 // has none (every top-level binding is a numeric constant or a def), so
 // this is inert for it today, but it is worth stating precisely for a
 // future script that tries to keep mutable state at module level: it
@@ -232,7 +239,7 @@ func (p *Program) Call(name string, argsJSON ...string) (string, error) {
 // CallWithStepLimit is Call's sibling for a caller whose step ceiling varies
 // CALL TO CALL rather than being fixed once at Compile time — the server bot
 // resolver (server-go/starlarkbot4chess, via server-go/starlarktier), which
-// shares ONE compiled tier.star Program across Recruit/Lieutenant/Commander/
+// shares ONE compiled chess-raiders-bot.star Program across Recruit/Lieutenant/Commander/
 // Custom yet must bound each decision by THAT match's own
 // chess.BotTierRules.StepBudget. CompileWithStepLimit cannot express this on
 // its own: maxSteps lives on the *Program (this file's own CONCURRENCY
