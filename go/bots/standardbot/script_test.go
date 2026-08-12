@@ -3,34 +3,31 @@
 package standardbot_test
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
 
+	"github.com/sneat-games/chessraiders/go/bots/manifest"
 	"github.com/sneat-games/chessraiders/go/bots/runtime"
 	"github.com/sneat-games/chessraiders/go/bots/standardbot"
 )
 
-// expectedTiers is the exact set of rows the private implementation's own
-// params.go produces params.json from — RecruitParams/LieutenantParams/
-// CommanderParams, the three PLAYING difficulties, plus AdviserParams, the
-// Adviser's own row (params.go's own doc comment: deliberately not derived
-// from, or shared with, any playing tier's row). A row added or removed
-// there without a matching change to this list is exactly the "one list
-// beside the thing it mirrors" drift CLAUDE.md warns about, just on this
-// side of the publish boundary instead of that one.
+// expectedTiers is the exact public set of named partial configurations:
+// three playing difficulties plus the Adviser's non-playing set. The private
+// implementation consumes these through ResolveParams; it does not generate
+// or own this list.
 var expectedTiers = []string{"adviser", "commander", "lieutenant", "recruit"}
 
-// paramsFile is params.json's own envelope shape: {"version": ...,
-// "tiers": {name: {...fields...}}}. Tier rows decode as json.RawMessage,
-// not a typed struct — this package deliberately ships no Params struct of
-// its own (script.go's own doc comment on the Params variable), so a test
-// that needs one row's raw JSON to hand to decide() reaches for the bytes
-// directly rather than round-tripping through a type only this file needs.
+// paramsFile is params.json's raw named-partial-set envelope. Runtime-facing
+// complete rows come only from ResolveParams after schema validation/default
+// filling; this type is used solely to assert the raw public artifact shape.
 type paramsFile struct {
-	Version string                     `json:"version"`
-	Tiers   map[string]json.RawMessage `json:"tiers"`
+	Schema string                     `json:"schema"`
+	Sets   map[string]json.RawMessage `json:"sets"`
 }
 
 func decodeParams(t *testing.T) paramsFile {
@@ -42,19 +39,16 @@ func decodeParams(t *testing.T) paramsFile {
 	return decoded
 }
 
-// TestParamsJSONHasEveryTierTheFixtureExpects proves params.json parses and
-// carries exactly the rows the private fixture generates it from — no tier
-// silently dropped in the copy, and none here this package wasn't told to
-// expect — plus that its declared envelope version matches the Go constant
-// script.go exports for it.
+// TestParamsJSONHasEveryTierTheFixtureExpects proves params.json carries every
+// public named set exactly once and declares the matching envelope version.
 func TestParamsJSONHasEveryTierTheFixtureExpects(t *testing.T) {
 	decoded := decodeParams(t)
-	if decoded.Version != standardbot.ParamsVersion {
-		t.Errorf("params.json version %q does not match standardbot.ParamsVersion %q", decoded.Version, standardbot.ParamsVersion)
+	if decoded.Schema != standardbot.ParameterSetsVersion {
+		t.Errorf("params.json schema %q does not match standardbot.ParameterSetsVersion %q", decoded.Schema, standardbot.ParameterSetsVersion)
 	}
 
 	var got []string
-	for name := range decoded.Tiers {
+	for name := range decoded.Sets {
 		got = append(got, name)
 	}
 	sort.Strings(got)
@@ -63,11 +57,73 @@ func TestParamsJSONHasEveryTierTheFixtureExpects(t *testing.T) {
 	sort.Strings(want)
 
 	if len(got) != len(want) {
-		t.Fatalf("params.json tiers = %v, want %v", got, want)
+		t.Fatalf("params.json sets = %v, want %v", got, want)
 	}
 	for i, name := range got {
 		if name != want[i] {
-			t.Fatalf("params.json tiers = %v, want %v", got, want)
+			t.Fatalf("params.json sets = %v, want %v", got, want)
+		}
+	}
+}
+
+func TestResolvedRowsPreserveThePublishedStandardBotSemantics(t *testing.T) {
+	// These hashes were captured from canonical JSON encodings of the four
+	// complete rows before Commander defaults moved into params.schema.json.
+	// Hashes pin behavior without introducing a second table of parameter
+	// values that could become another source of truth.
+	want := map[string]string{
+		"adviser":    "6eb944c5748280596db231a234b823c25d5d802d0d28c37b144f8b5d39b7ca63",
+		"commander":  "e71fa7d67c8e7e01359866fc8354665f272afe7e60c6cec22f52aba45834d051",
+		"lieutenant": "ea34c214c95011a0ea28d62252bb3acfab1d2ce87e6a86dea4b2c8ae4b38bc7d",
+		"recruit":    "88be4b0f43e5123dcee92059eb0cac620915930c904699f24d3ae9fc4eabc4ba",
+	}
+	for name, wantDigest := range want {
+		resolved, err := standardbot.ResolveParams(name)
+		if err != nil {
+			t.Fatalf("ResolveParams(%q) = %v", name, err)
+		}
+		got := fmt.Sprintf("%x", sha256.Sum256(resolved))
+		if got != wantDigest {
+			t.Errorf("ResolveParams(%q) digest = %s, want %s", name, got, wantDigest)
+		}
+	}
+
+	decoded := decodeParams(t)
+	if got := string(decoded.Sets["commander"]); got != "{}" {
+		t.Fatalf("raw Commander partial set = %s, want {} so schema defaults remain the one source", got)
+	}
+}
+
+func TestParameterSchemaDeclaresExactlyTheInputsTheScriptReads(t *testing.T) {
+	schema, err := manifest.ParseParameterSchema(standardbot.ParamsSchema, manifest.ParameterLimits{
+		MaxDocumentBytes: int64(len(standardbot.ParamsSchema)),
+		MaxJSONDepth:     manifest.MaximumJSONDepth,
+		MaxProperties:    16,
+		MaxResolvedBytes: int64(len(standardbot.ParamsSchema)),
+	})
+	if err != nil {
+		t.Fatalf("ParseParameterSchema() = %v", err)
+	}
+	reads := map[string]struct{}{}
+	for _, match := range regexp.MustCompile(`params\["([^"]+)"\]`).FindAllStringSubmatch(standardbot.Script, -1) {
+		reads[match[1]] = struct{}{}
+	}
+	declared := make([]string, 0, len(schema.Properties))
+	for name := range schema.Properties {
+		declared = append(declared, name)
+	}
+	read := make([]string, 0, len(reads))
+	for name := range reads {
+		read = append(read, name)
+	}
+	sort.Strings(declared)
+	sort.Strings(read)
+	if len(declared) != len(read) {
+		t.Fatalf("schema properties = %v, script parameter reads = %v", declared, read)
+	}
+	for index := range declared {
+		if declared[index] != read[index] {
+			t.Fatalf("schema properties = %v, script parameter reads = %v", declared, read)
 		}
 	}
 }
@@ -145,9 +201,8 @@ func TestScriptReadsNumericActorsFromSourceSquareFacts(t *testing.T) {
 // those needs the full board-and-legal-move schema bot-script-contract
 // describes, which is the private engine's job to emit and the private
 // implementation's job to test against, not this package's. What this DOES
-// prove is that params.json's own shape survives a real decide() call, for
-// every tier, without decide() ever erroring on a field it expected and
-// couldn't find.
+// prove is that every schema-resolved set survives a real decide() call
+// without decide() ever erroring on a field it expected and couldn't find.
 const emptyBoardObservation = `{
 	"lifecycle": "playing",
 	"side": "white",
@@ -184,13 +239,11 @@ func TestDecideAcceptsEveryTiersOwnRow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runtime.Compile(standardbot.Script) = %v", err)
 	}
-	decoded := decodeParams(t)
-
 	for _, tier := range expectedTiers {
 		t.Run(tier, func(t *testing.T) {
-			row, ok := decoded.Tiers[tier]
-			if !ok {
-				t.Fatalf("params.json has no %q row", tier)
+			row, err := standardbot.ResolveParams(tier)
+			if err != nil {
+				t.Fatalf("ResolveParams(%q) = %v", tier, err)
 			}
 			result, err := program.Call("decide", emptyBoardObservation, `{}`, string(row), `0`)
 			if err != nil {
@@ -221,5 +274,33 @@ func TestScriptPassesOutsideThePlayingLifecycle(t *testing.T) {
 	decision := decideThreeTuple(t, result)
 	if string(decision[0]) != "null" {
 		t.Errorf("decide() outside the playing lifecycle returned intent %s, want null", decision[0])
+	}
+}
+
+func TestStandardBotCarriesBattleStateThroughItsMemoryContract(t *testing.T) {
+	program, err := runtime.Compile(standardbot.Script)
+	if err != nil {
+		t.Fatalf("runtime.Compile(standardbot.Script) = %v", err)
+	}
+	first, err := program.Call("build_memory", `{"revision":7}`, `{}`, `null`)
+	if err != nil {
+		t.Fatalf("build_memory(first pass) = %v", err)
+	}
+	var memory map[string]int64
+	if err := json.Unmarshal([]byte(first), &memory); err != nil {
+		t.Fatalf("build_memory result %s: %v", first, err)
+	}
+	if memory["revision"] != 7 || memory["refusedCursor"] != 1 {
+		t.Fatalf("first persisted memory = %v, want revision and refusal cursor", memory)
+	}
+	second, err := program.Call("build_memory", `{"revision":7}`, first, `null`)
+	if err != nil {
+		t.Fatalf("build_memory(second pass) = %v", err)
+	}
+	if err := json.Unmarshal([]byte(second), &memory); err != nil {
+		t.Fatalf("second build_memory result %s: %v", second, err)
+	}
+	if memory["refusedCursor"] != 2 {
+		t.Fatalf("second persisted memory = %v, want prior battle state to advance", memory)
 	}
 }

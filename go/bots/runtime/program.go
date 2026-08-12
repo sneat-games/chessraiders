@@ -99,7 +99,7 @@ type Program struct {
 // just shorter-lived.
 func Compile(source string) (*Program, error) {
 	thread := &starlark.Thread{Name: "starlarkbot-program-compile"}
-	predeclared := starlark.StringDict{"json": starlarkjson.Module}
+	predeclared := programPredeclared()
 	globals, err := starlark.ExecFileOptions(DialectOptions, thread, "script.star", source, predeclared)
 	if err != nil {
 		return nil, fmt.Errorf("starlarkbot: compile: %w", err)
@@ -141,12 +141,19 @@ func Compile(source string) (*Program, error) {
 // newThread builds.
 func CompileWithStepLimit(source string, maxSteps uint64) (*Program, error) {
 	thread := &starlark.Thread{Name: "starlarkbot-program-compile-bounded"}
-	predeclared := starlark.StringDict{"json": starlarkjson.Module}
+	predeclared := programPredeclared()
 	globals, err := starlark.ExecFileOptions(DialectOptions, thread, "script.star", source, predeclared)
 	if err != nil {
 		return nil, fmt.Errorf("starlarkbot: compile: %w", err)
 	}
 	return &Program{globals: globals, maxSteps: maxSteps}, nil
+}
+
+// programPredeclared is the single source for names visible to a compiled bot
+// module. Static entrypoint validation uses this same dictionary's Has method,
+// so a name cannot resolve during admission and then disappear at execution.
+func programPredeclared() starlark.StringDict {
+	return starlark.StringDict{"json": starlarkjson.Module}
 }
 
 // newThread builds the fresh *starlark.Thread every single Call gets — see

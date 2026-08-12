@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "description": "Flat strategy inputs accepted by the Chess Raiders standard bot. Bounds are author choices for this bot, not competition resource limits.",
+  "properties": {
+    "material": {
+      "type": "number",
+      "description": "Weight assigned to captured material.",
+      "default": 1,
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "safety": {
+      "type": "number",
+      "description": "Weight assigned to avoiding threatened destinations.",
+      "default": 1,
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "tempo": {
+      "type": "number",
+      "description": "Weight assigned to command charge time.",
+      "default": 0.35,
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "advance": {
+      "type": "number",
+      "description": "Weight assigned to forward progress.",
+      "default": 0.3,
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "targetLock": {
+      "type": "number",
+      "description": "Weight assigned to escaping an active target lock.",
+      "default": 2,
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "kingSafety": {
+      "type": "number",
+      "description": "Weight assigned to king safety.",
+      "default": 4,
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "moralePush": {
+      "type": "number",
+      "description": "Weight assigned to a safe morale advance.",
+      "default": 0.9,
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "beaconAggression": {
+      "type": "number",
+      "description": "How much the bot values Beacon actions (hand-off, deploy, restore) - the tier-side permission AND appetite in one 0-1 dial. Zero disables every Beacon proposal; the match rules' own beacon.enabled still gates independently, so a weight never authorises what the rules forbid.",
+      "default": 0.9,
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "delivery": {
+      "type": "number",
+      "description": "Weight assigned to bringing captives home.",
+      "default": 4,
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "prisoner": {
+      "type": "number",
+      "description": "Weight assigned to retaining a captured piece.",
+      "default": 1,
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "system": {
+      "type": "number",
+      "description": "Weight assigned to enabled Chess Raiders system actions.",
+      "default": 1.4,
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "candidateSpread": {
+      "type": "integer",
+      "description": "Maximum ranked destinations retained per considered unit; zero retains all.",
+      "default": 28,
+      "minimum": 0,
+      "maximum": 64
+    },
+    "passBelow": {
+      "type": "number",
+      "description": "Minimum score required before the bot issues a command.",
+      "default": -7,
+      "minimum": -1000000,
+      "maximum": 1000000
+    },
+    "breadth": {
+      "type": "integer",
+      "description": "Maximum ranked units considered on the 64-cell board; zero considers all.",
+      "default": 16,
+      "minimum": 0,
+      "maximum": 64
+    },
+    "advancedTraining": {
+      "type": "boolean",
+      "description": "Whether the bot pursues advanced specialist training.",
+      "default": true
+    },
+    "contestEnemyWork": {
+      "type": "boolean",
+      "description": "Whether the bot may dismantle enemy fortifications.",
+      "default": true
+    },
+    "sergeantPreference": {
+      "type": "number",
+      "description": "Extra score for work supported by a sergeant.",
+      "default": 0.5,
+      "minimum": 0,
+      "maximum": 1000000
+    }
+  },
+  "additionalProperties": false
+}

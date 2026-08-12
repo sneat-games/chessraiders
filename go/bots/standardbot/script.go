@@ -2,58 +2,38 @@
 
 // Package standardbot is Chess Raiders' standard bot: Script, the one
 // Starlark decide() every difficulty shares (spec/features/standard-bot's
-// REQ:one-script-three-difficulties), and Params, the parameter table whose
-// three rows — recruit, lieutenant, commander — are the entire declared
-// difference between them. Turning Recruit into Lieutenant is editing a row
-// of numbers in params.json, never touching chess-raiders-bot.star; see this package's
-// own README.md for what a row means and how to change one.
+// REQ:one-script-three-difficulties), ParamsSchema, the flat input declaration
+// and Commander defaults, and Params, the named partial differences for
+// recruit, lieutenant, commander and adviser. Turning Recruit into Lieutenant
+// changes parameter data, never chess-raiders-bot.star; see this package's own
+// README.md for what one resolved row means and how to change it.
 //
-// Params carries a FOURTH row, adviser, that the same decide() scores
+// Params carries a fourth named set, adviser, that the same decide() scores
 // candidate moves against for explain-mode advice rather than play. It is
-// deliberately its own row, not derived from and not shared with any
-// playing difficulty's row — see the private implementation's own
-// AdviserParams for why inheriting a playing tier's numbers cannot produce
-// honest advice in either direction. It is not a fourth difficulty: there
-// is no such thing as "the adviser's own difficulty" in this bot's
-// vocabulary, only its own row of the same table.
+// deliberately resolved from the common schema defaults plus its own partial
+// set, never inherited from a playing set. It is not a fourth difficulty:
+// there is no such thing as "the adviser's own difficulty" in this bot's
+// vocabulary, only its own configuration of the same inputs.
 //
-// Both files are embedded verbatim by the two go:embed directives below,
-// never copied into a Go string literal by hand, so `git diff` against
-// chess-raiders-bot.star or params.json IS the diff against what a compiled bot actually
-// reads — there is no intermediate copy for the two to drift apart from.
+// The source artifacts are embedded verbatim by the go:embed directives below,
+// never copied into Go string literals by hand, so a diff of the four source
+// files is the diff against what a compiled bot actually reads. There is no
+// intermediate copy for the artifacts to drift apart from.
 // Load Script into go/bots/runtime.Compile to get a callable Program; the
 // README walks the shortest path from there to a decision.
 //
-// BOTH FILES ORIGINATE HERE — this package is the one and only source of
-// truth for chess-raiders-bot.star and params.json; a change to either is made HERE
-// first, never in the private implementation, and the private repository
-// republishes what this package already carries, never the other way
-// around.
-//
-// chess-raiders-bot.star made that crossing first, in the private implementation's plan
-// publish-the-standard-bot (task-5, 2026-08-10): server-go/starlarktier/
-// recruit.go no longer `//go:embed`s a local chess-raiders-bot.star at all — there is no
-// local chess-raiders-bot.star left there to embed — and re-exports THIS package's own
-// Script symbol instead (that file's own doc comment has the full account).
-//
-// params.json made the SAME crossing one task later, in task-6: this file —
-// not anything hand-written in that other repository — is now the table's
-// one and only author. Before task-6, the causality ran the other way:
-// server-go/starlarktier/params.go hand-wrote RecruitParams/
-// LieutenantParams/CommanderParams/AdviserParams as Go struct literals, and
-// a generator there (bot_tier_params_fixture_test.go, since deleted) copied
-// their three PLAYING rows out to a private fixture that this package's
-// copy of params.json was, in turn, republished from — the Adviser row
-// never made that trip, which is the historical reason the two files
-// briefly were not byte-for-byte identical even though both traced back to
-// params.go. Task-6 collapsed that whole chain: params.go now DECODES this
-// very file's own bytes (fetched by module version, the same way
-// server-go/starlarktier/recruit.go fetches chess-raiders-bot.star FROM this package)
-// instead of hand-writing the numbers, so there is exactly one copy of the
-// table again, and it is HERE.
+// All four source files originate here. A consumer imports Script and calls
+// ResolveParams from a tagged version of this module; it does not republish or
+// regenerate a private copy of the strategy or its parameter data.
 package standardbot
 
-import _ "embed"
+import (
+	_ "embed"
+	"fmt"
+	"sync"
+
+	"github.com/sneat-games/chessraiders/go/bots/manifest"
+)
 
 // Script is chess-raiders-bot.star's own content, byte-for-byte: the one decide()
 // function every difficulty calls, differing only in which row of Params it
@@ -65,27 +45,65 @@ import _ "embed"
 //go:embed chess-raiders-bot.star
 var Script string
 
-// Params is params.json's own content, byte-for-byte: an envelope naming its
-// own format (ParamsVersion below) around one row per difficulty
-// ("recruit", "lieutenant", "commander") plus the Adviser's own non-playing
-// row ("adviser" — this file's own package doc above), each row exactly the
-// fields Script reads off its `params` argument by name — the eleven score
-// weights, the three scheduling knobs (candidateSpread, passBelow, breadth)
-// and the three doctrine switches (advancedTraining, contestEnemyWork,
-// sergeantPreference). A caller that wants a typed row rather than raw JSON
-// decodes Params itself; this package declares no such type, so that
-// decoding it is never blocked on go/bots/standardbot shipping a struct
-// field the caller's own use case didn't need.
+// Params is params.json's own content, byte-for-byte: four named PARTIAL
+// configurations. Commander is the empty object because ParamsSchema owns the
+// runnable defaults; every other set contains only its differences. Call
+// ResolveParams to validate a set and fill all defaults before handing it to
+// Script.
 //
 //go:embed params.json
 var Params []byte
 
-// ParamsVersion is params.json's own top-level "version" field, exported so
-// a caller decoding Params can assert it is reading the envelope format it
-// was written against rather than silently misreading a future,
-// incompatible one. It is not this package's version, nor chess-raiders-bot.star's — it
-// names params.json's shape alone. The private implementation's own
-// server-go/starlarktier/params.go imports THIS constant directly and
-// panics at init if a decoded params.json disagrees with it, rather than
-// declaring a second copy of the string to keep in sync by hand.
+// ParamsSchema is the directly consumable JSON Schema draft 2020-12 document
+// declaring every flat input Script reads. It is the sole source of Commander
+// defaults; Params does not duplicate them.
+//
+//go:embed params.schema.json
+var ParamsSchema []byte
+
+// Manifest is the strict, portable source-artifact declaration for this exact
+// public standard-bot closure. It is an artifact beside Script, ParamsSchema
+// and Params, not a second source of any of them: manifest_test.go binds all
+// four raw files into one canonical closure.
+//
+//go:embed chess-raiders-bot.json
+var Manifest []byte
+
+// ParamsVersion identifies the COMPLETE resolved row shape handed to Script.
+// Moving Commander defaults from full rows into ParamsSchema does not change
+// that runtime-facing shape, so the recorded conformance corpus remains on
+// this same qualified contract version.
 const ParamsVersion = "chess-bot-tier-params/v1"
+
+// ParameterSetsVersion identifies Params' named-partial-set envelope.
+const ParameterSetsVersion = manifest.ParameterSetsSchemaVersion
+
+var resolvedParamsCache sync.Map
+
+func parameterLimits() manifest.ParameterLimits {
+	maxBytes := len(Params)
+	if len(ParamsSchema) > maxBytes {
+		maxBytes = len(ParamsSchema)
+	}
+	return manifest.ParameterLimits{
+		MaxDocumentBytes: int64(maxBytes),
+		MaxJSONDepth:     manifest.MaximumJSONDepth,
+		MaxProperties:    len(ParamsSchema),
+		MaxSets:          len(Params),
+		MaxResolvedBytes: int64(len(ParamsSchema) + len(Params)),
+	}
+}
+
+// ResolveParams returns one validated, complete, deterministic parameter row.
+// The returned bytes are a copy, so callers cannot mutate the package cache.
+func ResolveParams(name string) ([]byte, error) {
+	if cached, ok := resolvedParamsCache.Load(name); ok {
+		return append([]byte(nil), cached.([]byte)...), nil
+	}
+	row, err := manifest.ResolveParameterSet(ParamsSchema, Params, name, parameterLimits())
+	if err != nil {
+		return nil, fmt.Errorf("standardbot: resolve parameter set %q: %w", name, err)
+	}
+	stored, _ := resolvedParamsCache.LoadOrStore(name, append([]byte(nil), row...))
+	return append([]byte(nil), stored.([]byte)...), nil
+}

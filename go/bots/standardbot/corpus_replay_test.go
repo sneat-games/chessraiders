@@ -36,9 +36,74 @@ import (
 // and no credentials for any private module") rather than merely asserting
 // it: there is no import path by which this test COULD reach either.
 const (
-	corpusDir    = "testdata/corpus"
-	corpusFormat = "chess-bot-conformance-case/v1"
+	corpusDir                     = "testdata/corpus"
+	corpusFormat                  = "chess-bot-conformance-case/v1"
+	expectedCorpusCaseCount       = 53
+	expectedCorpusSourceTestCount = 30
+	// recordedCorpusScriptVersion is the exact Chess Raiders Go module release
+	// whose decisions this immutable corpus records.
+	recordedCorpusScriptVersion = "v0.0.2"
 )
+
+// expectedCorpusFilenames is the reviewed identity allowlist. Each filename is
+// also checked against its file's own exact (test, case) fields, so replacing a
+// source test while preserving the aggregate 53/30 counts cannot silently
+// redefine what the corpus covers.
+const expectedCorpusFilenames = `
+TestAdvanceRewardsThePawnDoubleStepAndThePromotionBonus.0.json
+TestAdvanceRewardsThePawnDoubleStepAndThePromotionBonus.1.json
+TestBotClearsAFriendlyBlockerToDeliverTheCapturedKing.0.json
+TestBotClearsAFriendlyBlockerToDeliverTheCapturedKing.1.json
+TestBotClearsAFriendlyBlockerToDeliverTheCapturedKing.2.json
+TestBotDeliversOnceTheBlockingPieceHasVacated.0.json
+TestBotDoesNotFabricateEnPassantOutsideWindow.0.json
+TestBotPassesWhileItsOwnPieceCharges.0.json
+TestBotPlaysEnPassantCapture.0.json
+TestCandidateSpreadTruncatesAfterScoringNotBeforeIt.0.json
+TestCommanderAdvancedTrainsLieutenantDoesNot.0.json
+TestCommanderAdvancedTrainsLieutenantDoesNot.1.json
+TestCommanderDismantlesEnemyWallLieutenantLeavesItAlone.0.json
+TestCommanderDismantlesEnemyWallLieutenantLeavesItAlone.1.json
+TestCommanderDoesNotForgeWithAnActiveBeacon.0.json
+TestCommanderEscortsCaptivesHome.0.json
+TestCommanderForgesALostBeaconWhenForgeEnabled.0.json
+TestCommanderNeverForgesWhenTheFlagIsOff.0.json
+TestCommanderPrefersTheSergeantSupportedWallWork.0.json
+TestCommanderTrainsAnEngineerButNeverBuildsAWall.0.json
+TestCommanderTrainsAnEngineerButNeverBuildsAWall.1.json
+TestCommanderTrainsAnEngineerButNeverBuildsAWall.2.json
+TestCommanderTrainsAnEngineerButNeverBuildsAWall.3.json
+TestConvoyPathCostIgnoresAnOccupiedHomeSquare.0.json
+TestConvoyPathCostReachesDeliverySquareWhenConvoyReachesBackRankIsFalse.0.json
+TestConvoyPathFallsBackToDriftWhenThereIsNoRouteHome.0.json
+TestCustomBotHonoursItsOwnBreadth.0.json
+TestCustomBotHonoursItsOwnBreadth.1.json
+TestDecisionsAreDeterministic.0.json
+TestDecisionsAreDeterministic.1.json
+TestDecisionsAreDeterministic.2.json
+TestEveryTierRoutesAPinnedConvoyAroundTheBlockedLine.0.json
+TestEveryTierRoutesAPinnedConvoyAroundTheBlockedLine.1.json
+TestEveryTierRoutesAPinnedConvoyAroundTheBlockedLine.2.json
+TestEveryTierWalksACapturedKingHome.0.json
+TestEveryTierWalksACapturedKingHome.1.json
+TestEveryTierWalksACapturedKingHome.2.json
+TestKingSafetyEscapeRewardsMovingAThreatenedKingToSafety.0.json
+TestMoralePushRewardsAdvancingTheKingWhileSafe.0.json
+TestPawnPromotionSetsTheQueenChoiceOnTheIntent.0.json
+TestTargetLockRewardsDodgingALockedPieceAndTheExtraSafeBonus.0.json
+TestTargetLockRewardsDodgingALockedPieceAndTheExtraSafeBonus.1.json
+TestTargetLockRewardsDodgingALockedPieceAndTheExtraSafeBonus.2.json
+TestTempoDiscountPenalisesASlowerPieceEnoughToChangeWhichUnitMoves.0.json
+TestTiersDifferOnPrisonerLogistics.0.json
+TestTiersDifferOnPrisonerLogistics.1.json
+TestTiersDifferOnPrisonerLogistics.2.json
+TestTiersDifferOnTheSameQuietPosition.0.json
+TestTiersDifferOnTheSameQuietPosition.1.json
+TestTiersDifferOnTheSameQuietPosition.2.json
+TestTiersStayWithinTheirBudgetInNormalPlay.0.json
+TestTiersStayWithinTheirBudgetInNormalPlay.1.json
+TestTiersStayWithinTheirBudgetInNormalPlay.2.json
+`
 
 // scriptRef mirrors a corpus case's own "script" field —
 // testdata/corpus/README.md's Format table: "{module, version} — the exact
@@ -96,6 +161,13 @@ func TestCorpusReplayAgreesWithThePublishedScript(t *testing.T) {
 			"decisions; an empty corpus is a regression in what shipped, not a reason for this test to pass",
 			corpusDir)
 	}
+	cases := make([]corpusCase, len(entries))
+	for index, path := range entries {
+		cases[index] = readCorpusCase(t, path)
+	}
+	if err := checkCorpusInventory(entries, cases); err != nil {
+		t.Fatal(err)
+	}
 
 	program, err := runtime.Compile(standardbot.Script)
 	if err != nil {
@@ -103,14 +175,10 @@ func TestCorpusReplayAgreesWithThePublishedScript(t *testing.T) {
 	}
 	modulePath := thisModulePath(t)
 
-	var expectedVersion string
 	agree := 0
-	for _, path := range entries {
-		c := readCorpusCase(t, path)
-		if expectedVersion == "" {
-			expectedVersion = c.Script.Version
-		}
-		if err := checkCorpusMetadata(path, c, modulePath, expectedVersion); err != nil {
+	for index, path := range entries {
+		c := cases[index]
+		if err := checkCorpusMetadata(path, c, modulePath); err != nil {
 			t.Error(err)
 			continue
 		}
@@ -123,10 +191,56 @@ func TestCorpusReplayAgreesWithThePublishedScript(t *testing.T) {
 
 	if agree != len(entries) {
 		t.Errorf("%d of %d recorded decisions agree with a replay against %s@%s — see the errors above for which "+
-			"case(s) differ and on what field", agree, len(entries), modulePath, expectedVersion)
+			"case(s) differ and on what field", agree, len(entries), modulePath, recordedCorpusScriptVersion)
 		return
 	}
-	t.Logf("%d/%d recorded decisions agree with a replay against %s@%s", agree, len(entries), modulePath, expectedVersion)
+	t.Logf("%d/%d recorded decisions agree with a replay against %s@%s", agree, len(entries), modulePath, recordedCorpusScriptVersion)
+}
+
+func checkCorpusInventory(entries []string, cases []corpusCase) error {
+	if len(entries) != len(cases) {
+		return fmt.Errorf("corpus has %d filenames for %d decoded cases", len(entries), len(cases))
+	}
+	type identity struct {
+		test       string
+		caseNumber int
+	}
+	seen := make(map[identity]struct{}, len(cases))
+	sourceTests := make(map[string]struct{}, expectedCorpusSourceTestCount)
+	for _, corpusCase := range cases {
+		key := identity{test: corpusCase.Test, caseNumber: corpusCase.Case}
+		if _, duplicate := seen[key]; duplicate {
+			return fmt.Errorf("corpus contains duplicate identity (%s, %d)", corpusCase.Test, corpusCase.Case)
+		}
+		seen[key] = struct{}{}
+		sourceTests[corpusCase.Test] = struct{}{}
+	}
+	if len(cases) != expectedCorpusCaseCount {
+		return fmt.Errorf("corpus contains %d cases, want exactly %d", len(cases), expectedCorpusCaseCount)
+	}
+	if len(sourceTests) != expectedCorpusSourceTestCount {
+		return fmt.Errorf("corpus names %d source tests, want exactly %d as documented at capture", len(sourceTests), expectedCorpusSourceTestCount)
+	}
+	expectedFilenames := strings.Fields(expectedCorpusFilenames)
+	if len(expectedFilenames) != expectedCorpusCaseCount {
+		return fmt.Errorf("reviewed corpus filename allowlist contains %d entries, want %d", len(expectedFilenames), expectedCorpusCaseCount)
+	}
+	actualFilenames := make([]string, len(entries))
+	for index, path := range entries {
+		actual := filepath.Base(path)
+		derived := fmt.Sprintf("%s.%d.json", cases[index].Test, cases[index].Case)
+		if actual != derived {
+			return fmt.Errorf("corpus filename %q does not match its exact (test, case) identity %q", actual, derived)
+		}
+		actualFilenames[index] = actual
+	}
+	sort.Strings(actualFilenames)
+	for index := range expectedFilenames {
+		if actualFilenames[index] != expectedFilenames[index] {
+			return fmt.Errorf("corpus filename identities differ from the reviewed recording: got %q at index %d, want %q", actualFilenames[index], index, expectedFilenames[index])
+		}
+	}
+	return nil
 }
 
 // corpusEntries returns every *.json path under corpusDir, sorted, so a
@@ -194,32 +308,33 @@ func thisModulePath(t *testing.T) string {
 // checkCorpusMetadata validates the fields that identify WHICH script a case
 // was decided against — as distinct from replayCase below, which validates
 // WHAT it decided. A case whose script.module names a different module
-// entirely, or whose script.version disagrees with every other case in the
-// same corpus, is wrong regardless of whether decide() happens to still
-// agree with its recorded intent: this corpus's whole point is "this is what
-// v0.0.2 decided", and a caller resolving that claim from the corpus's own
-// declared field — never by asking go.mod what version IT thinks is
-// current, which has no meaning for a module that does not require itself —
-// is exactly what plan task-9 asks this replayer to get right.
+// entirely, or whose script.version does not name the exact reviewed release,
+// is wrong regardless of whether decide() happens to still agree with its
+// recorded intent: this corpus's whole point is "this is what Chess Raiders Go
+// module v0.0.2 decided". Resolving that claim from the corpus's own declared
+// field — never by asking go.mod what version IT thinks is current, which has
+// no meaning for a module that does not require itself — is exactly what plan
+// task-9 asks this replayer to get right.
 //
-// expectedVersion is the FIRST case's own script.version, threaded in by the
-// caller rather than hardcoded here, so a deliberate future re-record at a
-// new tag needs no change to this function — only every case in one corpus
-// still has to agree with each other.
-func checkCorpusMetadata(path string, c corpusCase, expectedModule, expectedVersion string) error {
+// recordedCorpusScriptVersion is intentionally hardcoded: a future re-record
+// against another Chess Raiders Go module release must review and update the
+// corpus, its filename identity allowlist and this release fact together.
+func checkCorpusMetadata(path string, c corpusCase, expectedModule string) error {
 	if c.Format != corpusFormat {
 		return fmt.Errorf("%s (%s case %d): format %q, want %q", path, c.Test, c.Case, c.Format, corpusFormat)
+	}
+	if c.ParamsVersion != standardbot.ParamsVersion {
+		return fmt.Errorf("%s (%s case %d): paramsVersion %q, want standardbot.ParamsVersion %q for the resolved-row contract",
+			path, c.Test, c.Case, c.ParamsVersion, standardbot.ParamsVersion)
 	}
 	if c.Script.Module != expectedModule {
 		return fmt.Errorf("%s (%s case %d): script.module %q, want %q (this module's own go.mod path) — "+
 			"a case recorded against a different module proves nothing about this one",
 			path, c.Test, c.Case, c.Script.Module, expectedModule)
 	}
-	if c.Script.Version != expectedVersion {
-		return fmt.Errorf("%s (%s case %d): script.version %q disagrees with %q recorded by an earlier case in "+
-			"the same corpus — a corpus must declare one script version throughout, or a replay cannot say which "+
-			"version's conformance it is actually proving",
-			path, c.Test, c.Case, c.Script.Version, expectedVersion)
+	if c.Script.Version != recordedCorpusScriptVersion {
+		return fmt.Errorf("%s (%s case %d): script.version %q, want the exact recorded Chess Raiders Go module release %q",
+			path, c.Test, c.Case, c.Script.Version, recordedCorpusScriptVersion)
 	}
 	return nil
 }

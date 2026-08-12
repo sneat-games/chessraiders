@@ -1,46 +1,20 @@
 {
-  "version": "chess-bot-tier-params/v1",
-  "tiers": {
+  "schema": "chess-raiders-bot-parameter-sets/v1",
+  "sets": {
     "adviser": {
-      "material": 1,
-      "safety": 1,
       "tempo": 0.25,
-      "advance": 0.3,
       "targetLock": 1.5,
       "kingSafety": 3,
       "moralePush": 0.5,
       "beaconAggression": 1.0,
       "delivery": 3,
-      "prisoner": 1,
       "system": 1,
       "candidateSpread": 6,
       "passBelow": -2,
-      "breadth": 0,
-      "advancedTraining": true,
-      "contestEnemyWork": true,
-      "sergeantPreference": 0.5
+      "breadth": 0
     },
-    "commander": {
-      "material": 1,
-      "safety": 1,
-      "tempo": 0.35,
-      "advance": 0.3,
-      "targetLock": 2,
-      "kingSafety": 4,
-      "moralePush": 0.9,
-      "beaconAggression": 0.9,
-      "delivery": 4,
-      "prisoner": 1,
-      "system": 1.4,
-      "candidateSpread": 28,
-      "passBelow": -7,
-      "breadth": 16,
-      "advancedTraining": true,
-      "contestEnemyWork": true,
-      "sergeantPreference": 0.5
-    },
+    "commander": {},
     "lieutenant": {
-      "material": 1,
       "safety": 0.9,
       "tempo": 0.25,
       "advance": 0.25,
@@ -59,7 +33,6 @@
       "sergeantPreference": 0
     },
     "recruit": {
-      "material": 1,
       "safety": 0.5,
       "tempo": 0,
       "advance": 0.15,
