@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"sort"
 	"strconv"
 	"strings"
@@ -38,7 +39,13 @@ type ParameterLimits struct {
 type ParameterType string
 
 const (
-	ParameterTypeNumber  ParameterType = "number"
+	// ParameterTypeNumber preserves the runtime's JSON numeric tag: integer
+	// syntax becomes an exact Starlark int; decimal/exponent syntax is rounded
+	// once to a finite float64 and emitted canonically as float syntax. Equality
+	// uses Starlark's numeric semantics, including exact int/float comparison.
+	ParameterTypeNumber ParameterType = "number"
+	// ParameterTypeInteger accepts only mathematically integral values and
+	// always emits canonical arbitrary-precision integer syntax.
 	ParameterTypeInteger ParameterType = "integer"
 	ParameterTypeBoolean ParameterType = "boolean"
 	ParameterTypeString  ParameterType = "string"
@@ -66,6 +73,12 @@ type ParameterProperty struct {
 	Maximum     json.Number     `json:"maximum,omitempty"`
 	Enum        []string        `json:"enum,omitempty"`
 	Items       *ParameterItem  `json:"items,omitempty"`
+
+	// normalizedDefault is populated exactly once while parsing the schema.
+	// It is deliberately not serialized: callers see the authored schema,
+	// while named-set validation reuses the runtime-normalized value instead of
+	// decoding a potentially large default once per set.
+	normalizedDefault *normalizedParameterValue
 }
 
 type ParameterItem struct {
@@ -74,6 +87,24 @@ type ParameterItem struct {
 	Minimum     json.Number   `json:"minimum,omitempty"`
 	Maximum     json.Number   `json:"maximum,omitempty"`
 	Enum        []string      `json:"enum,omitempty"`
+}
+
+type normalizedParameterValue struct {
+	raw         json.RawMessage
+	number      *runtimeNumber
+	stringValue string
+	boolValue   bool
+	items       []normalizedParameterValue
+}
+
+// runtimeNumber mirrors go.starlark.net/json.decode's numeric split: JSON
+// integer syntax becomes an arbitrary-precision Starlark int, while a decimal
+// point or exponent becomes an IEEE-754 float64. Keeping the tag is required
+// for exact int/float equality at the runtime boundary.
+type runtimeNumber struct {
+	isFloat  bool
+	integer  *big.Int
+	floating float64
 }
 
 // ParameterSets is a versioned collection of named partial parameter objects.
@@ -136,7 +167,7 @@ func ParseParameterSchema(raw []byte, limits ParameterLimits) (ParameterSchema, 
 		properties[name] = property
 	}
 	schema.Properties = properties
-	if err := validateParameterSchema(schema); err != nil {
+	if err := validateParameterSchema(&schema); err != nil {
 		return ParameterSchema{}, err
 	}
 	return schema, nil
@@ -250,26 +281,30 @@ func validatePartialParameterConfig(schema ParameterSchema, raw []byte, limits P
 		names = append(names, name)
 	}
 	sort.Strings(names)
-	normalizedOverrides := make(map[string]json.RawMessage, len(supplied))
+	var normalizedOverrides map[string]normalizedParameterValue
+	if expand {
+		normalizedOverrides = make(map[string]normalizedParameterValue, len(supplied))
+	}
 	for _, name := range names {
 		property, ok := schema.Properties[name]
 		if !ok {
 			return nil, parameterError(ErrParameterConfig, name, "is not declared; additionalProperties is false")
 		}
-		normalized, err := validateParameterValue(property, supplied[name], name)
+		normalized, err := normalizeParameterValue(property, supplied[name], name)
 		if err != nil {
 			return nil, err
 		}
 		if enforceDelta {
-			equal, err := parameterValuesEqual(property, supplied[name], property.Default)
-			if err != nil {
-				return nil, err
+			if property.normalizedDefault == nil {
+				return nil, parameterError(ErrParameterSchema, name, "has no validated normalized default")
 			}
-			if equal {
+			if parameterValuesEqual(property, normalized, *property.normalizedDefault) {
 				return nil, parameterError(ErrParameterConfig, name, "duplicates its schema default; named sets must contain differences only")
 			}
 		}
-		normalizedOverrides[name] = normalized
+		if expand {
+			normalizedOverrides[name] = normalized
+		}
 	}
 	if !expand {
 		return json.RawMessage{}, nil
@@ -285,13 +320,13 @@ func validatePartialParameterConfig(schema ParameterSchema, raw []byte, limits P
 		property := schema.Properties[name]
 		value, ok := normalizedOverrides[name]
 		if !ok {
-			value, err = validateParameterValue(property, property.Default, name)
-			if err != nil {
-				return nil, err
+			if property.normalizedDefault == nil {
+				return nil, parameterError(ErrParameterSchema, name, "has no validated normalized default")
 			}
+			value = *property.normalizedDefault
 		}
 		encodedName, _ := json.Marshal(name)
-		componentSize := int64(len(encodedName) + 1 + len(value)) // key, colon, value
+		componentSize := int64(len(encodedName) + 1 + len(value.raw)) // key, colon, value
 		if index != 0 {
 			componentSize++ // comma
 		}
@@ -299,7 +334,7 @@ func validatePartialParameterConfig(schema ParameterSchema, raw []byte, limits P
 			return nil, parameterError(ErrParameterLimit, "configuration", "resolved object exceeds the caller's byte limit")
 		}
 		resolvedSize += componentSize
-		resolved[name] = value
+		resolved[name] = value.raw
 	}
 	encoded, err := json.Marshal(resolved)
 	if err != nil {
@@ -366,7 +401,7 @@ func parseParameterProperty(raw json.RawMessage, field string) (ParameterPropert
 	return property, nil
 }
 
-func validateParameterSchema(schema ParameterSchema) error {
+func validateParameterSchema(schema *ParameterSchema) error {
 	if schema.Schema != JSONSchemaDraft202012 {
 		return parameterError(ErrParameterSchema, "$schema", "want "+JSONSchemaDraft202012)
 	}
@@ -392,9 +427,12 @@ func validateParameterSchema(schema ParameterSchema) error {
 		if err := validatePropertyShape(property, "properties."+name); err != nil {
 			return err
 		}
-		if _, err := validateParameterValue(property, property.Default, name); err != nil {
+		normalized, err := normalizeParameterValue(property, property.Default, name)
+		if err != nil {
 			return parameterError(ErrParameterSchema, "properties."+name+".default", err.Error())
 		}
+		property.normalizedDefault = &normalized
+		schema.Properties[name] = property
 	}
 	return nil
 }
@@ -512,41 +550,45 @@ func validateOptionalEnum(object map[string]json.RawMessage, field string) error
 	return nil
 }
 
-func validateParameterValue(property ParameterProperty, raw json.RawMessage, field string) (json.RawMessage, error) {
+func normalizeParameterValue(property ParameterProperty, raw json.RawMessage, field string) (normalizedParameterValue, error) {
 	switch property.Type {
 	case ParameterTypeInteger, ParameterTypeNumber:
-		return validateNumericValue(property.Type, property.Minimum, property.Maximum, raw, field)
+		return normalizeNumericValue(property.Type, property.Minimum, property.Maximum, raw, field)
 	case ParameterTypeString:
 		var decoded any
 		if err := decodeRaw(raw, &decoded); err != nil {
-			return nil, parameterError(ErrParameterConfig, field, "must be a string")
+			return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, "must be a string")
 		}
 		value, ok := decoded.(string)
 		if !ok {
-			return nil, parameterError(ErrParameterConfig, field, "must be a string")
+			return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, "must be a string")
 		}
 		if len(property.Enum) != 0 && !containsString(property.Enum, value) {
-			return nil, parameterError(ErrParameterConfig, field, "is not one of the declared enum values")
+			return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, "is not one of the declared enum values")
 		}
 		encoded, _ := json.Marshal(value)
-		return encoded, nil
+		return normalizedParameterValue{raw: encoded, stringValue: value}, nil
 	case ParameterTypeBoolean:
 		var decoded any
 		if err := decodeRaw(raw, &decoded); err != nil {
-			return nil, parameterError(ErrParameterConfig, field, "must be a boolean")
+			return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, "must be a boolean")
 		}
 		value, ok := decoded.(bool)
 		if !ok {
-			return nil, parameterError(ErrParameterConfig, field, "must be a boolean")
+			return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, "must be a boolean")
 		}
 		encoded, _ := json.Marshal(value)
-		return encoded, nil
+		return normalizedParameterValue{raw: encoded, boolValue: value}, nil
 	case ParameterTypeArray:
+		if property.Items == nil {
+			return normalizedParameterValue{}, parameterError(ErrParameterSchema, field, "array has no item declaration")
+		}
 		var values []json.RawMessage
 		if err := decodeRaw(raw, &values); err != nil || values == nil {
-			return nil, parameterError(ErrParameterConfig, field, "must be an array")
+			return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, "must be an array")
 		}
-		normalized := make([]json.RawMessage, len(values))
+		normalized := make([]normalizedParameterValue, len(values))
+		encodedItems := make([]json.RawMessage, len(values))
 		for index, value := range values {
 			itemProperty := ParameterProperty{
 				Type:    property.Items.Type,
@@ -554,51 +596,30 @@ func validateParameterValue(property ParameterProperty, raw json.RawMessage, fie
 				Maximum: property.Items.Maximum,
 				Enum:    property.Items.Enum,
 			}
-			item, err := validateParameterValue(itemProperty, value, fmt.Sprintf("%s[%d]", field, index))
+			item, err := normalizeParameterValue(itemProperty, value, fmt.Sprintf("%s[%d]", field, index))
 			if err != nil {
-				return nil, err
+				return normalizedParameterValue{}, err
 			}
 			normalized[index] = item
+			encodedItems[index] = item.raw
 		}
-		encoded, err := json.Marshal(normalized)
+		encoded, err := json.Marshal(encodedItems)
 		if err != nil {
-			return nil, parameterError(ErrParameterConfig, field, err.Error())
+			return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, err.Error())
 		}
-		return encoded, nil
+		return normalizedParameterValue{raw: encoded, items: normalized}, nil
 	default:
-		return nil, parameterError(ErrParameterSchema, field, "has unsupported type")
+		return normalizedParameterValue{}, parameterError(ErrParameterSchema, field, "has unsupported type")
 	}
 }
 
-func parameterValuesEqual(property ParameterProperty, left, right json.RawMessage) (bool, error) {
+func parameterValuesEqual(property ParameterProperty, left, right normalizedParameterValue) bool {
 	switch property.Type {
 	case ParameterTypeInteger, ParameterTypeNumber:
-		var leftNumber, rightNumber json.Number
-		if err := decodeRaw(left, &leftNumber); err != nil {
-			return false, parameterError(ErrParameterConfig, "configuration", err.Error())
-		}
-		if err := decodeRaw(right, &rightNumber); err != nil {
-			return false, parameterError(ErrParameterSchema, "default", err.Error())
-		}
-		leftValue, err := exactDecimal(leftNumber.String())
-		if err != nil {
-			return false, err
-		}
-		rightValue, err := exactDecimal(rightNumber.String())
-		if err != nil {
-			return false, err
-		}
-		return leftValue.Cmp(rightValue) == 0, nil
+		return runtimeNumbersEqual(*left.number, *right.number)
 	case ParameterTypeArray:
-		var leftValues, rightValues []json.RawMessage
-		if err := decodeRaw(left, &leftValues); err != nil {
-			return false, err
-		}
-		if err := decodeRaw(right, &rightValues); err != nil {
-			return false, err
-		}
-		if len(leftValues) != len(rightValues) {
-			return false, nil
+		if len(left.items) != len(right.items) {
+			return false
 		}
 		itemProperty := ParameterProperty{
 			Type:    property.Items.Type,
@@ -606,60 +627,79 @@ func parameterValuesEqual(property ParameterProperty, left, right json.RawMessag
 			Maximum: property.Items.Maximum,
 			Enum:    property.Items.Enum,
 		}
-		for index := range leftValues {
-			equal, err := parameterValuesEqual(itemProperty, leftValues[index], rightValues[index])
-			if err != nil || !equal {
-				return equal, err
+		for index := range left.items {
+			if !parameterValuesEqual(itemProperty, left.items[index], right.items[index]) {
+				return false
 			}
 		}
-		return true, nil
+		return true
+	case ParameterTypeString:
+		return left.stringValue == right.stringValue
+	case ParameterTypeBoolean:
+		return left.boolValue == right.boolValue
 	default:
-		leftNormalized, err := validateParameterValue(property, left, "configuration")
-		if err != nil {
-			return false, err
-		}
-		rightNormalized, err := validateParameterValue(property, right, "default")
-		if err != nil {
-			return false, err
-		}
-		return bytes.Equal(leftNormalized, rightNormalized), nil
+		return false
 	}
 }
 
-func validateNumericValue(kind ParameterType, minimumNumber, maximumNumber json.Number, raw json.RawMessage, field string) (json.RawMessage, error) {
+func runtimeNumbersEqual(left, right runtimeNumber) bool {
+	if !left.isFloat && !right.isFloat {
+		return left.integer.Cmp(right.integer) == 0
+	}
+	if left.isFloat && right.isFloat {
+		return left.floating == right.floating
+	}
+	integer := left.integer
+	floating := right.floating
+	if left.isFloat {
+		integer = right.integer
+		floating = left.floating
+	}
+	floatRational := new(big.Rat).SetFloat64(floating)
+	return floatRational != nil && new(big.Rat).SetInt(integer).Cmp(floatRational) == 0
+}
+
+func normalizeNumericValue(kind ParameterType, minimumNumber, maximumNumber json.Number, raw json.RawMessage, field string) (normalizedParameterValue, error) {
 	var decoded any
 	if err := decodeRaw(raw, &decoded); err != nil {
-		return nil, parameterError(ErrParameterConfig, field, "must be a number")
+		return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, "must be a number")
 	}
 	number, ok := decoded.(json.Number)
 	if !ok {
-		return nil, parameterError(ErrParameterConfig, field, "must be a number")
+		return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, "must be a number")
 	}
 	value, err := exactDecimal(number.String())
 	if err != nil {
-		return nil, parameterError(ErrParameterConfig, field, err.Error())
+		return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, err.Error())
 	}
 	minimum, _ := exactDecimal(minimumNumber.String())
 	maximum, _ := exactDecimal(maximumNumber.String())
 	if kind == ParameterTypeInteger && !value.IsInt() {
-		return nil, parameterError(ErrParameterConfig, field, "must be integral")
+		return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, "must be integral")
 	}
 	if value.Cmp(minimum) < 0 || value.Cmp(maximum) > 0 {
-		return nil, parameterError(ErrParameterConfig, field, "is outside its declared minimum/maximum")
+		return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, "is outside its declared minimum/maximum")
 	}
 	if kind == ParameterTypeInteger {
-		return json.RawMessage(value.Num().String()), nil
+		integer := new(big.Int).Set(value.Num())
+		return normalizedParameterValue{raw: json.RawMessage(integer.String()), number: &runtimeNumber{integer: integer}}, nil
 	}
 	if strings.ContainsAny(number.String(), ".eE") {
 		floatValue, err := strconv.ParseFloat(number.String(), 64)
 		if err != nil || math.IsInf(floatValue, 0) || math.IsNaN(floatValue) {
-			return nil, parameterError(ErrParameterConfig, field, "is not a finite runtime float")
+			return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, "is not a finite runtime float")
 		}
 		if value.Sign() != 0 && floatValue == 0 {
-			return nil, parameterError(ErrParameterConfig, field, "nonzero value collapses to zero in the runtime float representation")
+			return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, "nonzero value collapses to zero in the runtime float representation")
 		}
+		canonical := strconv.FormatFloat(floatValue, 'g', -1, 64)
+		if !strings.ContainsAny(canonical, ".eE") {
+			canonical += ".0"
+		}
+		return normalizedParameterValue{raw: json.RawMessage(canonical), number: &runtimeNumber{isFloat: true, floating: floatValue}}, nil
 	}
-	return json.RawMessage(number.String()), nil
+	integer := new(big.Int).Set(value.Num())
+	return normalizedParameterValue{raw: json.RawMessage(integer.String()), number: &runtimeNumber{integer: integer}}, nil
 }
 
 func validateParameterLimits(limits ParameterLimits, requireSets bool) error {

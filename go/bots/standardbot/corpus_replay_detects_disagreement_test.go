@@ -4,6 +4,7 @@ package standardbot_test
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -154,12 +155,12 @@ func TestCheckCorpusMetadataDetectsAWrongScriptModule(t *testing.T) {
 	path, c := sampleCase(t)
 	modulePath := thisModulePath(t)
 
-	if err := checkCorpusMetadata(path, c, modulePath, c.Script.Version); err != nil {
+	if err := checkCorpusMetadata(path, c, modulePath); err != nil {
 		t.Fatalf("sample case %s does not pass metadata checks before perturbation (fix the sample, not this test): %v", path, err)
 	}
 
 	c.Script.Module = "github.com/example/not-the-real-module"
-	err := checkCorpusMetadata(path, c, modulePath, c.Script.Version)
+	err := checkCorpusMetadata(path, c, modulePath)
 	if err == nil {
 		t.Fatal("checkCorpusMetadata accepted a case declaring a different module entirely — the guard is not guarding")
 	}
@@ -179,12 +180,12 @@ func TestCheckCorpusMetadataDetectsAWrongParamsVersion(t *testing.T) {
 	path, c := sampleCase(t)
 	modulePath := thisModulePath(t)
 
-	if err := checkCorpusMetadata(path, c, modulePath, c.Script.Version); err != nil {
+	if err := checkCorpusMetadata(path, c, modulePath); err != nil {
 		t.Fatalf("sample case %s does not pass metadata checks before perturbation (fix the sample, not this test): %v", path, err)
 	}
 
 	c.ParamsVersion = "not-the-resolved-row-contract/v1"
-	err := checkCorpusMetadata(path, c, modulePath, c.Script.Version)
+	err := checkCorpusMetadata(path, c, modulePath)
 	if err == nil {
 		t.Fatal("checkCorpusMetadata accepted a case declaring the wrong resolved-parameter-row protocol")
 	}
@@ -197,13 +198,14 @@ func TestCheckCorpusMetadataDetectsAWrongParamsVersion(t *testing.T) {
 // that the public corpus cannot silently shrink, duplicate a decision, or
 // stop representing one of the 30 source tests recorded at capture time.
 func TestCheckCorpusInventoryDetectsCountIdentityAndSourceCoverageDrift(t *testing.T) {
+	entries := corpusEntries(t)
 	cases := allCorpusCases(t)
-	if err := checkCorpusInventory(cases); err != nil {
+	if err := checkCorpusInventory(entries, cases); err != nil {
 		t.Fatalf("unmodified corpus inventory is invalid: %v", err)
 	}
 
 	t.Run("missing case", func(t *testing.T) {
-		err := checkCorpusInventory(append([]corpusCase(nil), cases[:len(cases)-1]...))
+		err := checkCorpusInventory(entries[:len(entries)-1], append([]corpusCase(nil), cases[:len(cases)-1]...))
 		if err == nil || !strings.Contains(err.Error(), "want exactly 53") {
 			t.Fatalf("missing case error = %v, want exact-count failure", err)
 		}
@@ -212,7 +214,7 @@ func TestCheckCorpusInventoryDetectsCountIdentityAndSourceCoverageDrift(t *testi
 	t.Run("duplicate identity", func(t *testing.T) {
 		mutated := append([]corpusCase(nil), cases...)
 		mutated[len(mutated)-1] = mutated[0]
-		err := checkCorpusInventory(mutated)
+		err := checkCorpusInventory(entries, mutated)
 		if err == nil || !strings.Contains(err.Error(), "duplicate identity") {
 			t.Fatalf("duplicate identity error = %v, want duplicate-identity failure", err)
 		}
@@ -228,33 +230,56 @@ func TestCheckCorpusInventoryDetectsCountIdentityAndSourceCoverageDrift(t *testi
 				mutated[index].Case = 10000 + index
 			}
 		}
-		err := checkCorpusInventory(mutated)
+		err := checkCorpusInventory(entries, mutated)
 		if err == nil || !strings.Contains(err.Error(), "source tests") {
 			t.Fatalf("missing source-test error = %v, want source-coverage failure", err)
 		}
 	})
+
+	t.Run("substituted source identity", func(t *testing.T) {
+		counts := make(map[string]int, expectedCorpusSourceTestCount)
+		for _, c := range cases {
+			counts[c.Test]++
+		}
+		replaceIndex := -1
+		for index, c := range cases {
+			if counts[c.Test] == 1 {
+				replaceIndex = index
+				break
+			}
+		}
+		if replaceIndex < 0 {
+			t.Fatal("corpus has no single-case source test to substitute while preserving the 30-source aggregate")
+		}
+		mutatedCases := append([]corpusCase(nil), cases...)
+		mutatedEntries := append([]string(nil), entries...)
+		mutatedCases[replaceIndex].Test = "TestSubstitutedSource"
+		mutatedCases[replaceIndex].Case = 0
+		mutatedEntries[replaceIndex] = filepath.Join(corpusDir, "TestSubstitutedSource.0.json")
+		err := checkCorpusInventory(mutatedEntries, mutatedCases)
+		if err == nil || !strings.Contains(err.Error(), "reviewed recording") {
+			t.Fatalf("substituted source error = %v, want exact reviewed-identity failure", err)
+		}
+	})
 }
 
-// TestCheckCorpusMetadataDetectsAnInconsistentScriptVersion perturbs
-// script.version — proving a corpus that quietly mixed two script versions
-// (one case recorded against a different release than the rest) is caught,
-// not silently averaged into "the corpus" as if it were one thing.
-func TestCheckCorpusMetadataDetectsAnInconsistentScriptVersion(t *testing.T) {
+// TestCheckCorpusMetadataDetectsAnIncorrectRecordedScriptVersion proves one
+// case cannot claim a different Chess Raiders Go module release.
+func TestCheckCorpusMetadataDetectsAnIncorrectRecordedScriptVersion(t *testing.T) {
 	path, c := sampleCase(t)
 	modulePath := thisModulePath(t)
-	realVersion := c.Script.Version
 
-	if err := checkCorpusMetadata(path, c, modulePath, realVersion); err != nil {
+	if err := checkCorpusMetadata(path, c, modulePath); err != nil {
 		t.Fatalf("sample case %s does not pass metadata checks before perturbation (fix the sample, not this test): %v", path, err)
 	}
 
 	c.Script.Version = "v99.99.99"
-	if c.Script.Version == realVersion {
+	if c.Script.Version == recordedCorpusScriptVersion {
 		t.Fatal("perturbation produced the same version as the original — pick a different fixed value")
 	}
-	err := checkCorpusMetadata(path, c, modulePath, realVersion)
+	err := checkCorpusMetadata(path, c, modulePath)
 	if err == nil {
-		t.Fatal("checkCorpusMetadata accepted a script.version that disagrees with the rest of the corpus — the guard is not guarding")
+		t.Fatal("checkCorpusMetadata accepted a script.version other than the exact recorded Chess Raiders Go module release")
 	}
 	if !strings.Contains(err.Error(), "script.version") {
 		t.Errorf("checkCorpusMetadata's error does not name the mismatching field (\"script.version\"): %v", err)
@@ -263,4 +288,18 @@ func TestCheckCorpusMetadataDetectsAnInconsistentScriptVersion(t *testing.T) {
 		t.Errorf("checkCorpusMetadata's error does not name the case (%q): %v", c.Test, err)
 	}
 	t.Logf("confirmed detection: %v", err)
+}
+
+func TestCheckCorpusMetadataRejectsAWholeCorpusRetag(t *testing.T) {
+	entries := corpusEntries(t)
+	cases := allCorpusCases(t)
+	modulePath := thisModulePath(t)
+	for index := range cases {
+		cases[index].Script.Version = "v0.0.3"
+	}
+	for index, c := range cases {
+		if err := checkCorpusMetadata(entries[index], c, modulePath); err == nil {
+			t.Fatalf("case %s.%d accepted after every case was retagged away from Chess Raiders Go module %s", c.Test, c.Case, recordedCorpusScriptVersion)
+		}
+	}
 }

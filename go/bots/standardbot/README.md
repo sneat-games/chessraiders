@@ -188,15 +188,18 @@ asks for: it feeds every one of those 53 cases' own recorded `{observation,
 memory, parameters, randomDraw, options}` into THIS checkout's own
 `runtime.Compile(Script)` and reports every decision that disagrees with what
 was recorded, naming the case and the field. It resolves which script
-version it is checking against from each case's own declared `script.version`
-— never from this module's `go.mod`, which has no version for a module that
-does not require itself — so a corpus that quietly mixed two recordings, or
-declared the wrong module, is caught before a single `decide()` call runs.
+version it is checking against by pinning the exact recorded Chess Raiders Go
+module v0.0.2 release and requiring every case's own declared `script.version`
+to match — never by inferring a version from this module's `go.mod`, which has
+no version for a module that does not require itself. It also pins the reviewed
+53 `(test, case)` identities to their exact filenames, so a corpus that quietly
+retags or substitutes a recording is caught before a single `decide()` call runs.
 [`corpus_replay_detects_disagreement_test.go`](corpus_replay_detects_disagreement_test.go)
-proves the detector itself: it perturbs a recorded intent, a parameter row
-and the declared script version, one at a time, and asserts each one is
-caught with a legible, case-naming error — a replayer that can only report
-agreement is not proven to detect disagreement.
+proves the detector itself: it perturbs a recorded intent and parameter row,
+retags one case and the whole corpus, and substitutes a source identity while
+preserving aggregate counts. Each mutation must be caught with a legible,
+case-naming error — a replayer that can only report agreement is not proven to
+detect disagreement.
 
 This still does not prove the bot plays well against a *live, moving*
 opponent, or that a change to `chess-raiders-bot.star` was intentional rather than a

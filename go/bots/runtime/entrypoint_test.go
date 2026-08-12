@@ -118,11 +118,98 @@ def decide(observation, memory, params, random_draw, options):
     return sorted([observation], key=decide)
 `,
 		},
+		{
+			name: "recursion through sorted literal positional expansion",
+			source: `
+def decide(observation, memory, params, random_draw, options):
+    return sorted(*([observation], decide))
+`,
+		},
+		{
+			name: "recursion through sorted literal keyword expansion",
+			source: `
+def decide(observation, memory, params, random_draw, options):
+    return sorted(**{"iterable": [observation], "key": decide})
+`,
+		},
+		{
+			name: "recursion through min literal keyword expansion",
+			source: `
+def decide(observation, memory, params, random_draw, options):
+    return min([observation], **{"key": decide})
+`,
+		},
+		{
+			name: "recursion through max literal keyword expansion",
+			source: `
+def decide(observation, memory, params, random_draw, options):
+    return max([observation], **{"key": decide})
+`,
+		},
+		{
+			name: "every explicit callback is graphed",
+			source: `
+def helper(value):
+    return value
+def decide(observation, memory, params, random_draw, options):
+    return min([observation], key=helper, **{"key": decide})
+`,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			if err := ValidateEntrypoint(test.source, "decide", 5); err == nil {
 				t.Fatal("ValidateEntrypoint() = nil, want static rejection")
+			}
+		})
+	}
+}
+
+func TestValidateEntrypointRejectsDynamicHigherOrderBuiltinExpansions(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		source string
+	}{
+		{
+			name: "sorted args",
+			source: `
+def decide(observation, memory, params, random_draw, options):
+    args = ([observation], decide)
+    return sorted(*args)
+`,
+		},
+		{
+			name: "sorted kwargs",
+			source: `
+def decide(observation, memory, params, random_draw, options):
+    kwargs = {"iterable": [observation], "key": decide}
+    return sorted(**kwargs)
+`,
+		},
+		{
+			name: "min kwargs",
+			source: `
+def decide(observation, memory, params, random_draw, options):
+    kwargs = {"key": decide}
+    return min([observation], **kwargs)
+`,
+		},
+		{
+			name: "max kwargs",
+			source: `
+def decide(observation, memory, params, random_draw, options):
+    kwargs = {"key": decide}
+    return max([observation], **kwargs)
+`,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			err := ValidateEntrypoint(test.source, "decide", 5)
+			if err == nil {
+				t.Fatal("ValidateEntrypoint() = nil, want dynamic spread rejection")
+			}
+			if !strings.Contains(err.Error(), "dynamic") {
+				t.Fatalf("ValidateEntrypoint() error = %v, want dynamic-spread reason", err)
 			}
 		})
 	}

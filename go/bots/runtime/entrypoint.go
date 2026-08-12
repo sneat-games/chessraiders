@@ -191,7 +191,12 @@ func staticRecursionCycle(file *syntax.File) ([]string, string) {
 					edges[from][target] = struct{}{}
 					return true
 				}
-				if callback := builtinKeyCallback(call, identifier.Name); callback != nil {
+				callbacks, reason := builtinKeyCallbacks(call, identifier.Name)
+				if reason != "" {
+					unsupportedCall = reason
+					return false
+				}
+				for _, callback := range callbacks {
 					target, userFunction, reason := resolveCallable(callback)
 					if reason != "" {
 						unsupportedCall = reason
@@ -267,26 +272,106 @@ func staticRecursionCycle(file *syntax.File) ([]string, string) {
 	return nil, ""
 }
 
-func builtinKeyCallback(call *syntax.CallExpr, callee string) syntax.Expr {
+func builtinKeyCallbacks(call *syntax.CallExpr, callee string) ([]syntax.Expr, string) {
 	if callee != "sorted" && callee != "min" && callee != "max" {
-		return nil
+		return nil, ""
 	}
+	callbacks := make([]syntax.Expr, 0, 1)
+	positionalIndex := 0
 	for _, argument := range call.Args {
-		keyword, ok := argument.(*syntax.BinaryExpr)
-		if !ok || keyword.Op != syntax.EQ {
-			continue
+		switch argument := argument.(type) {
+		case *syntax.BinaryExpr:
+			if argument.Op == syntax.EQ {
+				name, ok := argument.X.(*syntax.Ident)
+				if ok && name.Name == "key" {
+					callbacks = append(callbacks, argument.Y)
+				}
+				continue
+			}
+		case *syntax.UnaryExpr:
+			switch argument.Op {
+			case syntax.STAR:
+				expanded, ok := literalSequence(argument.X)
+				if !ok {
+					return nil, fmt.Sprintf("dynamic *args expansion at %s is forbidden for %s", argument.OpPos, callee)
+				}
+				for _, item := range expanded {
+					if callee == "sorted" && positionalIndex == 1 {
+						callbacks = append(callbacks, item)
+					}
+					positionalIndex++
+				}
+				continue
+			case syntax.STARSTAR:
+				expanded, ok := literalKeywords(argument.X)
+				if !ok {
+					return nil, fmt.Sprintf("dynamic **kwargs expansion at %s is forbidden for %s", argument.OpPos, callee)
+				}
+				for _, keyword := range expanded {
+					if keyword.name == "key" {
+						callbacks = append(callbacks, keyword.value)
+					}
+				}
+				continue
+			}
 		}
-		name, ok := keyword.X.(*syntax.Ident)
-		if ok && name.Name == "key" {
-			return keyword.Y
+		if callee == "sorted" && positionalIndex == 1 {
+			callbacks = append(callbacks, argument)
 		}
+		positionalIndex++
 	}
-	if callee == "sorted" && len(call.Args) >= 2 {
-		if _, keyword := call.Args[1].(*syntax.BinaryExpr); !keyword {
-			return call.Args[1]
-		}
+	return callbacks, ""
+}
+
+func literalSequence(expression syntax.Expr) ([]syntax.Expr, bool) {
+	expression = unwrapParens(expression)
+	switch expression := expression.(type) {
+	case *syntax.ListExpr:
+		return expression.List, true
+	case *syntax.TupleExpr:
+		return expression.List, true
+	default:
+		return nil, false
 	}
-	return nil
+}
+
+type literalKeyword struct {
+	name  string
+	value syntax.Expr
+}
+
+func literalKeywords(expression syntax.Expr) ([]literalKeyword, bool) {
+	dictionary, ok := unwrapParens(expression).(*syntax.DictExpr)
+	if !ok {
+		return nil, false
+	}
+	keywords := make([]literalKeyword, 0, len(dictionary.List))
+	for _, item := range dictionary.List {
+		entry, ok := item.(*syntax.DictEntry)
+		if !ok {
+			return nil, false
+		}
+		key, ok := unwrapParens(entry.Key).(*syntax.Literal)
+		if !ok || key.Token != syntax.STRING {
+			return nil, false
+		}
+		name, ok := key.Value.(string)
+		if !ok {
+			return nil, false
+		}
+		keywords = append(keywords, literalKeyword{name: name, value: entry.Value})
+	}
+	return keywords, true
+}
+
+func unwrapParens(expression syntax.Expr) syntax.Expr {
+	for {
+		parenthesized, ok := expression.(*syntax.ParenExpr)
+		if !ok {
+			return expression
+		}
+		expression = parenthesized.X
+	}
 }
 
 func expressionStart(expression syntax.Expr) syntax.Position {

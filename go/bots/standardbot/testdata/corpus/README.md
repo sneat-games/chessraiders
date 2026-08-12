@@ -64,7 +64,8 @@ from reading every test in `server-go/tests4bot`, then checked mechanically: run
 `go test ./server-go/tests4bot/ -record -v` and listing the distinct test
 names under this directory reproduces exactly these 30, no more and no
 fewer. The public replay test independently enforces the durable 53-case,
-30-source-test snapshot (including unique `(test, case)` identities). Re-run
+30-source-test snapshot, the exact reviewed `(test, case)` filename allowlist,
+and Chess Raiders Go module v0.0.2 as the one recorded release. Re-run
 the private check after editing any test in the package — a test that
 moves between these two buckets is exactly the kind of change this corpus
 exists to catch, not to hide.
@@ -119,7 +120,7 @@ Fields:
 |---|---|
 | `format` | This corpus's own format tag — pin against it before trusting the shape below. |
 | `paramsVersion` | `go/bots/standardbot`'s own `ParamsVersion` constant (`"chess-bot-tier-params/v1"`) — the protocol for the complete resolved parameter row in `parameters`. It is deliberately distinct from the raw partial-set envelope's `chess-raiders-bot-parameter-sets/v1` tag. |
-| `script` | `{module, version}` — the exact published Chess Raiders Go module and version (`github.com/sneat-games/chessraiders/go`, Chess Raiders Go module `v0.0.2` as of this writing) this case's `intent` was decided against. `go get $module@$version`, or read `https://pkg.go.dev/$module@$version`, and that release's own `go/bots/standardbot` is what ran this decision. Recorded per case, not only once for the whole corpus, so a single downloaded file stays fully informative on its own — and so a mismatch between an implementation's own replay and this file can be diagnosed as "the implementation disagrees with `$version`" rather than an open question of which `chess-raiders-bot.star` produced the recording in the first place. |
+| `script` | `{module, version}` — the exact published Chess Raiders Go module and version (`github.com/sneat-games/chessraiders/go`, Chess Raiders Go module `v0.0.2`) this snapshot permanently records. `go get $module@$version`, or read `https://pkg.go.dev/$module@$version`, and that release's own `go/bots/standardbot` is what ran this decision. Recorded per case, not only once for the whole corpus, so a single downloaded file stays fully informative on its own — and so a mismatch between an implementation's own replay and this file can be diagnosed as "the implementation disagrees with `$version`" rather than an open question of which `chess-raiders-bot.star` produced the recording in the first place. |
 | `test` | The `server-go/tests4bot` Go test function this decision came from — provenance, not a replay input. |
 | `case` | This decision's 0-based sequence within `test` — provenance, not a replay input. |
 | `difficulty` | `"recruit"`, `"lieutenant"`, `"commander"` or `"custom"` — which row of `parameters` was in play, and which of `go/bots/standardbot`'s three named rows this corresponds to (`"custom"` is Commander's own row with `breadth` overlaid from the match). |

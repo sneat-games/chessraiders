@@ -182,6 +182,109 @@ func TestNamedParameterSetsContainOnlySemanticDeltas(t *testing.T) {
 	}
 }
 
+func TestNamedParameterSetsUseRuntimeNumericEqualityRecursively(t *testing.T) {
+	scalarFloatSchema := strings.Replace(scalarParameterSchema, `"default":1.5`, `"default":0.1`, 1)
+	scalarIntegerSyntaxSchema := strings.Replace(scalarParameterSchema, `"default":1.5`, `"default":1`, 1)
+	arrayFloatSchema := `{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "type":"object",
+  "properties":{"weights":{"type":"array","default":[0.1],"items":{"type":"number","minimum":-1,"maximum":1}}},
+  "additionalProperties":false
+}`
+	for _, test := range []struct {
+		name     string
+		schema   string
+		override string
+	}{
+		{"float rounding", scalarFloatSchema, `{"weight":0.10000000000000001}`},
+		{"integer and float runtime equality", scalarIntegerSyntaxSchema, `{"weight":1.0}`},
+		{"array item float rounding", arrayFloatSchema, `{"weights":[0.10000000000000001]}`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			raw := []byte(`{"schema":"chess-raiders-bot-parameter-sets/v1","sets":{"default":` + test.override + `}}`)
+			_, err := ResolveParameterSet([]byte(test.schema), raw, "default", testParameterLimits)
+			assertParameterError(t, err, ErrParameterConfig)
+		})
+	}
+}
+
+func TestNumberNormalizationEmitsTheRuntimeFloatValue(t *testing.T) {
+	schema := strings.Replace(scalarParameterSchema, `"default":1.5`, `"default":0.1`, 1)
+	resolved, err := ResolveParameterConfig([]byte(schema), []byte(`{"weight":0.10000000000000001}`), testParameterLimits)
+	if err != nil {
+		t.Fatalf("ResolveParameterConfig() = %v", err)
+	}
+	const wantResolved = `{"count":4,"enabled":true,"lanes":[1,2],"mode":"steady","weight":0.1}`
+	if string(resolved) != wantResolved {
+		t.Fatalf("resolved config = %s, want %s with the canonical runtime float", resolved, wantResolved)
+	}
+	program, err := runtime.Compile(`def inspect(params):
+    return params["weight"]
+`)
+	if err != nil {
+		t.Fatalf("runtime.Compile() = %v", err)
+	}
+	got, err := program.Call("inspect", string(resolved))
+	if err != nil {
+		t.Fatalf("Program.Call() = %v", err)
+	}
+	if got != "0.1" {
+		t.Fatalf("runtime float = %s, want the normalized value 0.1", got)
+	}
+}
+
+func TestNamedSetValidationReusesOnePrecomputedLargeDefault(t *testing.T) {
+	// Each of 5,000 tiny overrides differs from one roughly 100 KB array
+	// default. Decoding that default once per set makes the work Cartesian;
+	// the parsed property's normalizedDefault makes every length mismatch O(1).
+	const (
+		defaultItems = 50_000
+		setCount     = 5_000
+	)
+	var defaultValue strings.Builder
+	defaultValue.WriteByte('[')
+	for index := 0; index < defaultItems; index++ {
+		if index != 0 {
+			defaultValue.WriteByte(',')
+		}
+		defaultValue.WriteByte('0')
+	}
+	defaultValue.WriteByte(']')
+	schemaRaw := []byte(`{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"values":{"type":"array","default":` + defaultValue.String() + `,"items":{"type":"integer","minimum":0,"maximum":1}}},"additionalProperties":false}`)
+
+	var sets strings.Builder
+	sets.WriteString(`{"schema":"chess-raiders-bot-parameter-sets/v1","sets":{`)
+	for index := 0; index < setCount; index++ {
+		if index != 0 {
+			sets.WriteByte(',')
+		}
+		fmt.Fprintf(&sets, `"set%04d":{"values":[]}`, index)
+	}
+	sets.WriteString(`}}`)
+	limits := ParameterLimits{
+		MaxDocumentBytes: 500_000,
+		MaxJSONDepth:     16,
+		MaxProperties:    1,
+		MaxSets:          setCount,
+		MaxResolvedBytes: 32,
+	}
+	schema, err := ParseParameterSchema(schemaRaw, limits)
+	if err != nil {
+		t.Fatalf("ParseParameterSchema(large default) = %v", err)
+	}
+	precomputed := schema.Properties["values"].normalizedDefault
+	if precomputed == nil || len(precomputed.items) != defaultItems {
+		t.Fatalf("precomputed default items = %v, want %d", precomputed, defaultItems)
+	}
+	resolved, err := resolveParameterSet(schema, []byte(sets.String()), "set4999", limits)
+	if err != nil {
+		t.Fatalf("resolveParameterSet(large default, many sets) = %v", err)
+	}
+	if string(resolved) != `{"values":[]}` {
+		t.Fatalf("resolved selected set = %s, want empty overriding array", resolved)
+	}
+}
+
 func TestSelectedParameterResolutionIsBoundedWithoutPropertiesTimesSetsExpansion(t *testing.T) {
 	const count = 128
 	var schema strings.Builder
@@ -254,9 +357,13 @@ func TestExportedParameterSetResolverRequiresEveryPositiveLimit(t *testing.T) {
 }
 
 func TestNumberParametersRejectRuntimeFloatOverflowAndUnderflowToZero(t *testing.T) {
+	wideSchema := strings.Replace(scalarParameterSchema,
+		`"default":1.5,"minimum":-10,"maximum":10`,
+		`"default":1.5,"minimum":-1e500,"maximum":1e500`,
+		1)
 	for _, literal := range []string{"1e400", "-1e400", "1e-4000", "-1e-4000"} {
 		raw := []byte(`{"weight":` + literal + `}`)
-		_, err := ResolveParameterConfig([]byte(scalarParameterSchema), raw, testParameterLimits)
+		_, err := ResolveParameterConfig([]byte(wideSchema), raw, testParameterLimits)
 		assertParameterError(t, err, ErrParameterConfig)
 	}
 }
