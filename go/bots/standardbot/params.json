@@ -21,7 +21,7 @@
       "targetLock": 1.5,
       "kingSafety": 3,
       "moralePush": 0.6,
-      "beaconAggression": 0,
+      "beaconAggression": 0.6,
       "delivery": 3,
       "prisoner": 0.5,
       "system": 1,

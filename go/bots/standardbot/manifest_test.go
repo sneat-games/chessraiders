@@ -108,6 +108,6 @@ func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 // A) and ROUTE_REPLACE_BASELINE moved from 0.0 to 0.7 (DEFECT B, the largest
 // margin that keeps TestFirstEngineerRouteRetentionExcludesNonPriorityRoutes
 // green) — see that task's report for the measured before/after evidence.
-const standardBotClosureDigest = "sha256:7f15c4e35559f1da20545f3b3d81e9a36867b1f8492b426c6999a7b0c90626c9"
+const standardBotClosureDigest = "sha256:031fe4594a805052e0ecfd386edb98494f02e8f9d3435f5eef4d9b67582ab67f"
 
 const standardBotScriptDigest = "08d40e74d42ea1ef8a8f9be7948cb3837b63ce56f1be38857b382a0312be75d7"
