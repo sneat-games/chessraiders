@@ -1817,14 +1817,153 @@ func TestQuietCycleRingPreservesPlacementOnlyActionsAndFitsLeaderMemory(t *testi
 		if intent == nil || intent["from"] != "d2" || intent["to"] != "d3" {
 			t.Fatalf("fixture did not append quiet-cycle state: %#v", intent)
 		}
-		if len(next) != 31 {
-			t.Fatalf("worst-case action + move + leader guard + quiet ring has %d entries, want the measured 31/32 Recruit bound: %#v", len(next), next)
+		// bitboard-safe: was 31 before the leader guard's twelve raw
+		// leaderBoard0..leaderBoard11 int64s became five JS-float64-safe
+		// packed entries (leaderBoard0..leaderBoard4) — see
+		// pack_placement_boards' own doc comment. Measured worst case
+		// dropped to 24 (25 with a route/Beacon-Restore channel also
+		// committed, TestBotMemoryStaysWithinJSFloat64SafeIntegerRange's
+		// own concern), both comfortably under Recruit's 32-entry budget.
+		if len(next) != 24 {
+			t.Fatalf("worst-case action + move + leader guard + quiet ring has %d entries, want the measured 24/32 Recruit bound: %#v", len(next), next)
 		}
 		t.Logf("leader guard plus quiet cycle ring uses %d/32 Recruit memory entries", len(next))
 		if next["quietVacated0"] == -1 {
 			t.Fatalf("ordinary quiet move did not record vacated source: %#v", next)
 		}
 	})
+}
+
+// TestBotMemoryStaysWithinJSFloat64SafeIntegerRange is the regression guard
+// for the bitboard-safe incident: bot memory round-trips as JSON int64
+// through the host — exact on the Go server, but the browser (wasm) path
+// relays it through JavaScript's own float64 JSON numbers, exact only up to
+// Number.MAX_SAFE_INTEGER (2**53-1). Measured production failure, Practice
+// Bot (Recruit, seed 31337): the leader guard's leaderBoard9 (the black-rook
+// placement category) carried bit 63 for a rook still on h8 on decision 6;
+// JS echoed the corrupted magnitude -9223372036854776000, and Go's own
+// json.Unmarshal then rejected it outright as botDecideRequest.memory
+// (int64) — the bot went permanently mute mid-match from that decision on.
+// Any square index >= 53 loses precision silently even when it does not
+// error outright. This test is deliberately general — it asserts the bound
+// over EVERY key the script emits, not just leaderBoard*, so any future
+// memory key is covered without this test needing to know its name.
+func TestBotMemoryStaysWithinJSFloat64SafeIntegerRange(t *testing.T) {
+	const jsSafeIntegerMax = 9007199254740991 // 2**53 - 1, Number.MAX_SAFE_INTEGER
+
+	assertJSSafe := func(t *testing.T, step string, memory map[string]int64) {
+		t.Helper()
+		for key, value := range memory {
+			if value > jsSafeIntegerMax || value < -jsSafeIntegerMax {
+				t.Fatalf("%s: memory[%q] = %d exceeds the JS float64-safe integer range (|value| <= %d, Number.MAX_SAFE_INTEGER) -- this is exactly the bitboard-safe incident (Practice Bot, Recruit, seed 31337) that this test guards against", step, key, value, jsSafeIntegerMax)
+			}
+		}
+	}
+
+	// A full, realistic 32-piece standard-start board (both sides, every
+	// placement category populated) with two knobs so the same fixture can
+	// represent three consecutive decisions' worth of board state. h8 keeps
+	// its rook throughout: square index 63 is the bitboard's own sign bit,
+	// exactly the square that corrupted in production.
+	boardWith := func(kingSquare, knightSquare string) map[string]any {
+		return strategyObservation(t,
+			strategyCell("bk", kingSquare, "black", "king"), strategyCell("bq", "d8", "black", "queen"),
+			strategyCell("bra", "a8", "black", "rook"), strategyCell("brh", "h8", "black", "rook"),
+			strategyCell("bnb", "b8", "black", "knight"), strategyCell("bng", knightSquare, "black", "knight"),
+			strategyCell("bbc", "c8", "black", "bishop"), strategyCell("bbf", "f8", "black", "bishop"),
+			strategyCell("bpa", "a7", "black", "pawn"), strategyCell("bpb", "b7", "black", "pawn"),
+			strategyCell("bpc", "c7", "black", "pawn"), strategyCell("bpd", "d7", "black", "pawn"),
+			strategyCell("bpe", "e6", "black", "pawn"), // pre-advanced, so the king has an immediate quiet e7
+			strategyCell("bpf", "f7", "black", "pawn"), strategyCell("bpg", "g7", "black", "pawn"), strategyCell("bph", "h7", "black", "pawn"),
+			strategyCell("wk", "e1", "white", "king"), strategyCell("wq", "d1", "white", "queen"),
+			strategyCell("wra", "a1", "white", "rook"), strategyCell("wrh", "h1", "white", "rook"),
+			strategyCell("wnb", "b1", "white", "knight"), strategyCell("wng", "g1", "white", "knight"),
+			strategyCell("wbc", "c1", "white", "bishop"), strategyCell("wbf", "f1", "white", "bishop"),
+			strategyCell("wpa", "a2", "white", "pawn"), strategyCell("wpb", "b2", "white", "pawn"),
+			strategyCell("wpc", "c2", "white", "pawn"), strategyCell("wpd", "d2", "white", "pawn"),
+			strategyCell("wpe", "e2", "white", "pawn"), strategyCell("wpf", "f2", "white", "pawn"),
+			strategyCell("wpg", "g2", "white", "pawn"), strategyCell("wph", "h2", "white", "pawn"),
+		)
+	}
+	if got := countStrategyPieces(boardWith("e8", "g8"), "black") + countStrategyPieces(boardWith("e8", "g8"), "white"); got != 32 {
+		t.Fatalf("fixture has %d pieces, want a realistic full 32-piece board", got)
+	}
+
+	// Recruit's own breadth (4, params.json) ranks ALL sixteen own pieces by
+	// unit_priority and only evaluates the top four (move_proposals' own
+	// doc comment) — on a full board that can skip straight past whichever
+	// single piece this fixture gave a legal destination, unrelated to the
+	// JS-safety concern this test targets. Recruit's scoring WEIGHTS still
+	// drive every decision below; only breadth is widened so the one legal
+	// move this fixture offers each step is always reachable.
+	params := decodedRecruitParams(t)
+	params["breadth"] = float64(0)
+
+	// Decision 1: the king steps out quietly (e8->e7), arming the leader
+	// guard while every category board -- including h8's rook, bit 63 -- is
+	// still packed into memory.
+	first := boardWith("e8", "g8")
+	first["side"] = "black"
+	first["revision"] = float64(1)
+	first["legal"] = map[string]any{"bk": []any{"e7"}}
+	first["candidates"] = candidateFacts("bk", "e7", true, 1, 0, 0)
+	intent, memory1, _ := decisionWithParams(t, first, nil, params)
+	if intent == nil || intent["from"] != "e8" || intent["to"] != "e7" {
+		t.Fatalf("decision 1 did not choose the quiet king step: %#v", intent)
+	}
+	if memory1["leaderGuardActive"] != 1 {
+		t.Fatalf("decision 1 did not arm the leader guard: %#v", memory1)
+	}
+	assertJSSafe(t, "decision 1 (arms the guard, h8 rook sets bit 63)", memory1)
+
+	// Decision 2: an unrelated quiet knight move (g8->f6). The guard is
+	// still intact going INTO this decision (nothing has changed since
+	// decision 1 armed it), so this exercises the packed-board decode and
+	// re-compare path against the same full board.
+	second := boardWith("e7", "g8")
+	second["side"] = "black"
+	second["revision"] = float64(2)
+	second["legal"] = map[string]any{"bng": []any{"f6"}}
+	second["candidates"] = candidateFacts("bng", "f6", true, 1, 0, 0)
+	intent, memory2, _ := decisionWithParams(t, second, memory1, params)
+	if intent == nil || intent["from"] != "g8" || intent["to"] != "f6" {
+		t.Fatalf("decision 2 did not choose the quiet knight move: %#v", intent)
+	}
+	if memory2["leaderGuardActive"] != 1 {
+		t.Fatalf("decision 2 unexpectedly dropped the still-valid leader guard: %#v", memory2)
+	}
+	assertJSSafe(t, "decision 2 (unrelated quiet move, guard still armed)", memory2)
+
+	// Decision 3: the knight having since moved invalidates the guard's
+	// stored placement image; a further quiet king move (e7->d6) re-arms it
+	// fresh, exercising pack_placement_boards a second time over a changed
+	// board (the knight now at f6 instead of g8).
+	third := boardWith("e7", "f6")
+	third["side"] = "black"
+	third["revision"] = float64(3)
+	third["legal"] = map[string]any{"bk": []any{"d6"}}
+	third["candidates"] = candidateFacts("bk", "d6", true, 1, 0, 0)
+	intent, memory3, _ := decisionWithParams(t, third, memory2, params)
+	if intent == nil || intent["from"] != "e7" || intent["to"] != "d6" {
+		t.Fatalf("decision 3 did not choose the re-arming king step: %#v", intent)
+	}
+	if memory3["leaderGuardActive"] != 1 {
+		t.Fatalf("decision 3 did not re-arm the leader guard: %#v", memory3)
+	}
+	assertJSSafe(t, "decision 3 (guard invalidated by the knight, then re-armed)", memory3)
+
+	// The packed placement encoding is fixed-width: exactly five slots
+	// (leaderBoard0..leaderBoard4), never the old twelve
+	// (leaderBoard0..leaderBoard11). Pin that shape directly, on top of the
+	// magnitude bound above.
+	validLeaderBoardKeys := map[string]bool{"leaderBoard0": true, "leaderBoard1": true, "leaderBoard2": true, "leaderBoard3": true, "leaderBoard4": true}
+	for _, memory := range []map[string]int64{memory1, memory2, memory3} {
+		for key := range memory {
+			if strings.HasPrefix(key, "leaderBoard") && !validLeaderBoardKeys[key] {
+				t.Fatalf("memory key %q: the packed placement encoding uses only leaderBoard0..leaderBoard4, this key should not exist", key)
+			}
+		}
+	}
 }
 
 func TestRepeatPenaltyNeedsViableAlternativeAndExemptsExceptionalMoves(t *testing.T) {
