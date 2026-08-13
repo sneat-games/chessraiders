@@ -275,6 +275,9 @@ QUIET_VACATED_SQUARES = 3  # enough to break the observed queen shuffle without 
 MILLISECONDS_PER_SECOND = 1000.0  # unit conversion for the Tempo term's charge duration
 BITBOARD_SIGN_BIT = 1 << 63
 BITBOARD_MODULUS = 1 << 64
+PLACEMENT_SQUARES_PER_SLOT = 13  # 13 nibbles (52 bits) per packed placement memory entry — see pack_placement_boards' own doc comment
+PLACEMENT_BOARD_SLOTS = 5  # ceil(64 / PLACEMENT_SQUARES_PER_SLOT) packed entries cover every one of the 64 squares
+JS_SAFE_INTEGER_MAX = 9007199254740991  # 2**53 - 1 — the largest integer magnitude a browser's float64 JSON numbers still round-trip exactly (Number.MAX_SAFE_INTEGER)
 
 
 # =============================================================================
@@ -2128,10 +2131,11 @@ def system_proposals(observation, board, params):
 # WINNING proposal's own score at the moment it was submitted and how many
 # decisions have passed since, packed into ONE int64 memory entry
 # ("committed") rather than two or three bare ones: leader_guard_keys' own
-# comment measures the existing shape at 31 of Recruit's 32-entry
-# MemoryBudget in its own worst case (a move having happened AND a leader
-# guard active simultaneously), so a second bare key would already overflow
-# it. Arithmetic packing, not bitwise (unlike the placement bitboards
+# comment measures the full worst-case shape at 25 of Recruit's 32-entry
+# MemoryBudget (a move having happened AND a leader guard active
+# simultaneously) — packing age/kind/score into ONE entry keeps that margin
+# comfortable rather than spending it down key by key. Arithmetic packing,
+# not bitwise (unlike the placement bitboards
 # above): age and score both need ordinary decimal magnitudes, not flag
 # bits, and BotMemory.Values is int64-only (server-go/botcontract/memory.go)
 # — score is fixed-point, not float, for exactly that reason. Interrogation
@@ -2339,10 +2343,32 @@ def drop_refused(proposals, observation, memory):
 # One-ply leader reversal guard. It deliberately keeps placement as twelve
 # signed int64 side×rank bitboards, not a hash: each occupied square sets one
 # unique bit in exactly one category, so any intervening relocation, capture
-# or promotion changes at least one stored value. The twelve values plus
-# active/from/to/kind add sixteen entries to the existing eleven-entry memory
-# shape. The three quiet-vacated slots make 30; a historical action counter
-# can coexist for a measured worst case of 31/32 Recruit entries.
+# or promotion changes at least one stored value. That twelve-board shape is
+# still how every comparison below reasons about placement — only how it is
+# PERSISTED to memory changed (sneat-games/chessraiders bitboard-safe
+# incident): bot memory round-trips as JSON int64 through the host, exact on
+# the server, but the browser (wasm) path relays it through JavaScript's
+# float64 numbers, safe only up to JS_SAFE_INTEGER_MAX. A raw 64-bit bitboard
+# routinely sets bit 53 or higher (any occupied square with index >= 53) and
+# bit 63 flips the sign; both are silently-or-loudly unsafe in the browser —
+# measured production failure: a black rook on h8 (square index 63, bit 63 of
+# the black-rook category board) round-tripped through JS as a corrupted
+# magnitude that Go's own int64 JSON unmarshal then rejected outright, and
+# every later leader-guard decision for that bot failed identically from
+# then on. Since every square belongs to at most one of the twelve boards
+# (the same invariant this comment already leans on), pack_placement_boards
+# and unpack_placement_boards below store the whole 64-square layout as ONE
+# base-16 digit per square (0 = empty, 1..12 = the occupying board's slot +
+# 1) instead of twelve raw 64-bit values: PLACEMENT_SQUARES_PER_SLOT (13)
+# nibbles — 52 bits, comfortably under JS_SAFE_INTEGER_MAX's 53 — pack into
+# each of PLACEMENT_BOARD_SLOTS (5) int64 memory entries. Lossless, and
+# CHEAPER than the naive two-JS-safe-halves-per-board split (12 boards × 2 =
+# 24 entries): five slots plus active/from/to/kind add nine entries to the
+# existing eleven-entry memory shape. The three quiet-vacated slots make 23;
+# a historical action counter brings the measured worst case (a move having
+# happened AND a leader guard active simultaneously) to 24/32 Recruit
+# entries, 25/32 with a route/Beacon-Restore channel also committed — eight
+# or seven spares, not zero.
 RANK_BIT_SLOTS = {"pawn": 0, "knight": 1, "bishop": 2, "rook": 3, "queen": 4, "king": 5}
 
 def signed_bitboard(value):
@@ -2360,6 +2386,48 @@ def placement_bitboards(observation, moved_unit_id = 0, moved_to = ""):
         bitboards[side_slot + rank_slot] |= 1 << square_index(square)
     return [signed_bitboard(value) for value in bitboards]
 
+def pack_placement_boards(bitboards):
+    """The JS-float64-safe memory encoding for placement_bitboards' own
+    twelve-board result — see this section's own top comment for why. Every
+    square sets at most one bit across the twelve boards, so this walks all
+    64 squares once, looks up which (if any) board claims each one, and
+    packs the per-square board-slot-plus-one code (0..12, fits in a nibble)
+    PLACEMENT_SQUARES_PER_SLOT at a time into PLACEMENT_BOARD_SLOTS plain
+    (never negative, never large) int64 entries."""
+    packed = {}
+    for slot_index in range(PLACEMENT_BOARD_SLOTS):
+        base_square = slot_index * PLACEMENT_SQUARES_PER_SLOT
+        squares_in_slot = min(PLACEMENT_SQUARES_PER_SLOT, 64 - base_square)
+        value = 0
+        for local in range(squares_in_slot):
+            square = base_square + local
+            code = 0
+            for board_slot in range(12):
+                raw = bitboards[board_slot]
+                if raw < 0:
+                    raw += BITBOARD_MODULUS
+                if (raw >> square) & 1:
+                    code = board_slot + 1
+                    break
+            value |= code << (local * 4)
+        packed["leaderBoard" + str(slot_index)] = value
+    return packed
+
+def unpack_placement_boards(memory):
+    """The exact inverse of pack_placement_boards: reconstructs
+    placement_bitboards' own twelve-signed-int64-board shape so every
+    comparison below stays unchanged — only the memory boundary moved."""
+    bitboards = [0] * 12
+    for slot_index in range(PLACEMENT_BOARD_SLOTS):
+        base_square = slot_index * PLACEMENT_SQUARES_PER_SLOT
+        squares_in_slot = min(PLACEMENT_SQUARES_PER_SLOT, 64 - base_square)
+        value = memory.get("leaderBoard" + str(slot_index), 0)
+        for local in range(squares_in_slot):
+            code = (value >> (local * 4)) & 0xF
+            if code != 0:
+                bitboards[code - 1] |= 1 << (base_square + local)
+    return [signed_bitboard(value) for value in bitboards]
+
 def leader_kind(observation, cell):
     if cell["rank"] == "king":
         return 6  # king's rank bitboard slot + 1
@@ -2368,7 +2436,7 @@ def leader_kind(observation, cell):
     return 0
 
 def leader_guard_keys():
-    return ["leaderGuardActive", "leaderGuardFrom", "leaderGuardTo", "leaderGuardKind"] + ["leaderBoard" + str(slot) for slot in range(12)]
+    return ["leaderGuardActive", "leaderGuardFrom", "leaderGuardTo", "leaderGuardKind"] + ["leaderBoard" + str(slot) for slot in range(PLACEMENT_BOARD_SLOTS)]
 
 def clear_leader_guard(memory):
     for key in leader_guard_keys():
@@ -2385,27 +2453,21 @@ def leader_guard_matches(observation, memory):
     if source_cell and source_cell["side"] != observation["side"]:
         source_cell = None
     if source_cell and leader_kind(observation, source_cell) == memory["leaderGuardKind"]:
-        expected_pre = []
+        expected_pre = unpack_placement_boards(memory)
         side_slot = 0 if source_cell["side"] == "white" else 6
         board_slot = side_slot + memory["leaderGuardKind"] - 1
-        for slot in range(12):
-            value = memory.get("leaderBoard" + str(slot), 0)
-            if value < 0:
-                value += BITBOARD_MODULUS
-            if slot == board_slot:
-                value ^= (1 << memory["leaderGuardFrom"]) | (1 << memory["leaderGuardTo"])
-            expected_pre.append(signed_bitboard(value))
+        value = expected_pre[board_slot]
+        if value < 0:
+            value += BITBOARD_MODULUS
+        value ^= (1 << memory["leaderGuardFrom"]) | (1 << memory["leaderGuardTo"])
+        expected_pre[board_slot] = signed_bitboard(value)
         return placement_bitboards(observation) == expected_pre
     destination_cell = projected_cell(observation, to_square)
     if destination_cell and destination_cell["side"] != observation["side"]:
         destination_cell = None
     if not destination_cell or leader_kind(observation, destination_cell) != memory["leaderGuardKind"]:
         return False
-    bitboards = placement_bitboards(observation)
-    for slot in range(12):
-        if bitboards[slot] != memory.get("leaderBoard" + str(slot)):
-            return False
-    return True
+    return placement_bitboards(observation) == unpack_placement_boards(memory)
 
 def active_leader_guard(observation, memory):
     if not leader_guard_matches(observation, memory):
@@ -2495,8 +2557,8 @@ def build_memory(observation, memory, intent):
         updated_memory["leaderGuardTo"] = to_index
         updated_memory["leaderGuardKind"] = leader_kind(observation, leader)
         bitboards = placement_bitboards(observation, leader["unitId"], intent["to"])
-        for slot in range(12):
-            updated_memory["leaderBoard" + str(slot)] = bitboards[slot]
+        for key, value in pack_placement_boards(bitboards).items():
+            updated_memory[key] = value
     quiet_ordinary = quiet_ordinary_intent(observation, intent)
     updated_memory["lastQuietTo"] = to_index if quiet_ordinary else NO_SQUARE_INDEX
     if quiet_ordinary:

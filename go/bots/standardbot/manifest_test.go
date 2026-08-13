@@ -102,13 +102,22 @@ func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 // Updated only when an intentional standard-bot artifact change is reviewed.
 // This is a closure digest, not the Go module version.
 //
-// Updated 2026-08-13 (sneat-co/chessraiders#84, route-commitment mechanism):
-// chess-raiders-bot.star changed — retention while a route/Beacon-Restore
-// channel is in flight is now VALUE-AWARE (COMMITMENT_DECAY, alongside
-// ROUTE_REPLACE_BASELINE) instead of the flat margin alone, per the
-// founder-ratified route-commitment design (issue #84 comment). No params
-// changed; params.resolved.json is untouched. See the route-commitment PR
-// description for the full validation matrix.
-const standardBotClosureDigest = "sha256:af95dd4f915ca0660b19970bc26d971cf561cf3f4e7365cbf54e4b91863c87b2"
+// Updated 2026-08-13 (bitboard-safe): chess-raiders-bot.star changed — the
+// leader guard's twelve placement bitboards are no longer persisted as raw
+// 64-bit ints (leaderBoard0..leaderBoard11). Bot memory round-trips as JSON
+// int64 through the host, exact on the server, but the browser (wasm) path
+// relays it through JavaScript's float64 numbers, safe only up to
+// Number.MAX_SAFE_INTEGER (2**53-1): a bitboard with a set bit at square
+// index >= 53 silently loses precision, and bit 63 (the sign bit) corrupts
+// outright — measured production failure, Practice Bot (Recruit, seed
+// 31337): leaderBoard9 carried bit 63 on decision 6, and every later
+// leader-guard decision for that bot failed identically from then on
+// (json: cannot unmarshal number -9223372036854776000 into Go struct field
+// botDecideRequest.memory of type int64). pack_placement_boards /
+// unpack_placement_boards now store the same twelve-board placement
+// losslessly as five JS-safe leaderBoard0..leaderBoard4 entries (a packed
+// nibble-per-square code) instead of twelve raw ones — see that function's
+// own doc comment. No params changed; params.resolved.json is untouched.
+const standardBotClosureDigest = "sha256:8b68a178792eb9bb250b4a112989fe49a121bf860e5df2f2429f1250d1f947f1"
 
-const standardBotScriptDigest = "9826764e275879c94df72aa7de0bf830dc5a974670776680527909f9ed4ae260"
+const standardBotScriptDigest = "2f372be0cdaf9cb1310d968c846121774064d1ec54b381d75d013bc5fb47329a"
