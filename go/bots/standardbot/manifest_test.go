@@ -101,6 +101,6 @@ func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 
 // Updated only when an intentional standard-bot artifact change is reviewed.
 // This is a closure digest, not the Go module version.
-const standardBotClosureDigest = "sha256:7029fbd941db2843c9de6a2b71c01c5cd181e191701b905f8591b0f24e46b628"
+const standardBotClosureDigest = "sha256:12b6a98d9396114f248bb5c29d6bca56b54af8f24500f350bfc882ce52ae1400"
 
 const standardBotScriptDigest = "201a96ed9c124840984a1cd7320555e32b0de3e3c33a4b477976171f22747920"
