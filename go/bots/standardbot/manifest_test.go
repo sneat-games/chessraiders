@@ -102,12 +102,13 @@ func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 // Updated only when an intentional standard-bot artifact change is reviewed.
 // This is a closure digest, not the Go module version.
 //
-// Updated 2026-08-13 (sneat-co/chessraiders#84 stall-fix): chess-raiders-
-// bot.star changed — the guards/guardedBy positional-support term is now
-// gated behind ordinary_piece (excludes the king/current Beacon bearer, DEFECT
-// A) and ROUTE_REPLACE_BASELINE moved from 0.0 to 0.7 (DEFECT B, the largest
-// margin that keeps TestFirstEngineerRouteRetentionExcludesNonPriorityRoutes
-// green) — see that task's report for the measured before/after evidence.
-const standardBotClosureDigest = "sha256:031fe4594a805052e0ecfd386edb98494f02e8f9d3435f5eef4d9b67582ab67f"
+// Updated 2026-08-13 (sneat-co/chessraiders#84, route-commitment mechanism):
+// chess-raiders-bot.star changed — retention while a route/Beacon-Restore
+// channel is in flight is now VALUE-AWARE (COMMITMENT_DECAY, alongside
+// ROUTE_REPLACE_BASELINE) instead of the flat margin alone, per the
+// founder-ratified route-commitment design (issue #84 comment). No params
+// changed; params.resolved.json is untouched. See the route-commitment PR
+// description for the full validation matrix.
+const standardBotClosureDigest = "sha256:af95dd4f915ca0660b19970bc26d971cf561cf3f4e7365cbf54e4b91863c87b2"
 
-const standardBotScriptDigest = "08d40e74d42ea1ef8a8f9be7948cb3837b63ce56f1be38857b382a0312be75d7"
+const standardBotScriptDigest = "9826764e275879c94df72aa7de0bf830dc5a974670776680527909f9ed4ae260"
