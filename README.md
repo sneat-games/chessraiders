@@ -25,7 +25,10 @@ narrated version of the same rules.
 
 [`go/`](go/) holds Chess Raiders' standard bot as source you can read, fork and
 run: the Starlark script it decides by, the parameter table whose rows are its
-difficulty tiers, and the interpreter that executes them. It is a Go module,
+difficulty tiers (see
+[`go/bots/standardbot/PARAMS.md`](go/bots/standardbot/PARAMS.md) for how that
+table is authored, resolved and published), and the interpreter that executes
+them. It is a Go module,
 `github.com/sneat-games/chessraiders/go`, and it depends on nothing but the Go
 standard library and `go.starlark.net` — an invariant enforced in CI, so that
 anyone can build it without access to anything of ours.

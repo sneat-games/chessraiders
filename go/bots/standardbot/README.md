@@ -20,10 +20,22 @@ The standard Chess Raiders bot, published as one portable four-file closure:
 - **[`chess-raiders-bot.json`](chess-raiders-bot.json)** — the portable
   manifest that binds the script, schema and partial sets into one exact
   executable closure.
+- **[`params.resolved.json`](params.resolved.json)** — the four complete tier
+  rows, one per named set above, materialized by calling `ResolveParams`. It
+  is GENERATED output, never hand-edited: regenerate it with
+  `go generate ./bots/standardbot` after any `params.json`/`params.schema.json`
+  change, and `resolved_params_test.go` fails the build if it drifts from
+  what `ResolveParams` actually returns. It exists so a consumer that cannot
+  run this package's JSON-Schema resolver — the private webapp's
+  `wasmBridge.ts` — can load one complete row per tier with a single
+  synchronous JSON read, instead of reimplementing default-filling in
+  TypeScript. See [`PARAMS.md`](PARAMS.md) for the full params architecture.
 
 [`script.go`](script.go) embeds the script, schema, parameter sets and manifest
-verbatim (`Script`, `ParamsSchema`, `Params` and `Manifest`)
-so a Go program can load them without touching the filesystem; see
+verbatim (`Script`, `ParamsSchema`, `Params` and `Manifest`), and
+[`resolved_params.go`](resolved_params.go) embeds the generated resolved rows
+the same way (`ResolvedParams`), so a Go program can load any of them without
+touching the filesystem; see
 [go/bots/runtime](../runtime) for the interpreter that actually runs `Script`.
 Everything below assumes no access to Chess Raiders' private implementation
 and no goal beyond reading this bot, changing it, and running `go test`.
@@ -178,10 +190,15 @@ category matters* without touching what triggers it; a scheduling knob
 changes *how much of the board gets looked at*; a doctrine switch changes
 *whether a whole category of action is available at all*. Change one number,
 re-run the conformance suite below, and read the diff in `decide()`'s
-behavior against the empty-board smoke test or your own richer observation —
-there is nothing else to regenerate: `params.schema.json` is the one source of
-defaults, `params.json` contains only named differences, and `ResolveParams`
-produces the inert data `chess-raiders-bot.star` reads at call time.
+behavior against the empty-board smoke test or your own richer observation:
+`params.schema.json` is the one source of defaults, `params.json` contains
+only named differences, and `ResolveParams` produces the inert data
+`chess-raiders-bot.star` reads at call time. The one thing to regenerate is
+`params.resolved.json` — run `go generate ./bots/standardbot`, which calls
+nothing but `ResolveParams` itself, and commit the result;
+`resolved_params_test.go` fails `go test ./...` if you forget. See
+[`PARAMS.md`](PARAMS.md) for the full picture of how the authored, resolution
+and generated layers fit together.
 
 ## Running the conformance suite
 
