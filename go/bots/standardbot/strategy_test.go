@@ -148,9 +148,13 @@ func TestBeaconAggressionAndMatchRulesAreIndependentGates(t *testing.T) {
 
 func TestParamsTableCarriesFounderAggressionValues(t *testing.T) {
 	// The founder's aggression numbers (2026-08-12: every tier holds the
-	// Beacon dial, Recruit smallest) asserted against the RESOLVED rows, so
-	// the sparse named-set encoding can never silently drop them.
-	for tier, want := range map[string]float64{"recruit": 0.3, "lieutenant": 0.6, "commander": 0.9, "adviser": 1.0} {
+	// Beacon dial, Recruit smallest; amended 2026-08-13: Lieutenant's dial
+	// to 0 — measured beacon route churn kept its units busy past the
+	// training gate, and the founder chose training over beacon play for
+	// this tier until the churn defect is fixed) asserted against the
+	// RESOLVED rows, so the sparse named-set encoding can never silently
+	// drop them.
+	for tier, want := range map[string]float64{"recruit": 0.3, "lieutenant": 0, "commander": 0.9, "adviser": 1.0} {
 		if got := resolvedRowValue(t, tier, "beaconAggression"); got != want {
 			t.Errorf("%s beaconAggression = %v, want %v", tier, got, want)
 		}
