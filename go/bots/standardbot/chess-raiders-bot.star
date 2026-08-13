@@ -128,6 +128,36 @@ ROUTE_REPLACE_URGENCY_VALUE = 1.0  # tier-independent bounded cost of cancelling
 # beat that swing would exceed 0.75 and break the test above, so that
 # remaining case is reported as open, not silently forced through here.
 ROUTE_REPLACE_BASELINE = 0.7
+# COMMITMENT_DECAY (sneat-co/chessraiders#84, route-commitment mechanism —
+# the remaining open case ROUTE_REPLACE_BASELINE's own comment just
+# described): that margin is a FLAT wall — retention scores 0 plus the
+# margin, regardless of what the in-flight route is actually worth — which
+# is exactly why it cannot fix a swing the flat margin cannot see coming: a
+# Commander-tier kill charge measured at ~9.6 was replaced by a
+# targetLock-dodge measured at ~1.6-1.8, then re-proposed, forever, because
+# ANY candidate scoring above 0.7 unseats ANY committed route no matter how
+# valuable that route itself is. retention_score (below, alongside
+# COMMIT_KIND_ROUTE/_KING) instead remembers the WINNING proposal's own
+# score at the moment it was submitted (build_memory's "committed" entry,
+# written by next_committed) and prices retention as committed_score *
+# COMMITMENT_DECAY^age + ROUTE_REPLACE_BASELINE, age counted in decisions
+# since that commitment (the same currency this file's other memory counters
+# already use). A fresh 9.6 needs a replacement scoring above
+# 9.6*0.9 + 0.7 = 9.34, so the 1.6-1.8 dodge can never unseat it; a
+# genuinely better capture still wins immediately (it outscores the
+# committed value, not merely the flat margin); and a STALE commitment
+# decays toward the flat baseline as the position changes, so v0.0.7's own
+# flat-margin behaviour is the LIMIT case as age grows, never regressed —
+# TestFirstEngineerRouteRetentionExcludesNonPriorityRoutes stays green
+# because a fresh commitment's floor can only rise above ROUTE_REPLACE_
+# BASELINE, never fall below it. A SCRIPT CONSTANT, not a param (founder
+# call, 2026-08-13, route-commitment design doc: constant over a per-tier
+# tuning knob — "smallest surface, delta-enforcement untouched"). 0.9 is the
+# measured choice among {0.85, 0.9, 0.95} against the founder's own
+# validation matrix (churn, engagement, winner-horizon, the 12k-tick soak);
+# see the route-commitment PR description for the full table each value
+# produced.
+COMMITMENT_DECAY = 0.9
 
 # ---- the win condition: walking a captured king home -----------------------
 DELIVERY_BONUS = 500.0  # reaching a delivery square ends the match in our favour
@@ -2088,6 +2118,186 @@ def system_proposals(observation, board, params):
 # itself comes from each current Cell.charging fact, never stale memory.
 # =============================================================================
 
+# =============================================================================
+# Route/channel commitment (sneat-co/chessraiders#84, route-commitment —
+# COMMITMENT_DECAY's own comment has the full accounting of WHY). WHICH kind
+# of in-flight channel this bot is currently defending — a unit's own
+# move/route charge, or the king's own Beacon Restore, both of which
+# chess/apply.go's shared trial-cancel path (`interrogating || restoring ||
+# ...`) protects from a competing command the identical way — plus the
+# WINNING proposal's own score at the moment it was submitted and how many
+# decisions have passed since, packed into ONE int64 memory entry
+# ("committed") rather than two or three bare ones: leader_guard_keys' own
+# comment measures the existing shape at 31 of Recruit's 32-entry
+# MemoryBudget in its own worst case (a move having happened AND a leader
+# guard active simultaneously), so a second bare key would already overflow
+# it. Arithmetic packing, not bitwise (unlike the placement bitboards
+# above): age and score both need ordinary decimal magnitudes, not flag
+# bits, and BotMemory.Values is int64-only (server-go/botcontract/memory.go)
+# — score is fixed-point, not float, for exactly that reason. Interrogation
+# shares the same engine-level trial-cancel path but is deliberately NOT a
+# third kind here — is_king_channel_start's own doc comment has the reason
+# (a pinned test's own model of the king staying free during its own
+# suspect's Interrogation).
+# =============================================================================
+COMMIT_KIND_ROUTE = 1  # a unit's own move/route charge (board["charging_units"])
+COMMIT_KIND_KING = 2  # the king's own Beacon Restore channel
+COMMIT_SCORE_SCALE = 1000.0  # three decimal digits of score precision
+COMMIT_SCORE_OFFSET = 2000000  # keeps the packed score field non-negative
+COMMIT_SCORE_FIELD = 4000000  # score field width: +/-2000.0, comfortably above every reachable committed score (PRIORITY_CAPTIVE_DELIVERY_SCORE's 1000 included)
+COMMIT_AGE_FIELD = 100000  # width of the age field within the packed value
+COMMIT_AGE_CAP = 64  # COMMITMENT_DECAY^64 is negligible for every candidate decay value tried; bounds both the decay_power loop and the packed value's own growth
+
+def round_half_up(value):
+    """Starlark's Universe has no round() builtin (go.starlark.net's own
+    predeclared set stops at int()/float()), so this rounds a float to the
+    nearest integer by hand, ties away from zero — adequate for packing a
+    committed score, which is never itself a tie-break input."""
+    if value >= 0:
+        return int(value + 0.5)
+    return -int(-value + 0.5)
+
+def pack_committed(kind, age, score):
+    offset_score = round_half_up(score * COMMIT_SCORE_SCALE) + COMMIT_SCORE_OFFSET
+    if offset_score < 0:
+        offset_score = 0
+    elif offset_score >= COMMIT_SCORE_FIELD:
+        offset_score = COMMIT_SCORE_FIELD - 1
+    return kind * (COMMIT_AGE_FIELD * COMMIT_SCORE_FIELD) + age * COMMIT_SCORE_FIELD + offset_score
+
+def unpack_committed(packed):
+    """Returns (kind, age, score). kind is 0 — neither COMMIT_KIND_ROUTE nor
+    COMMIT_KIND_KING is ever 0 — for an absent entry: memory.get("committed",
+    0)'s own default reads back as exactly this sentinel, the same
+    "0/NO_SQUARE_INDEX means absent" convention this file's other memory
+    fields already use."""
+    field = COMMIT_AGE_FIELD * COMMIT_SCORE_FIELD
+    kind = packed // field
+    remainder = packed % field
+    age = remainder // COMMIT_SCORE_FIELD
+    offset_score = remainder % COMMIT_SCORE_FIELD
+    return kind, age, (offset_score - COMMIT_SCORE_OFFSET) / COMMIT_SCORE_SCALE
+
+def decay_power(age):
+    """COMMITMENT_DECAY raised to `age` by repeated multiplication —
+    Starlark has no exponent operator, and age is capped small
+    (COMMIT_AGE_CAP) so the loop costs nothing against the tier's own
+    StepBudget."""
+    value = 1.0
+    for _ in range(min(age, COMMIT_AGE_CAP)):
+        value *= COMMITMENT_DECAY
+    return value
+
+def retention_score(memory, kind):
+    """The value a replacement candidate must beat to cancel the in-flight
+    channel of the given KIND — ROUTE_REPLACE_BASELINE alone (today's flat
+    wall, unregressed) when memory holds no commitment for THIS kind (never
+    committed, a stale entry left by a DIFFERENT kind, or the tracked
+    channel already settled and was cleared by next_committed), otherwise
+    the decayed committed value plus that same baseline (COMMITMENT_DECAY's
+    own comment has the full accounting)."""
+    stored_kind, age, score = unpack_committed(memory.get("committed", 0))
+    if stored_kind != kind:
+        return ROUTE_REPLACE_BASELINE
+    return score * decay_power(age) + ROUTE_REPLACE_BASELINE
+
+def is_king_channel_start(intent):
+    """Whether `intent` opens the one king-actor multi-decision channel this
+    file protects with commitment: Beacon Restore. chess/apply.go's own
+    shared trial-cancel path (`interrogating || restoring || ...`) treats
+    Interrogate identically at the ENGINE level, but THIS script's own
+    busy_units already models "our king interrogating our own suspect" as
+    NOT locking the king (build_board's own comment: only the suspect is
+    marked busy) — a deliberate, pre-existing choice
+    TestSimultaneousInterrogationsBusyBothTargetsAndOurKing pins (the king
+    stays free to act while its own suspect's Interrogation continues), so
+    treating Interrogate as a protectable channel here would fight that
+    pinned behaviour rather than extend it: gating king proposals against a
+    decayed Interrogate commitment leaves the king "channel active" in a
+    position that test asserts it is NOT. Extending protection to
+    Interrogate is therefore left OUT — see this task's own report for the
+    full reasoning — and every OTHER king action (an ordinary move, Beacon
+    Deploy/Hand-off, a wall dismantle) is a single-decision act with
+    nothing to protect either way."""
+    return intent != None and intent["kind"] == "action" and intent.get("action") == "beacon_restore"
+
+def king_channel_active(observation, board):
+    """Whether the king currently has an in-flight Beacon Restore —
+    chess/apply.go's own restoring() fact, read from the wire the script
+    already has (observation["beacon"]["lifecycle"]) rather than new host
+    plumbing. See is_king_channel_start's own doc comment for why
+    Interrogation is deliberately not read here too."""
+    if board["king_cell"] == None:
+        return False
+    return observation.get("beacon", {}).get("lifecycle") == "restoring"
+
+def next_committed(observation, board, memory, chosen):
+    """The next "committed" memory value: a fresh commitment (age 0) the
+    moment a route-worthy move or a Beacon Restore is actually chosen; one
+    more decision of age on the SAME tracked channel while it survives this
+    decision untouched; or cleared (0, popped by finish_decision) the
+    instant neither a route charge nor the king's Restore is in flight — "a
+    stale entry protecting a dead route is a bug" (route-commitment design,
+    sneat-co/chessraiders#84), so channel liveness is read fresh from
+    board/observation every single decision, never from a memory-side
+    ticker of its own.
+
+    `chosen` is the winning proposal dict (intent/score/actor) exactly as
+    every other call site in this file already shapes one, or None for a
+    pass — the same shape decide() already threads through rank_options."""
+    intent = chosen["intent"] if chosen != None else None
+    if intent != None and intent["kind"] == "move":
+        mover = board["own_by_square"].get(intent["from"])
+        charge_ms = observation["rules"]["pieceChargeMs"].get(mover["rank"], 0) if mover else 0
+        if charge_ms > 0:
+            # The only "move" intents reachable while a route is ALREADY
+            # charging are move_proposals' own replaceable-charging-unit
+            # destinations (that function's own doc comment) — a genuine
+            # replacement. Reached before any route is charging yet, this
+            # is instead a route's FIRST commit, recorded before the charge
+            # itself is even visible on the wire (it only appears on the
+            # NEXT decision's observation) — recording it here means
+            # retention_score never has to special-case "brand new" versus
+            # "replaced". Gated on the mover's own charge duration (rather
+            # than recording on every move unconditionally) so an instant,
+            # zero-duration move never spends a memory entry it can never
+            # need — TestQuietCycleRingPreservesPlacementOnlyActionsAndFits
+            # LeaderMemory's own worst-case count pins exactly this.
+            return pack_committed(COMMIT_KIND_ROUTE, 0, chosen["score"])
+    if is_king_channel_start(intent):
+        return pack_committed(COMMIT_KIND_KING, 0, chosen["score"])
+
+    stored_kind, age, score = unpack_committed(memory.get("committed", 0))
+    if board["charging_units"] and stored_kind == COMMIT_KIND_ROUTE:
+        return pack_committed(COMMIT_KIND_ROUTE, min(age + 1, COMMIT_AGE_CAP), score)
+    king_id = board["king_cell"]["unitId"] if board["king_cell"] != None else NO_SQUARE_INDEX
+    actor = chosen.get("actor") if chosen != None else None
+    if king_channel_active(observation, board) and stored_kind == COMMIT_KIND_KING and actor != king_id:
+        # The channel survives untouched only when THIS decision's own
+        # action, if any, was not the king's own — ANY king action cancels
+        # an in-flight Restore (chess/apply.go's shared trial-cancel path),
+        # and a same-kind continuation (a fresh Restore) already returned
+        # its own new commitment above.
+        return pack_committed(COMMIT_KIND_KING, min(age + 1, COMMIT_AGE_CAP), score)
+    return 0
+
+def finish_decision(observation, board, memory, chosen, ranked):
+    """The one place every decide() return path funnels through: builds the
+    ordinary memory shape (build_memory, untouched by this mechanism) and
+    layers this decision's own "committed" entry on top of it — present
+    only while it is tracking something (next_committed's own 0 sentinel
+    pops it, matching every other NO_SQUARE_INDEX-style absent-entry
+    convention this file already uses rather than writing a meaningless
+    zero into the budget)."""
+    intent = chosen["intent"] if chosen != None else None
+    updated_memory = build_memory(observation, memory, intent)
+    committed = next_committed(observation, board, memory, chosen)
+    if committed == 0:
+        updated_memory.pop("committed", None)
+    else:
+        updated_memory["committed"] = committed
+    return intent, updated_memory, ranked
+
 def holds_focus(board, memory):
     """Retain only a route visibly committed to the enemy king. Other own
     charges stay system-busy but may be replaced by a host-offered legal move."""
@@ -2339,7 +2549,13 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     It still goes through rank_options as the sole candidate, so an adviser
     asking about this exact position sees the one move that will actually
     be played, with a "priorityDelivery" term explaining why, rather than
-    an empty list."""
+    an empty list.
+
+    ROUTE/CHANNEL COMMITMENT (sneat-co/chessraiders#84, route-commitment):
+    every return path below funnels through finish_decision rather than
+    build_memory directly — see that function's own doc comment, and
+    COMMITMENT_DECAY's, for why and how the ONE new "committed" memory
+    entry is written, decayed and cleared."""
     if observation["lifecycle"] != "playing":
         return None, memory, []
 
@@ -2350,13 +2566,13 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     # A visible enemy-king charge is already the highest-value objective.
     # Retain it even when it originated outside this bot's memory.
     if board["protected_charging_units"]:
-        return None, build_memory(observation, memory, None), []
+        return finish_decision(observation, board, memory, None, [])
 
     # StandardRules' convoy charge (2s) is longer than the Commander
     # cadence (1s). Keep this precise first-Engineer delivery route until it
     # settles instead of letting an equally-homeward alternative reset it.
     if priority_captive_delivery_in_flight(observation, board):
-        return None, build_memory(observation, memory, None), []
+        return finish_decision(observation, board, memory, None, [])
 
     # See this function's own doc comment above: gated identically to
     # bot4chess.go's own Decide (not holds_focus, no king-carrying convoy
@@ -2365,7 +2581,7 @@ def decide(observation, memory, params, host_random_draw, options = 0):
         priority = priority_captive_delivery_proposal(observation, board, params)
         if priority != None:
             ranked = rank_options([priority], params, options)
-            return priority["intent"], build_memory(observation, memory, priority["intent"]), ranked
+            return finish_decision(observation, board, memory, priority, ranked)
 
     proposals = []
     if not holds_focus(board, memory):
@@ -2374,16 +2590,43 @@ def decide(observation, memory, params, host_random_draw, options = 0):
         proposals = proposals + system_proposals(observation, board, params)
     proposals = drop_refused(proposals, observation, memory)
 
+    # King-channel commitment (sneat-co/chessraiders#84, route-commitment):
+    # a Beacon Restore is a multi-decision channel exactly like a route
+    # charge, but the king is never marked busy for it (build_board's own
+    # busy_units computation has no Restore case), so every OTHER king-actor
+    # candidate this decision generated — an ordinary move, Beacon
+    # Deploy/Hand-off, a wall dismantle, an Interrogate — must beat the SAME
+    # decayed-commitment retention_score protects a route with, or it is
+    # dropped here before it can even compete. Left unguarded, an in-flight
+    # Restore measured a start-cancel loop against exactly these competing
+    # king actions (route-commitment design doc, sneat-co/chessraiders#84: a
+    # Restore/Interrogate ping-pong, 1446/1467 cycles across a 12,000-tick
+    # soak) — is_king_channel_start's own doc comment explains why
+    # Interrogation itself is not ALSO a protected kind here, only one of
+    # the actions this gate weighs against a protected Restore. Gated on
+    # `not board["charging_units"]` because system_proposals itself already
+    # is (this function's own call above) — a route charge and the king's
+    # Restore are never BOTH freshly competing on the same decision.
+    if king_channel_active(observation, board) and not board["charging_units"] and board["king_cell"] != None:
+        king_threshold = retention_score(memory, COMMIT_KIND_KING)
+        king_id = board["king_cell"]["unitId"]
+        proposals = [proposal for proposal in proposals if proposal.get("actor") != king_id or proposal["score"] > king_threshold]
+
     # Retaining an active route is a real zero-score choice. Replacement is
     # the one-command-at-a-time exception, not an invitation to cancel sunk
     # progress for the tier's ordinary negative pass floor. The urgency term
     # above makes a nearly settled route harder to beat for every tier,
     # including Recruit whose ordinary move-duration tempo weight is zero.
+    # The threshold itself is VALUE-AWARE, not the flat ROUTE_REPLACE_
+    # BASELINE alone (COMMITMENT_DECAY's own comment has the full
+    # accounting) — retention_score falls back to that same flat baseline
+    # whenever memory holds no route commitment at all.
     if board["charging_units"]:
-        proposals = [proposal for proposal in proposals if proposal["score"] > ROUTE_REPLACE_BASELINE]
+        threshold = retention_score(memory, COMMIT_KIND_ROUTE)
+        proposals = [proposal for proposal in proposals if proposal["score"] > threshold]
 
     if not proposals:
-        return None, build_memory(observation, memory, None), []
+        return finish_decision(observation, board, memory, None, [])
 
     proposals = sorted(proposals, key=_proposal_score_key)
     # Ranked BEFORE the pass check below, from the same sorted list, so an
@@ -2393,7 +2636,7 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     ranked = rank_options(proposals, params, options)
     best_proposal = proposals[0]
     if best_proposal["score"] < params["passBelow"]:
-        return None, build_memory(observation, memory, None), ranked
+        return finish_decision(observation, board, memory, None, ranked)
 
     # Tie-break among equally good choices — the only randomness this bot
     # has, and it never affects a decision with a single good answer. It is
@@ -2402,4 +2645,4 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     while tied_count < len(proposals) and proposals[tied_count]["score"] >= best_proposal["score"] - TIE_BREAK_BAND:
         tied_count += 1
     chosen = proposals[intn(host_random_draw, tied_count)]
-    return chosen["intent"], build_memory(observation, memory, chosen["intent"]), ranked
+    return finish_decision(observation, board, memory, chosen, ranked)
