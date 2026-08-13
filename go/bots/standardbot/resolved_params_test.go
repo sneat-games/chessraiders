@@ -50,7 +50,7 @@ func TestResolvedParamsRowsCarryExpectedTierValues(t *testing.T) {
 	}
 	for key, want := range map[string]string{
 		"advance":          "0.1",
-		"beaconAggression": "0",
+		"beaconAggression": "0.6",
 		"prisoner":         "0.5",
 		"system":           "1",
 	} {

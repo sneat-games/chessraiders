@@ -74,7 +74,7 @@ func TestResolvedRowsPreserveThePublishedStandardBotSemantics(t *testing.T) {
 	want := map[string]string{
 		"adviser":    "103cfefa578bbf4600042e4c4946c6bbd5dc5974cec5a27720d69724db0c1a6d",
 		"commander":  "6f3f7079612af0792254b09ac5f08639aa8b45c02ebff56fcef5c6bba8073ed2",
-		"lieutenant": "a2c789638fd2ef0127be40cb805e75c8b8cb3b7bbcf1136eebbb2dca9dc83e28",
+		"lieutenant": "aeb9cceb8070b2f1ebaf9a0bad064f27cf0cf1f6eae1aa9153db78c39199ce16",
 		"recruit":    "7e377204f819a65d9886e4a1861871c6520d7415a9d388e5dafee4fbb479ce67",
 	}
 	for name, wantDigest := range want {

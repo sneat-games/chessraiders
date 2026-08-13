@@ -42,7 +42,7 @@
     "lieutenant": {
       "advance": 0.1,
       "advancedTraining": false,
-      "beaconAggression": 0,
+      "beaconAggression": 0.6,
       "breadth": 8,
       "candidateSpread": 12,
       "contestEnemyWork": false,

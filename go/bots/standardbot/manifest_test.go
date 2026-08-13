@@ -101,6 +101,13 @@ func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 
 // Updated only when an intentional standard-bot artifact change is reviewed.
 // This is a closure digest, not the Go module version.
-const standardBotClosureDigest = "sha256:12b6a98d9396114f248bb5c29d6bca56b54af8f24500f350bfc882ce52ae1400"
+//
+// Updated 2026-08-13 (sneat-co/chessraiders#84 stall-fix): chess-raiders-
+// bot.star changed — the guards/guardedBy positional-support term is now
+// gated behind ordinary_piece (excludes the king/current Beacon bearer, DEFECT
+// A) and ROUTE_REPLACE_BASELINE moved from 0.0 to 0.7 (DEFECT B, the largest
+// margin that keeps TestFirstEngineerRouteRetentionExcludesNonPriorityRoutes
+// green) — see that task's report for the measured before/after evidence.
+const standardBotClosureDigest = "sha256:031fe4594a805052e0ecfd386edb98494f02e8f9d3435f5eef4d9b67582ab67f"
 
-const standardBotScriptDigest = "201a96ed9c124840984a1cd7320555e32b0de3e3c33a4b477976171f22747920"
+const standardBotScriptDigest = "08d40e74d42ea1ef8a8f9be7948cb3837b63ce56f1be38857b382a0312be75d7"

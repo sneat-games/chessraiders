@@ -98,7 +98,36 @@ SAFE_TRADE_DISCOUNT = 0.35  # a trade that already wins material is treated as a
 RECAPTURE_DISCOUNT = 0.7  # a square a friendly piece guards is treated as a fraction of the risk (a recapture is available)
 KING_CARGO_ESCORT_RISK = KING_CARGO_VALUE  # losing the escort loses the captured king it carries
 ROUTE_REPLACE_URGENCY_VALUE = 1.0  # tier-independent bounded cost of cancelling a route that is close to settling
-ROUTE_REPLACE_BASELINE = 0.0  # retaining the current route is a real zero-score alternative; replacement must beat it
+# ROUTE_REPLACE_BASELINE (sneat-co/chessraiders#84, DEFECT B): retaining the
+# current route is the zero-score alternative, and a replacement candidate
+# must beat it — but ROUTE_REPLACE_URGENCY_VALUE's own deterrent is bounded
+# by REMAINING charge time (near-settlement is expensive to cancel, a
+# freshly-started charge is nearly free to cancel), and replacing a route
+# resets its remaining time to full, so that deterrent never accumulates:
+# the SAME actor can be re-targeted at a fresh destination every single
+# decision, forever, without ever crossing "close to settling". Measured
+# directly (pinned-legacy Lieutenant-vs-Lieutenant, beaconAggression=0.3,
+# 5 seeds x 500 ticks): 26-36 routes replaced per side out of 39-52 accepted,
+# only 33-79% of started charges ever completing, and the SAME actor
+# re-targeted at a fresh square almost every decision — a low-value quiet
+# reposition (Lieutenant's own advance weight is small: measured ~0.03-0.09
+# for an opening pawn push) was enough to unseat an already-committed route
+# every single time. A flat positive margin makes replacement require
+# CLEARLY outscoring retention, not merely beating it by an epsilon,
+# while staying BELOW TestFirstEngineerRouteRetentionExcludesNonPriorityRoutes'
+# own asserted floor (go/bots/standardbot/strategy_test.go) for a genuinely
+# attractive Commander-tier replacement (an affordable Kill/Capture nets
+# ~0.75-1.0 there before this margin) — 0.7 is the largest value that keeps
+# that whole suite green (bisected empirically; 0.75 already fails it),
+# confirming the fix stays inside the tier's own already-tested "a real
+# capture must still win" contract. NOTE: this margin fixes the LOW-value
+# churn class measured above. It does NOT fully suppress a SEPARATE,
+# HIGHER-value oscillation found during the same investigation (a
+# Commander-tier kill vs. targetLock-dodge swing measured at 9.6 vs. 1.6-1.8
+# — see the report for sneat-co/chessraiders#84): a margin large enough to
+# beat that swing would exceed 0.75 and break the test above, so that
+# remaining case is reported as open, not silently forced through here.
+ROUTE_REPLACE_BASELINE = 0.7
 
 # ---- the win condition: walking a captured king home -----------------------
 DELIVERY_BONUS = 500.0  # reaching a delivery square ends the match in our favour
@@ -1042,8 +1071,34 @@ def score_move(observation, board, params, memory, cell, destination):
         # guards minus one loss is positive. guardedBy rewards real backing
         # only when unsupportedQuiet did NOT fire; captures and immediate
         # promotions retain their senior tactical scoring without list noise.
+        #
+        # ordinary_piece-gated (sneat-co/chessraiders#84, DEFECT A): every
+        # sibling positional term above (pawn/piece advance, develop,
+        # coverage/patrol) already excludes the king and the current Beacon
+        # bearer, because their OWN movement is priced by the dedicated
+        # kingSafety/moralePush/beaconAggression terms instead. This
+        # guards/guardedBy block was the one term in this whole section that
+        # did NOT check ordinary_piece, so a king (or Beacon bearer) shuffling
+        # between two already-mutually-guarded squares — a purely sideways
+        # move with zero forward_progress gain, so moralePush never fires,
+        # and no active threat, so kingSafety never fires either — farmed a
+        # positive "coverage"/"safety" score every single time, forever,
+        # because guard_changes recomputes a fresh newly-guarded/lost delta
+        # each way. Measured: a Commander-vs-Commander standard-rules match
+        # (bare CreateLobby, KillOrCapture) reaches a position where BOTH
+        # kings' only positive-scoring move is exactly this shuffle
+        # (g3<->f3 / f6<->g6 in the recorded case) — it outscores a real,
+        # available capture (a knight for a bishop, net +1.050 after risk)
+        # because the shuffle scores 1.288-1.550 from guards/guardedBy alone
+        # — and the match runs out the full probed horizon (2000 ticks)
+        # without a single further kill, capture, delivery or winner in 4 of
+        # 5 seeds. No repetition guard catches it: the one-ply leader-
+        # reversal guard and the three-square quiet-vacated ring both
+        # deliberately exempt leader/Beacon-bearer moves (this file's own
+        # leader_reverse_forbidden/apply_repeat_penalty), so nothing else in
+        # the model ever recognises this as a repeat.
         if (quiet_move and candidate_known and not is_promotion_square(board["side"], destination) and
-                candidate.get("destinationVisible", False) and threatened_count(candidate) == 0):
+                candidate.get("destinationVisible", False) and threatened_count(candidate) == 0 and ordinary_piece):
             newly_guarded, sole_guard_lost = guard_changes(board, cell, candidate)
             net_outbound_material = (support_material(board, newly_guarded) -
                                      support_material(board, sole_guard_lost))
