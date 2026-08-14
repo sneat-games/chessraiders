@@ -75,6 +75,23 @@ type Source interface {
 	Mask(row, field int) uint32
 }
 
+// NestedSource is the optional structural extension for a Source that owns a
+// root row. It answers native observation values such as row arrays and board
+// grids without forcing every existing scalar-only Source to implement an
+// otherwise meaningless method.
+type NestedSource interface {
+	Value(row, field int) Value
+}
+
+// SquareMaskSource is the fixed-board counterpart to Source.Squares. A legal
+// destination set is a subset of exactly 64 squares, so returning a uint64
+// avoids allocating or retaining a host slice merely to make it iterable in a
+// script. A SquareMaskList exposes the same ordinary immutable sequence shape
+// to Starlark.
+type SquareMaskSource interface {
+	SquareMask(row, field int) uint64
+}
+
 // FieldSpec declares one attribute of one row kind: its script-visible name
 // and, for enum fields, the closed vocabulary its codes index.
 //
@@ -90,11 +107,20 @@ type FieldSpec struct {
 	Vocab *Vocabulary
 	// Repeated marks a square-list field, answered by Source.Squares.
 	Repeated bool
+	// SquareMask marks a fixed-board square sequence, answered by
+	// SquareMaskSource.SquareMask. Use it for legal destinations and any other
+	// subset of the 64-square board; Repeated remains for genuinely variable
+	// host-owned lists that cannot be represented as a square set.
+	SquareMask bool
 	// RepeatedInts marks an integer-list field, answered by Source.Ints.
 	RepeatedInts bool
 	// Relation marks a piece-relation field, answered by Source.Mask and
 	// surfaced as a UnitMask.
 	Relation bool
+	// Nested marks a native value field answered by Source.Value. It keeps the
+	// root observation dictionary-free while allowing it to expose row arrays,
+	// board grids, and other already-immutable native values.
+	Nested bool
 }
 
 // Schema is one row kind's complete, closed attribute surface.
@@ -178,8 +204,11 @@ type Row struct {
 	// field, so reading `unit.guarded_by` twice costs zero allocations and
 	// zero garbage. Nil until the kind declares repeated fields.
 	lists []SquareList
-	ints  []IntList
-	masks []UnitList
+	// squareMasks are preallocated fixed-board square sequences. Unlike lists,
+	// each one is a uint64 and never points to a host slice.
+	squareMasks []SquareMaskList
+	ints        []IntList
+	masks       []UnitList
 }
 
 var (
@@ -228,6 +257,15 @@ func (r *Row) Attr(name string) (starlark.Value, error) {
 		list.squares = r.source.Squares(r.index, field)
 		return list, nil
 	}
+	if spec.SquareMask {
+		source, ok := r.source.(SquareMaskSource)
+		if !ok {
+			return nil, fmt.Errorf("botvalue: %s.%s is a square mask but its source does not implement SquareMaskSource", r.schema.typeName, name)
+		}
+		list := &r.squareMasks[squareMaskSlot(r.schema, field)]
+		list.bits = source.SquareMask(r.index, field)
+		return list, nil
+	}
 	if spec.Relation {
 		list := &r.masks[relationSlot(r.schema, field)]
 		list.bits = r.source.Mask(r.index, field)
@@ -237,6 +275,13 @@ func (r *Row) Attr(name string) (starlark.Value, error) {
 		list := &r.ints[repeatedSlot(r.schema, field, true)]
 		list.values = r.source.Ints(r.index, field)
 		return list, nil
+	}
+	if spec.Nested {
+		nested, ok := r.source.(NestedSource)
+		if !ok {
+			return nil, fmt.Errorf("botvalue: %s.%s is nested but its source does not implement NestedSource", r.schema.typeName, name)
+		}
+		return nested.Value(r.index, field), nil
 	}
 	return boxScalar(r.source.Field(r.index, field), spec)
 }
@@ -277,6 +322,16 @@ func relationSlot(s *Schema, field int) int {
 	slot := 0
 	for i := 0; i < field; i++ {
 		if s.fields[i].Relation {
+			slot++
+		}
+	}
+	return slot
+}
+
+func squareMaskSlot(s *Schema, field int) int {
+	slot := 0
+	for i := 0; i < field; i++ {
+		if s.fields[i].SquareMask {
 			slot++
 		}
 	}
@@ -462,13 +517,16 @@ func (it *rowIter) Next(p *starlark.Value) bool {
 func (it *rowIter) Done() {}
 
 // NewRowArray pre-allocates every row object one kind will ever need for one
-// session — bounded by the protocol (<=32 units, <=64 squares) — so a
-// decision mints no row objects at all.
+// session — bounded by the protocol (<=32 live identities, <=64 projected
+// cells) — so a decision mints no row objects at all.
 func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *RowArray {
-	repeated, repeatedInts, relations := 0, 0, 0
+	repeated, squareMasks, repeatedInts, relations := 0, 0, 0, 0
 	for _, f := range schema.fields {
 		if f.Repeated {
 			repeated++
+		}
+		if f.SquareMask {
+			squareMasks++
 		}
 		if f.RepeatedInts {
 			repeatedInts++
@@ -482,6 +540,10 @@ func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *Ro
 	var lists []SquareList
 	if repeated > 0 {
 		lists = make([]SquareList, capacity*repeated)
+	}
+	var masksBySquare []SquareMaskList
+	if squareMasks > 0 {
+		masksBySquare = make([]SquareMaskList, capacity*squareMasks)
 	}
 	var ints []IntList
 	if repeatedInts > 0 {
@@ -498,6 +560,9 @@ func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *Ro
 		backing[i].sess = sess
 		if repeated > 0 {
 			backing[i].lists = lists[i*repeated : (i+1)*repeated]
+		}
+		if squareMasks > 0 {
+			backing[i].squareMasks = masksBySquare[i*squareMasks : (i+1)*squareMasks]
 		}
 		if repeatedInts > 0 {
 			backing[i].ints = ints[i*repeatedInts : (i+1)*repeatedInts]
@@ -518,26 +583,212 @@ func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *Ro
 // what makes a reference from the previous decision fail loudly.
 func (a *RowArray) Rebind(gen uint64) {
 	for _, r := range a.rows {
-		r.gen = gen
-		for j := range r.masks {
-			r.masks[j].gen = gen
-		}
+		rebindRow(r, gen)
 	}
 }
 
-// BindIdentityView tells every relation list on these rows which array
-// resolves a bit index back to a unit. It is a SEPARATE array from this one
-// whenever rows are ordered by square rather than by UnitIndex — see
-// UnitList.rows for why conflating the two silently returns the wrong unit.
-// It is host wiring only: no script ever sees this table, which is what
-// retires the ordering hazard from the protocol rather than documenting it.
-func (a *RowArray) BindIdentityView(byUnitIndex *RowArray) {
+func rebindRow(row *Row, gen uint64) {
+	row.gen = gen
+	for j := range row.masks {
+		row.masks[j].gen = gen
+	}
+}
+
+// ValueAt returns one pre-allocated row as an opaque native Value. Hosts use
+// it when placing a row in Board or exposing a root observation row, without
+// importing go.starlark.net themselves.
+func (a *RowArray) ValueAt(index int) Value {
+	if index < 0 || index >= len(a.rows) {
+		return None
+	}
+	return a.rows[index]
+}
+
+// RowView is an ordered, immutable view over the identity-stable rows of one
+// RowArray. The host changes only the ordering between decisions; the rows
+// themselves are the exact same objects relations use, so `unit in
+// other.defenders` retains identity semantics without allocating copies.
+type RowView struct {
+	source *RowArray
+	// Ordered views are used for board cells, which need an arbitrary square
+	// order. Range views are used for a compact producer-owned run of rows,
+	// such as one unit's candidate facts. Unit relations use the separate,
+	// fixed 32-entry UnitIdentityView below.
+	order     [64]uint16
+	start     int
+	count     int
+	rangeView bool
+}
+
+var (
+	_ starlark.Value     = (*RowView)(nil)
+	_ starlark.Indexable = (*RowView)(nil)
+	_ starlark.Sequence  = (*RowView)(nil)
+	_ starlark.Container = (*RowView)(nil)
+)
+
+func NewRowView(source *RowArray) *RowView {
+	return &RowView{source: source}
+}
+
+// SetOrder installs a fixed-capacity source-row ordering. The caller owns the
+// [64]uint16 arena and this copies no heap-backed slice, so rebinding a turn's
+// visible pieces has no allocation. Out-of-range entries are ignored.
+func (v *RowView) SetOrder(order [64]uint16, count int) {
+	if count < 0 {
+		count = 0
+	}
+	if count > len(v.order) {
+		count = len(v.order)
+	}
+	if v.source == nil {
+		v.count = 0
+		v.rangeView = false
+		return
+	}
+	n := 0
+	for i := 0; i < count; i++ {
+		if int(order[i]) >= len(v.source.rows) {
+			continue
+		}
+		v.order[n] = order[i]
+		n++
+	}
+	v.count = n
+	v.rangeView = false
+}
+
+// SetRange exposes count contiguous source rows beginning at start. It is the
+// compact counterpart to SetOrder: a producer that already packs related rows
+// together needs neither a per-view order array nor a copied list. Bounds are
+// clamped to the pre-allocated RowArray, so this is allocation-free and safe
+// for stale or partial producer state.
+func (v *RowView) SetRange(start, count int) {
+	v.rangeView = true
+	v.start = 0
+	v.count = 0
+	if v.source == nil || count <= 0 || start < 0 || start >= len(v.source.rows) {
+		return
+	}
+	if count > len(v.source.rows)-start {
+		count = len(v.source.rows) - start
+	}
+	v.start = start
+	v.count = count
+}
+
+func (v *RowView) sourceIndex(i int) int {
+	if v.rangeView {
+		return v.start + i
+	}
+	return int(v.order[i])
+}
+
+// Rebind stamps only this view's currently exposed rows. It is the sparse
+// counterpart to RowArray.Rebind: a candidate row arena may have room for all
+// 32×64 possibilities, while a decision commonly exposes none or a handful.
+// Rebinding only rows an immutable view can actually yield preserves the stale
+// lifetime boundary without paying a 2,048-row loop for an empty candidate
+// set.
+func (v *RowView) Rebind(gen uint64) {
+	if v.source == nil {
+		return
+	}
+	for i := 0; i < v.count; i++ {
+		rebindRow(v.source.rows[v.sourceIndex(i)], gen)
+	}
+}
+
+func (v *RowView) String() string        { return fmt.Sprintf("<rows %d>", v.count) }
+func (v *RowView) Type() string          { return "rows" }
+func (v *RowView) Freeze()               {}
+func (v *RowView) Truth() starlark.Bool  { return starlark.Bool(v.count > 0) }
+func (v *RowView) Hash() (uint32, error) { return 0, fmt.Errorf("unhashable type: rows") }
+func (v *RowView) Len() int              { return v.count }
+func (v *RowView) Index(i int) starlark.Value {
+	if i < 0 || i >= v.count || v.source == nil {
+		return starlark.None
+	}
+	return v.source.rows[v.sourceIndex(i)]
+}
+func (v *RowView) Iterate() starlark.Iterator { return &rowViewIter{view: v} }
+func (v *RowView) Has(y starlark.Value) (bool, error) {
+	row, ok := y.(*Row)
+	if !ok || v.source == nil {
+		return false, nil
+	}
+	for i := 0; i < v.count; i++ {
+		if v.source.rows[v.sourceIndex(i)] == row {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+type rowViewIter struct {
+	view *RowView
+	i    int
+}
+
+func (it *rowViewIter) Next(p *starlark.Value) bool {
+	if it.i >= it.view.count {
+		return false
+	}
+	*p = it.view.Index(it.i)
+	it.i++
+	return true
+}
+func (it *rowViewIter) Done() {}
+
+// BindUnitIdentityView tells every relation list on these rows which fixed
+// table resolves a UnitIndex bit back to a unit. It is separate from the
+// by-square RowView: ghost cells have no identity and a square-ordered row
+// number must never be mistaken for UnitID-1. It is host wiring only; no
+// script can see this table.
+func (a *RowArray) BindUnitIdentityView(byUnitIndex *UnitIdentityView) {
 	for _, r := range a.rows {
 		for j := range r.masks {
 			r.masks[j].rows = byUnitIndex
 		}
 	}
 }
+
+// UnitIdentityView is the fixed UnitIndex (UnitID-1) to row table behind a
+// relation mask. It is deliberately not a Starlark value: scripts see only
+// immutable relation lists, while the host rebinds this 32-entry table between
+// decisions. A nil entry denotes a hidden or absent unit and can never be
+// yielded from a relation.
+type UnitIdentityView struct {
+	rows    [32]*Row
+	present uint32
+}
+
+// Clear removes every previous decision's identity mapping. It is bounded and
+// allocation-free; doing it before binding the current projection ensures a
+// fog-hidden enemy can never be reached through an old relation reference.
+func (v *UnitIdentityView) Clear() {
+	for i := range v.rows {
+		v.rows[i] = nil
+	}
+	v.present = 0
+}
+
+// Bind assigns one public UnitID's zero-based index to an already allocated
+// row. Values that are not rows and out-of-range identities are ignored so a
+// host cannot expose a ghost by accident.
+func (v *UnitIdentityView) Bind(unitIndex int, value Value) {
+	if unitIndex < 0 || unitIndex >= len(v.rows) {
+		return
+	}
+	row, ok := value.(*Row)
+	if !ok {
+		return
+	}
+	v.rows[unitIndex] = row
+	v.present |= uint32(1) << uint(unitIndex)
+}
+
+func (v *UnitIdentityView) presentMask() uint32 { return v.present }
 
 // Board is the founder's `board[rank][file]` shape: a fixed 8x8 grid of row
 // references (or None), indexable positionally with no keyed lookup anywhere.

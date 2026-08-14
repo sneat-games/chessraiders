@@ -59,11 +59,12 @@ import (
 // measured price of that choice.
 type UnitList struct {
 	bits uint32
-	// rows resolves a bit index back to a unit. It is the by-UnitIndex view,
-	// NOT the by-square iteration array: a relation is keyed by identity while
-	// unit rows are ordered by square. Keeping it unexported is what retires
-	// that hazard from the protocol rather than merely documenting it.
-	rows *RowArray
+	// rows resolves a bit index back to a unit. It is a fixed by-UnitIndex
+	// table, NOT the by-square iteration view: a relation is keyed by identity
+	// while rows are ordered by square and may include ghosts. Keeping it
+	// unexported retires that hazard from the protocol rather than documenting
+	// it.
+	rows *UnitIdentityView
 	sess *Session
 	gen  uint64
 }
@@ -79,11 +80,23 @@ var (
 func (l *UnitList) String() string        { return fmt.Sprintf("<units %d>", l.Len()) }
 func (l *UnitList) Type() string          { return "units" }
 func (l *UnitList) Freeze()               {}
-func (l *UnitList) Truth() starlark.Bool  { return starlark.Bool(l.bits != 0) }
+func (l *UnitList) Truth() starlark.Bool  { return starlark.Bool(l.visibleBits() != 0) }
 func (l *UnitList) Hash() (uint32, error) { return 0, fmt.Errorf("unhashable type: units") }
 
-// Len is a population count, so len(unit.defenders) never walks anything.
-func (l *UnitList) Len() int { return bits.OnesCount32(l.bits) }
+// visibleBits is a belt-and-suspenders fog boundary. The host should only set
+// relation bits for identities in the current projection, but this fixed
+// 32-entry filter makes a malformed host answer safely invisible rather than
+// yielding a stale or hidden row.
+func (l *UnitList) visibleBits() uint32 {
+	if l.rows == nil {
+		return 0
+	}
+	return l.bits & l.rows.presentMask()
+}
+
+// Len is a population count over currently exposed identities, so
+// len(unit.defenders) never materializes anything or leaks a fog-hidden unit.
+func (l *UnitList) Len() int { return bits.OnesCount32(l.visibleBits()) }
 
 func (l *UnitList) AttrNames() []string { return []string{"count"} }
 
@@ -95,26 +108,26 @@ func (l *UnitList) AttrNames() []string { return []string{"count"} }
 // call site.
 func (l *UnitList) Attr(name string) (starlark.Value, error) {
 	if name == "count" {
-		return Int(int64(bits.OnesCount32(l.bits))), nil
+		return Int(int64(l.Len())), nil
 	}
 	return nil, nil
 }
 
 // Index walks to the i-th set bit. No backing slice is built.
 func (l *UnitList) Index(i int) starlark.Value {
-	remaining := l.bits
+	remaining := l.visibleBits()
 	for ; i > 0; i-- {
 		remaining &= remaining - 1
 	}
 	index := bits.TrailingZeros32(remaining)
-	if l.rows == nil || index >= len(l.rows.rows) {
+	if l.rows == nil || index >= len(l.rows.rows) || l.rows.rows[index] == nil {
 		return starlark.None
 	}
 	return l.rows.rows[index]
 }
 
 func (l *UnitList) Iterate() starlark.Iterator {
-	return &unitListIter{list: l, remaining: l.bits}
+	return &unitListIter{list: l, remaining: l.visibleBits()}
 }
 
 type unitListIter struct {
@@ -128,7 +141,7 @@ func (it *unitListIter) Next(p *starlark.Value) bool {
 	}
 	index := bits.TrailingZeros32(it.remaining)
 	it.remaining &= it.remaining - 1
-	if it.list.rows == nil || index >= len(it.list.rows.rows) {
+	if it.list.rows == nil || index >= len(it.list.rows.rows) || it.list.rows.rows[index] == nil {
 		return false
 	}
 	*p = it.list.rows.rows[index]
@@ -146,10 +159,15 @@ func (l *UnitList) Has(y starlark.Value) (bool, error) {
 	if !ok {
 		return false, nil
 	}
-	if row.index < 0 || row.index > 31 {
+	if l.rows == nil {
 		return false, nil
 	}
-	return l.bits&(1<<uint(row.index)) != 0, nil
+	for i, candidate := range l.rows.rows {
+		if candidate == row {
+			return l.bits&(1<<uint(i)) != 0, nil
+		}
+	}
+	return false, nil
 }
 
 // MaskSource is the host side of a relation field: it answers one row's one

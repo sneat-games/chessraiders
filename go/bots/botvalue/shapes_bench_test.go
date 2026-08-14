@@ -490,16 +490,22 @@ func BenchmarkShapeCNativePrecomputed(b *testing.B) { benchNative(b, scriptC) }
 // ---------------------------------------------------------------------------
 
 type nativeHost struct {
-	sess     *botvalue.Session
-	array    *botvalue.RowArray
-	obs      *observationValue
-	programs map[string]*runtime.Program
+	sess       *botvalue.Session
+	array      *botvalue.RowArray
+	identities *botvalue.UnitIdentityView
+	obs        *observationValue
+	programs   map[string]*runtime.Program
 }
 
 func newNativeHost(units []unitFixture) *nativeHost {
 	sess := &botvalue.Session{}
 	array := botvalue.NewRowArray(unitSchema(), newUnitSource(units), sess, len(units))
-	h := &nativeHost{sess: sess, array: array, programs: map[string]*runtime.Program{}}
+	identities := &botvalue.UnitIdentityView{}
+	for i := range units {
+		identities.Bind(i, array.ValueAt(i))
+	}
+	array.BindUnitIdentityView(identities)
+	h := &nativeHost{sess: sess, array: array, identities: identities, programs: map[string]*runtime.Program{}}
 	h.obs = &observationValue{units: array}
 	return h
 }

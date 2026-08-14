@@ -102,6 +102,12 @@ func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 // Updated only when an intentional standard-bot artifact change is reviewed.
 // This is a closure digest, not the Go module version.
 //
+// Updated 2026-08-14 (native immutable observation): first-party decisions
+// receive the engine's immutable native mapping view directly, with no JSON
+// observation decode or temporary conversion dictionaries. Historical corpus
+// inputs retain their exact JSON carrier; no parameter or manifest schema
+// changed.
+//
 // Updated 2026-08-13 (bitboard-safe): chess-raiders-bot.star changed — the
 // leader guard's twelve placement bitboards are no longer persisted as raw
 // 64-bit ints (leaderBoard0..leaderBoard11). Bot memory round-trips as JSON
@@ -169,6 +175,6 @@ func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 // lives in the script itself, the one place this value is consumed, so
 // every present and future producer gets it for free. No params changed;
 // params.resolved.json is untouched.
-const standardBotClosureDigest = "sha256:d865da7f60d346ce5f0791e033f2ad0c1b8d1ab8f6f9efc03590de8947cd5c55"
+const standardBotClosureDigest = "sha256:8d5e43f769723310c34a78fba1c5b369af821303079da281c8fccb61c16052cd"
 
-const standardBotScriptDigest = "1c449df0eb6d042b99bc11277bb0f30a6e72806c708988c3350d093497502c12"
+const standardBotScriptDigest = "385201fe61a3b9d1b2cc2d7a1318a01f2b85112f06104dff9918f6eccf27bca1"
