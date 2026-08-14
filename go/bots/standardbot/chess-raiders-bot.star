@@ -860,6 +860,11 @@ def current_morale_need(observation):
     strands a real requirement — see this task's own correctness-discipline
     receipts (multi-seed decisiveness/kill-rate comparison) for the check
     that this narrowing does not measurably change play quality."""
+    # Native input carries this already-restricted maximum directly from the
+    # engine's legal move arena. Historical JSON corpus records lack it, so
+    # retain the old scan only for those compatibility fixtures.
+    if "captureMoraleNeed" in observation:
+        return observation["captureMoraleNeed"]
     needed = observation.get("ownManaged", 0)
     for by_destination in observation.get("affordability", {}).values():
         for outcomes in by_destination.values():
