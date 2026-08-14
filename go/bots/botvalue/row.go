@@ -179,7 +179,7 @@ type Row struct {
 	// zero garbage. Nil until the kind declares repeated fields.
 	lists []SquareList
 	ints  []IntList
-	masks []UnitMask
+	masks []UnitList
 }
 
 var (
@@ -229,9 +229,9 @@ func (r *Row) Attr(name string) (starlark.Value, error) {
 		return list, nil
 	}
 	if spec.Relation {
-		mask := &r.masks[relationSlot(r.schema, field)]
-		mask.bits = r.source.Mask(r.index, field)
-		return mask, nil
+		list := &r.masks[relationSlot(r.schema, field)]
+		list.bits = r.source.Mask(r.index, field)
+		return list, nil
 	}
 	if spec.RepeatedInts {
 		list := &r.ints[repeatedSlot(r.schema, field, true)]
@@ -487,9 +487,9 @@ func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *Ro
 	if repeatedInts > 0 {
 		ints = make([]IntList, capacity*repeatedInts)
 	}
-	var masks []UnitMask
+	var masks []UnitList
 	if relations > 0 {
-		masks = make([]UnitMask, capacity*relations)
+		masks = make([]UnitList, capacity*relations)
 	}
 	for i := range backing {
 		backing[i].schema = schema
@@ -525,14 +525,16 @@ func (a *RowArray) Rebind(gen uint64) {
 	}
 }
 
-// BindIdentityView tells every relation mask on these rows which array
+// BindIdentityView tells every relation list on these rows which array
 // resolves a bit index back to a unit. It is a SEPARATE array from this one
 // whenever rows are ordered by square rather than by UnitIndex — see
-// UnitMask.units for why conflating the two silently returns the wrong unit.
+// UnitList.rows for why conflating the two silently returns the wrong unit.
+// It is host wiring only: no script ever sees this table, which is what
+// retires the ordering hazard from the protocol rather than documenting it.
 func (a *RowArray) BindIdentityView(byUnitIndex *RowArray) {
 	for _, r := range a.rows {
 		for j := range r.masks {
-			r.masks[j].units = byUnitIndex
+			r.masks[j].rows = byUnitIndex
 		}
 	}
 }

@@ -56,16 +56,16 @@ func TestMutationIsUnrepresentable(t *testing.T) {
 			"rows value does not support item assignment",
 		},
 		"append to a square list": {
-			"    observation.units[0].guarded_by.append(\"e4\")\n    return None, {}, []",
+			"    observation.units[0].defenders.append(observation.units[1])\n    return None, {}, []",
 			"has no .append field or method",
 		},
-		"set a relation-mask element": {
-			"    observation.units[0].guarded_by[0] = 1\n    return None, {}, []",
-			"unitset value does not support item assignment",
+		"set a relation-list element": {
+			"    observation.units[0].defenders[0] = 1\n    return None, {}, []",
+			"units value does not support item assignment",
 		},
-		"set a relation mask": {
-			"    observation.units[0].guarded_by = 0\n    return None, {}, []",
-			"can't assign to .guarded_by field of unit",
+		"set a relation list": {
+			"    observation.units[0].defenders = 0\n    return None, {}, []",
+			"can't assign to .defenders field of unit",
 		},
 		"set an int-list element": {
 			"    observation.units[0].destination_files[0] = 1\n    return None, {}, []",
@@ -271,7 +271,7 @@ func TestParallelSessionsShareInternedValuesWithoutRacing(t *testing.T) {
 }
 
 // TestMembershipWorksOnRelationArrays probes the `in` operator, which the
-// production script uses against relation arrays ("is the enemy king among
+// production script uses against relation sets ("is the enemy king among
 // the squares this unit threatens"). eval.go's Binary(IN) dispatches on
 // Container, NOT on Sequence, so an indexable value that omits Has silently
 // fails this — a gap worth a test rather than an assumption.
@@ -309,23 +309,24 @@ def decide(observation, memory, params, host_random_draw, options):
 	}
 }
 
-// TestUnitMaskAnswersCountAndMembersWithoutAShiftWalk is the fix for the trap
-// above. A relation carried as a UnitMask answers .count with one
-// bits.OnesCount32 and iterates straight to unit rows, so neither operation
-// performs a shift or resolves a bit index in script.
-func TestUnitMaskAnswersCountAndMembersWithoutAShiftWalk(t *testing.T) {
+// TestRelationListAnswersCountAndMembersWithoutAShiftWalk is the fix for the
+// trap above, and the apples-to-apples comparison against the custom set type
+// this replaced: the SAME four operations over the SAME 32 units, so the cost
+// of choosing a legible array over a clever set value is a number rather than
+// an assertion. The set value measured 76 allocs/op here.
+func TestRelationListAnswersCountAndMembersWithoutAShiftWalk(t *testing.T) {
 	h := newNativeHost(newFixture())
 	h.array.BindIdentityView(h.array)
 	p, err := runtime.Compile(`
 def decide(observation, memory, params, host_random_draw, options):
     total = 0
     for unit in observation.units:
-        total += unit.guarded_by.count
-        for other in unit.guarded_by:
+        total += unit.defenders.count
+        for other in unit.defenders:
             total += other.cargo_count
-        if unit in unit.guarded_by:
+        if unit in unit.defenders:
             total += 1
-        total += (unit.guarded_by - unit.threatened_by).count
+        total += len([u for u in unit.defenders if u not in unit.attackers])
     return total, {}, []
 `)
 	if err != nil {
@@ -344,7 +345,8 @@ def decide(observation, memory, params, host_random_draw, options):
 	})
 	first, _ := botvalue.TupleAt(last, 0)
 	sum, _ := botvalue.AsInt(first)
-	t.Logf("count + full member walk + membership + set-difference over %d units: %.0f allocs/op (sum %d)",
+	t.Logf("count + full member walk + membership + difference over %d units: %.0f allocs/op "+
+		"(sum %d) — the custom set type measured 76 for the identical four operations",
 		unitCount, allocs, sum)
 	if sum == 0 {
 		t.Fatal("the mask walk produced nothing, so this measured an empty loop")

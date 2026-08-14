@@ -229,10 +229,12 @@ const (
 	fSide
 	fRank
 	fCargoCount
-	fGuardedBy
-	fThreatenedBy
-	fGuardedCount
-	fThreatenedCount
+	fDefenders
+	fDefending
+	fAttackers
+	fAttacking
+	fDefendersCount
+	fAttackersCount
 	fDestinationFiles
 	fPatrolGains
 	fIsOwn
@@ -245,10 +247,12 @@ func unitSchema() *botvalue.Schema {
 		botvalue.FieldSpec{Name: "side", Kind: botvalue.KindEnum, Vocab: sideVocab},
 		botvalue.FieldSpec{Name: "rank", Kind: botvalue.KindEnum, Vocab: rankVocab},
 		botvalue.FieldSpec{Name: "cargo_count", Kind: botvalue.KindInt},
-		botvalue.FieldSpec{Name: "guarded_by", Relation: true},
-		botvalue.FieldSpec{Name: "threatened_by", Relation: true},
-		botvalue.FieldSpec{Name: "guarded_count", Kind: botvalue.KindInt},
-		botvalue.FieldSpec{Name: "threatened_count", Kind: botvalue.KindInt},
+		botvalue.FieldSpec{Name: "defenders", Relation: true},
+		botvalue.FieldSpec{Name: "defending", Relation: true},
+		botvalue.FieldSpec{Name: "attackers", Relation: true},
+		botvalue.FieldSpec{Name: "attacking", Relation: true},
+		botvalue.FieldSpec{Name: "defenders_count", Kind: botvalue.KindInt},
+		botvalue.FieldSpec{Name: "attackers_count", Kind: botvalue.KindInt},
 		botvalue.FieldSpec{Name: "destination_files", RepeatedInts: true},
 		botvalue.FieldSpec{Name: "patrol_gains", RepeatedInts: true},
 		botvalue.FieldSpec{Name: "is_own", Kind: botvalue.KindBool},
@@ -293,9 +297,9 @@ func (s *unitSource) Field(row, field int) botvalue.Scalar {
 		return botvalue.EnumScalar(u.rankCode)
 	case fCargoCount:
 		return botvalue.IntScalar(int64(u.cargoCount))
-	case fGuardedCount:
+	case fDefendersCount:
 		return botvalue.IntScalar(int64(len(u.guardedBy)))
-	case fThreatenedCount:
+	case fAttackersCount:
 		return botvalue.IntScalar(int64(len(u.threatenedBy)))
 	case fIsOwn:
 		return botvalue.BoolScalar(u.sideCode == 1)
@@ -303,30 +307,24 @@ func (s *unitSource) Field(row, field int) botvalue.Scalar {
 	return botvalue.NoneScalar()
 }
 
-func (s *unitSource) Squares(row, field int) []uint8 {
-	u := &s.units[row]
-	switch field {
-	case fGuardedBy:
-		return u.guardedBy
-	case fThreatenedBy:
-		return u.threatenedBy
-	}
-	return nil
-}
+func (s *unitSource) Squares(row, field int) []uint8 { return nil }
 
 // Mask answers the relation fields as 32-bit sets over UnitIndex.
 func (s *unitSource) Mask(row, field int) uint32 {
 	u := &s.units[row]
 	var m uint32
-	switch field {
-	case fGuardedBy:
+	switch botvalue.Relation(field - fDefenders) {
+	case botvalue.Defenders:
 		for _, sq := range u.guardedBy {
 			m |= 1 << uint(int(sq)%32)
 		}
-	case fThreatenedBy:
+	case botvalue.Attackers:
 		for _, sq := range u.threatenedBy {
 			m |= 1 << uint(int(sq)%32)
 		}
+	case botvalue.Defending, botvalue.Attacking:
+		// The fixture models only the incoming pair; the outgoing pair is
+		// declared so the schema carries all four directions.
 	}
 	return m
 }
@@ -350,9 +348,9 @@ const materialConst = `MATERIAL = {"pawn": 1.0, "knight": 3.0, "bishop": 3.25, "
 // through a helper call, exactly as chess-raiders-bot.star does today.
 const scriptB = `
 def relation_count(unit, which):
-    if which == "guarded":
-        return unit.guarded_by.count
-    return unit.threatened_by.count
+    if which == "defenders":
+        return unit.defenders.count
+    return unit.attackers.count
 
 ` + materialConst + `
 
@@ -364,8 +362,8 @@ def decide(observation, memory, params, host_random_draw, options):
         index = 0
         for destination_file in unit.destination_files:
             total += MATERIAL.get(unit.rank, 0.0)
-            total += 0.1 * relation_count(unit, "guarded")
-            total -= 0.2 * relation_count(unit, "threatened")
+            total += 0.1 * relation_count(unit, "defenders")
+            total -= 0.2 * relation_count(unit, "attackers")
             total += 0.01 * (destination_file - unit.square_file)
             total += 0.5 * unit.patrol_gains[index]
             index += 1
@@ -382,7 +380,7 @@ def decide(observation, memory, params, host_random_draw, options):
     for unit in observation.units:
         if not unit.is_own:
             continue
-        base = MATERIAL.get(unit.rank, 0.0) + 0.1 * unit.guarded_count - 0.2 * unit.threatened_count
+        base = MATERIAL.get(unit.rank, 0.0) + 0.1 * unit.defenders_count - 0.2 * unit.attackers_count
         index = 0
         for destination_file in unit.destination_files:
             total += base + 0.01 * (destination_file - unit.square_file)

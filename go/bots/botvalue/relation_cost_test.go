@@ -2,9 +2,14 @@
 
 package botvalue_test
 
-// arch_cost_test.go measures the per-operation allocation cost of a relation
-// set on BOTH targets, because they do not agree and the browser is the one
-// that matters most.
+// relation_cost_test.go measures the per-operation allocation cost of a
+// relation LIST on BOTH targets, because they do not agree and the browser is
+// the one that matters most.
+//
+// It also records what the script-facing array shape COST relative to the
+// custom set type it replaced, so the trade the founder chose is on the record
+// rather than implied. Set algebra is the operation that got worse: an
+// operator became a comprehension.
 //
 // go.starlark.net represents an int32-range Int as a single unsafe.Pointer on
 // darwin/arm64 (int_posix64.go, which reserves a 4GB address range so an Int
@@ -46,11 +51,11 @@ func measureLoop(t *testing.T, h *nativeHost, body string) float64 {
 	})
 }
 
-// TestRelationSetCostByOperation isolates each thing a script does with a
+// TestRelationListCostByOperation isolates each thing a script does with a
 // relation and reports its cost NET of the loop that carries it, so the
-// interned-count claim and the raw-integer trap are separated from the
-// iteration overhead they share.
-func TestRelationSetCostByOperation(t *testing.T) {
+// free-count claim is separated from the iteration overhead it shares with
+// everything else, and so the comprehension's real price is visible.
+func TestRelationListCostByOperation(t *testing.T) {
 	h := newNativeHost(newFixture())
 	h.array.BindIdentityView(h.array)
 
@@ -66,11 +71,11 @@ func TestRelationSetCostByOperation(t *testing.T) {
 		name string
 		body string
 	}{
-		{"count (interned small int)", "    for unit in observation.units:\n        total += unit.guarded_by.count\n"},
-		{"membership (unit in set)", "    for unit in observation.units:\n        total += (1 if unit in unit.guarded_by else 0)\n"},
-		{"set union (guards | threatens)", "    for unit in observation.units:\n        total += (unit.guarded_by | unit.threatened_by).count\n"},
-		{"set difference (a - b)", "    for unit in observation.units:\n        total += (unit.guarded_by - unit.threatened_by).count\n"},
-		{"RAW .bits integer (the trap)", "    for unit in observation.units:\n        total += unit.guarded_by.bits\n"},
+		{".count (no materialization)", "    for unit in observation.units:\n        total += unit.defenders.count\n"},
+		{"len(list)", "    for unit in observation.units:\n        total += len(unit.defenders)\n"},
+		{"membership (unit in list)", "    for unit in observation.units:\n        total += (1 if unit in unit.defenders else 0)\n"},
+		{"index [0]", "    for unit in observation.units:\n        total += (1 if unit.defenders[0] else 0)\n"},
+		{"DIFFERENCE via comprehension", "    for unit in observation.units:\n        total += len([u for u in unit.defenders if u not in unit.attackers])\n"},
 	}
 
 	t.Logf("bare walk over %d units          %8.1f allocs/op", unitCount, walk)
@@ -85,7 +90,7 @@ func TestRelationSetCostByOperation(t *testing.T) {
 
 	// Iteration is reported separately: its body runs once per MEMBER, not
 	// once per unit, so it shares no baseline with the rows above.
-	iter := measureLoop(t, h, "    for unit in observation.units:\n        for other in unit.guarded_by:\n            total += 1\n")
+	iter := measureLoop(t, h, "    for unit in observation.units:\n        for other in unit.defenders:\n            total += 1\n")
 	members := 0
 	for i := range newFixture() {
 		_ = i
