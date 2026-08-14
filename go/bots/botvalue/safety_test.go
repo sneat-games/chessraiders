@@ -316,7 +316,6 @@ def decide(observation, memory, params, host_random_draw, options):
 // an assertion. The set value measured 76 allocs/op here.
 func TestRelationListAnswersCountAndMembersWithoutAShiftWalk(t *testing.T) {
 	h := newNativeHost(newFixture())
-	h.array.BindIdentityView(h.array)
 	p, err := runtime.Compile(`
 def decide(observation, memory, params, host_random_draw, options):
     total = 0

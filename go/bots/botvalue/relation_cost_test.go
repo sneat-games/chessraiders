@@ -57,7 +57,6 @@ func measureLoop(t *testing.T, h *nativeHost, body string) float64 {
 // everything else, and so the comprehension's real price is visible.
 func TestRelationListCostByOperation(t *testing.T) {
 	h := newNativeHost(newFixture())
-	h.array.BindIdentityView(h.array)
 
 	// Two baselines, because they differ by an amount that is itself a
 	// finding: a bare walk, and the same walk doing ONE integer addition per
