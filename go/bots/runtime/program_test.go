@@ -8,7 +8,60 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/sneat-games/chessraiders/go/bots/botvalue"
 )
+
+type nativeCallTestSource struct{}
+
+func (nativeCallTestSource) Len() int { return 1 }
+func (nativeCallTestSource) Field(_, field int) botvalue.Scalar {
+	if field == 0 {
+		return botvalue.EnumScalar(1)
+	}
+	return botvalue.NoneScalar()
+}
+func (nativeCallTestSource) Squares(int, int) []uint8 { return nil }
+func (nativeCallTestSource) Ints(int, int) []int32    { return nil }
+func (nativeCallTestSource) Mask(int, int) uint32     { return 0 }
+
+// TestProgramCallValueWithJSONArgs proves the production boundary: the
+// observation reaches Starlark as a native immutable object, while script
+// memory and parameters keep their independent JSON representation.
+func TestProgramCallValueWithJSONArgs(t *testing.T) {
+	prog, err := Compile(`
+def decide(observation, memory, params, draw, options):
+    return {"side": observation.side, "memory": memory["turn"], "weight": params["weight"], "draw": draw + options}
+`)
+	if err != nil {
+		t.Fatalf("Compile() = %v", err)
+	}
+
+	var session botvalue.Session
+	schema := botvalue.NewSchema("observation", botvalue.FieldSpec{
+		Name: "side", Kind: botvalue.KindEnum, Vocab: botvalue.NewVocabulary("", "white"),
+	})
+	rows := botvalue.NewRowArray(schema, nativeCallTestSource{}, &session, 1)
+	rows.Rebind(session.Begin())
+	defer session.End()
+
+	out, err := prog.CallValueWithJSONArgs("decide", rows.ValueAt(0), `{"turn": 3}`, `{"weight": 7}`, `11`, `2`)
+	if err != nil {
+		t.Fatalf("CallValueWithJSONArgs() = %v", err)
+	}
+	var got struct {
+		Side   string `json:"side"`
+		Memory int    `json:"memory"`
+		Weight int    `json:"weight"`
+		Draw   int    `json:"draw"`
+	}
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("decode result %q: %v", out, err)
+	}
+	if got.Side != "white" || got.Memory != 3 || got.Weight != 7 || got.Draw != 13 {
+		t.Fatalf("CallValueWithJSONArgs() = %+v, want side=white memory=3 weight=7 draw=13", got)
+	}
+}
 
 // TestProgramCallRoundTrip is Program's own acceptance test: compile once,
 // call a global function with JSON arguments, get a JSON result back —
