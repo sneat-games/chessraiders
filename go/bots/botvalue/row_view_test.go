@@ -30,7 +30,7 @@ func TestRowNestedValueAndFixedOrderView(t *testing.T) {
 	roots.Rebind(gen)
 	defer sess.End()
 
-	order := [32]uint8{2, 0}
+	order := [64]uint8{2, 0}
 	view.SetOrder(order, 2)
 	if got := view.Len(); got != 2 {
 		t.Fatalf("view.Len() = %d, want 2", got)
@@ -63,6 +63,80 @@ func TestNestedFieldRequiresNestedSource(t *testing.T) {
 	if _, err := rows.rows[0].Attr("units"); err == nil {
 		t.Fatal("nested field without NestedSource succeeded, want loud schema error")
 	}
+}
+
+func TestRelationsResolveByUnitIdentityNotFoggedSquareOrder(t *testing.T) {
+	sess := &Session{}
+	schema := NewSchema("cell", FieldSpec{Name: "defenders", Relation: true})
+	rows := NewRowArray(schema, relationRowSource{}, sess, 64)
+	identities := &UnitIdentityView{}
+	// Cell 0 is a fog-memory cell with no UnitID. UnitID 8 is visible at cell
+	// 40, so bit 7 must resolve to that row regardless of square ordering.
+	identities.Bind(7, rows.ValueAt(40))
+	rows.BindUnitIdentityView(identities)
+	view := NewRowView(rows)
+	order := [64]uint8{0, 40}
+	view.SetOrder(order, 2)
+
+	gen := sess.Begin()
+	rows.Rebind(gen)
+	defer sess.End()
+
+	value, err := rows.rows[1].Attr("defenders")
+	if err != nil {
+		t.Fatalf("row.Attr(defenders): %v", err)
+	}
+	list, ok := value.(*UnitList)
+	if !ok {
+		t.Fatalf("relation = %T, want *UnitList", value)
+	}
+	if got := list.Index(0); got != rows.ValueAt(40) {
+		t.Fatalf("relation resolved %v, want visible UnitID 8 row", got)
+	}
+	if ok, err := list.Has(rows.ValueAt(40)); err != nil || !ok {
+		t.Fatalf("visible relation membership = %v, %v; want true, nil", ok, err)
+	}
+	if ok, err := list.Has(rows.ValueAt(0)); err != nil || ok {
+		t.Fatalf("fog cell relation membership = %v, %v; want false, nil", ok, err)
+	}
+	if got := view.Index(1); got != rows.ValueAt(40) {
+		t.Fatalf("square-order view lost cell identity: %v", got)
+	}
+}
+
+func TestRelationMasksHideUnboundIdentities(t *testing.T) {
+	sess := &Session{}
+	schema := NewSchema("cell", FieldSpec{Name: "defenders", Relation: true})
+	rows := NewRowArray(schema, relationRowSource{}, sess, 2)
+	rows.BindUnitIdentityView(&UnitIdentityView{})
+	gen := sess.Begin()
+	rows.Rebind(gen)
+	defer sess.End()
+
+	value, err := rows.rows[1].Attr("defenders")
+	if err != nil {
+		t.Fatalf("row.Attr(defenders): %v", err)
+	}
+	list := value.(*UnitList)
+	if got := list.Len(); got != 0 {
+		t.Fatalf("hidden relation Len() = %d, want 0", got)
+	}
+	if got := list.Index(0); got != None {
+		t.Fatalf("hidden relation Index(0) = %v, want None", got)
+	}
+}
+
+type relationRowSource struct{}
+
+func (relationRowSource) Len() int                 { return 64 }
+func (relationRowSource) Field(int, int) Scalar    { return NoneScalar() }
+func (relationRowSource) Squares(int, int) []uint8 { return nil }
+func (relationRowSource) Ints(int, int) []int32    { return nil }
+func (relationRowSource) Mask(row, field int) uint32 {
+	if row == 1 && field == 0 {
+		return 1 << 7
+	}
+	return 0
 }
 
 type scalarOnlySource struct{}

@@ -481,8 +481,8 @@ func (it *rowIter) Next(p *starlark.Value) bool {
 func (it *rowIter) Done() {}
 
 // NewRowArray pre-allocates every row object one kind will ever need for one
-// session — bounded by the protocol (<=32 units, <=64 squares) — so a
-// decision mints no row objects at all.
+// session — bounded by the protocol (<=32 live identities, <=64 projected
+// cells) — so a decision mints no row objects at all.
 func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *RowArray {
 	repeated, repeatedInts, relations := 0, 0, 0
 	for _, f := range schema.fields {
@@ -560,8 +560,11 @@ func (a *RowArray) ValueAt(index int) Value {
 // other.defenders` retains identity semantics without allocating copies.
 type RowView struct {
 	source *RowArray
-	order  [32]uint8
-	count  int
+	// A view is ordered by board square and therefore has room for every
+	// projected cell, including remembered fog cells. Unit relations use the
+	// separate, fixed 32-entry UnitIdentityView below.
+	order [64]uint8
+	count int
 }
 
 var (
@@ -576,9 +579,9 @@ func NewRowView(source *RowArray) *RowView {
 }
 
 // SetOrder installs a fixed-capacity source-row ordering. The caller owns the
-// [32]uint8 arena and this copies no heap-backed slice, so rebinding a turn's
+// [64]uint8 arena and this copies no heap-backed slice, so rebinding a turn's
 // visible pieces has no allocation. Out-of-range entries are ignored.
-func (v *RowView) SetOrder(order [32]uint8, count int) {
+func (v *RowView) SetOrder(order [64]uint8, count int) {
 	if count < 0 {
 		count = 0
 	}
@@ -641,19 +644,55 @@ func (it *rowViewIter) Next(p *starlark.Value) bool {
 }
 func (it *rowViewIter) Done() {}
 
-// BindIdentityView tells every relation list on these rows which array
-// resolves a bit index back to a unit. It is a SEPARATE array from this one
-// whenever rows are ordered by square rather than by UnitIndex — see
-// UnitList.rows for why conflating the two silently returns the wrong unit.
-// It is host wiring only: no script ever sees this table, which is what
-// retires the ordering hazard from the protocol rather than documenting it.
-func (a *RowArray) BindIdentityView(byUnitIndex *RowArray) {
+// BindUnitIdentityView tells every relation list on these rows which fixed
+// table resolves a UnitIndex bit back to a unit. It is separate from the
+// by-square RowView: ghost cells have no identity and a square-ordered row
+// number must never be mistaken for UnitID-1. It is host wiring only; no
+// script can see this table.
+func (a *RowArray) BindUnitIdentityView(byUnitIndex *UnitIdentityView) {
 	for _, r := range a.rows {
 		for j := range r.masks {
 			r.masks[j].rows = byUnitIndex
 		}
 	}
 }
+
+// UnitIdentityView is the fixed UnitIndex (UnitID-1) to row table behind a
+// relation mask. It is deliberately not a Starlark value: scripts see only
+// immutable relation lists, while the host rebinds this 32-entry table between
+// decisions. A nil entry denotes a hidden or absent unit and can never be
+// yielded from a relation.
+type UnitIdentityView struct {
+	rows    [32]*Row
+	present uint32
+}
+
+// Clear removes every previous decision's identity mapping. It is bounded and
+// allocation-free; doing it before binding the current projection ensures a
+// fog-hidden enemy can never be reached through an old relation reference.
+func (v *UnitIdentityView) Clear() {
+	for i := range v.rows {
+		v.rows[i] = nil
+	}
+	v.present = 0
+}
+
+// Bind assigns one public UnitID's zero-based index to an already allocated
+// row. Values that are not rows and out-of-range identities are ignored so a
+// host cannot expose a ghost by accident.
+func (v *UnitIdentityView) Bind(unitIndex int, value Value) {
+	if unitIndex < 0 || unitIndex >= len(v.rows) {
+		return
+	}
+	row, ok := value.(*Row)
+	if !ok {
+		return
+	}
+	v.rows[unitIndex] = row
+	v.present |= uint32(1) << uint(unitIndex)
+}
+
+func (v *UnitIdentityView) presentMask() uint32 { return v.present }
 
 // Board is the founder's `board[rank][file]` shape: a fixed 8x8 grid of row
 // references (or None), indexable positionally with no keyed lookup anywhere.
