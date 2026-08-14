@@ -16,6 +16,7 @@ import (
 
 	"github.com/sneat-games/chessraiders/go/bots/botvalue"
 	"github.com/sneat-games/chessraiders/go/bots/runtime"
+	"go.starlark.net/starlark"
 )
 
 // runAttack compiles and runs a decide() body against a live native
@@ -58,9 +59,17 @@ func TestMutationIsUnrepresentable(t *testing.T) {
 			"    observation.units[0].guarded_by.append(\"e4\")\n    return None, {}, []",
 			"has no .append field or method",
 		},
-		"set a square-list element": {
-			"    observation.units[0].guarded_by[0] = \"e4\"\n    return None, {}, []",
-			"squares value does not support item assignment",
+		"set a relation-mask element": {
+			"    observation.units[0].guarded_by[0] = 1\n    return None, {}, []",
+			"unitset value does not support item assignment",
+		},
+		"set a relation mask": {
+			"    observation.units[0].guarded_by = 0\n    return None, {}, []",
+			"can't assign to .guarded_by field of unit",
+		},
+		"set an int-list element": {
+			"    observation.units[0].destination_files[0] = 1\n    return None, {}, []",
+			"ints value does not support item assignment",
 		},
 		"set an observation field": {
 			"    observation.units = None\n    return None, {}, []",
@@ -267,8 +276,77 @@ func TestParallelSessionsShareInternedValuesWithoutRacing(t *testing.T) {
 // Container, NOT on Sequence, so an indexable value that omits Has silently
 // fails this — a gap worth a test rather than an assumption.
 func TestMembershipWorksOnRelationArrays(t *testing.T) {
-	got := runAttack(t, "    if observation.units[0].guarded_by[0] in observation.units[0].guarded_by:\n        return None, {}, []\n    fail(\"not found\")")
+	got := runAttack(t, "    u = observation.units[0]\n    if u.destination_files[0] in u.destination_files:\n        return None, {}, []\n    fail(\"not found\")")
 	if got != "" {
-		t.Fatalf("`in` against a relation array failed: %s", got)
+		t.Fatalf("`in` against an indexable array failed: %s", got)
+	}
+}
+
+// TestBitShiftAllocationTrap probes whether a script walking a 32-bit mask
+// with shifts stays inside the interpreter's small-int representation.
+// go.starlark.net stores int32-range values as a pointer-sized union
+// (int_posix64.go) and anything wider as a *big.Int, so 1 << 31 crosses out
+// of the cheap representation on the LAST bit of a uint32 mask.
+func TestBitShiftAllocationTrap(t *testing.T) {
+	p, err := runtime.Compile(`
+def decide(observation, memory, params, host_random_draw, options):
+    total = 0
+    for i in range(32):
+        total += (1 << i) & 0
+    return total, {}, []
+`)
+	if err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	allocs := testing.AllocsPerRun(200, func() {
+		if _, err := p.Call("decide", "0", "0", "0", "0", "0"); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Logf("a 32-iteration shift walk costs %.0f allocs/op", allocs)
+	if allocs < 1 {
+		t.Fatal("expected the shift walk to allocate; the trap this documents may have gone away")
+	}
+}
+
+// TestUnitMaskAnswersCountAndMembersWithoutAShiftWalk is the fix for the trap
+// above. A relation carried as a UnitMask answers .count with one
+// bits.OnesCount32 and iterates straight to unit rows, so neither operation
+// performs a shift or resolves a bit index in script.
+func TestUnitMaskAnswersCountAndMembersWithoutAShiftWalk(t *testing.T) {
+	h := newNativeHost(newFixture())
+	h.array.BindIdentityView(h.array)
+	p, err := runtime.Compile(`
+def decide(observation, memory, params, host_random_draw, options):
+    total = 0
+    for unit in observation.units:
+        total += unit.guarded_by.count
+        for other in unit.guarded_by:
+            total += other.cargo_count
+        if unit in unit.guarded_by:
+            total += 1
+        total += (unit.guarded_by - unit.threatened_by).count
+    return total, {}, []
+`)
+	if err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	var last starlark.Value
+	allocs := testing.AllocsPerRun(200, func() {
+		gen := h.sess.Begin()
+		h.array.Rebind(gen)
+		v, err := p.CallValues("decide", h.obs, botvalue.None, botvalue.None, botvalue.None, botvalue.None)
+		h.sess.End()
+		if err != nil {
+			t.Fatal(err)
+		}
+		last = v
+	})
+	first, _ := botvalue.TupleAt(last, 0)
+	sum, _ := botvalue.AsInt(first)
+	t.Logf("count + full member walk + membership + set-difference over %d units: %.0f allocs/op (sum %d)",
+		unitCount, allocs, sum)
+	if sum == 0 {
+		t.Fatal("the mask walk produced nothing, so this measured an empty loop")
 	}
 }

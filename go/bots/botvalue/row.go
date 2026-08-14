@@ -70,6 +70,9 @@ type Source interface {
 	Squares(row, field int) []uint8
 	// Ints answers a repeated-integer field the same way.
 	Ints(row, field int) []int32
+	// Mask answers a piece-relation field as a 32-bit set over UnitIndex —
+	// see UnitMask for the bit mapping, which is protocol, not detail.
+	Mask(row, field int) uint32
 }
 
 // FieldSpec declares one attribute of one row kind: its script-visible name
@@ -89,6 +92,9 @@ type FieldSpec struct {
 	Repeated bool
 	// RepeatedInts marks an integer-list field, answered by Source.Ints.
 	RepeatedInts bool
+	// Relation marks a piece-relation field, answered by Source.Mask and
+	// surfaced as a UnitMask.
+	Relation bool
 }
 
 // Schema is one row kind's complete, closed attribute surface.
@@ -173,6 +179,7 @@ type Row struct {
 	// zero garbage. Nil until the kind declares repeated fields.
 	lists []SquareList
 	ints  []IntList
+	masks []UnitMask
 }
 
 var (
@@ -221,6 +228,11 @@ func (r *Row) Attr(name string) (starlark.Value, error) {
 		list.squares = r.source.Squares(r.index, field)
 		return list, nil
 	}
+	if spec.Relation {
+		mask := &r.masks[relationSlot(r.schema, field)]
+		mask.bits = r.source.Mask(r.index, field)
+		return mask, nil
+	}
 	if spec.RepeatedInts {
 		list := &r.ints[repeatedSlot(r.schema, field, true)]
 		list.values = r.source.Ints(r.index, field)
@@ -254,6 +266,17 @@ func repeatedSlot(s *Schema, field int, ints bool) int {
 		if ints && s.fields[i].RepeatedInts {
 			slot++
 		} else if !ints && s.fields[i].Repeated {
+			slot++
+		}
+	}
+	return slot
+}
+
+// relationSlot maps a field index to its dense slot in Row.masks.
+func relationSlot(s *Schema, field int) int {
+	slot := 0
+	for i := 0; i < field; i++ {
+		if s.fields[i].Relation {
 			slot++
 		}
 	}
@@ -442,13 +465,16 @@ func (it *rowIter) Done() {}
 // session — bounded by the protocol (<=32 units, <=64 squares) — so a
 // decision mints no row objects at all.
 func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *RowArray {
-	repeated, repeatedInts := 0, 0
+	repeated, repeatedInts, relations := 0, 0, 0
 	for _, f := range schema.fields {
 		if f.Repeated {
 			repeated++
 		}
 		if f.RepeatedInts {
 			repeatedInts++
+		}
+		if f.Relation {
+			relations++
 		}
 	}
 	rows := make([]*Row, capacity)
@@ -461,6 +487,10 @@ func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *Ro
 	if repeatedInts > 0 {
 		ints = make([]IntList, capacity*repeatedInts)
 	}
+	var masks []UnitMask
+	if relations > 0 {
+		masks = make([]UnitMask, capacity*relations)
+	}
 	for i := range backing {
 		backing[i].schema = schema
 		backing[i].source = source
@@ -471,6 +501,12 @@ func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *Ro
 		}
 		if repeatedInts > 0 {
 			backing[i].ints = ints[i*repeatedInts : (i+1)*repeatedInts]
+		}
+		if relations > 0 {
+			backing[i].masks = masks[i*relations : (i+1)*relations]
+			for j := range backing[i].masks {
+				backing[i].masks[j].sess = sess
+			}
 		}
 		rows[i] = &backing[i]
 	}
@@ -483,6 +519,21 @@ func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *Ro
 func (a *RowArray) Rebind(gen uint64) {
 	for _, r := range a.rows {
 		r.gen = gen
+		for j := range r.masks {
+			r.masks[j].gen = gen
+		}
+	}
+}
+
+// BindIdentityView tells every relation mask on these rows which array
+// resolves a bit index back to a unit. It is a SEPARATE array from this one
+// whenever rows are ordered by square rather than by UnitIndex — see
+// UnitMask.units for why conflating the two silently returns the wrong unit.
+func (a *RowArray) BindIdentityView(byUnitIndex *RowArray) {
+	for _, r := range a.rows {
+		for j := range r.masks {
+			r.masks[j].units = byUnitIndex
+		}
 	}
 }
 

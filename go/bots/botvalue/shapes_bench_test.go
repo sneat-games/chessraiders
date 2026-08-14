@@ -245,8 +245,8 @@ func unitSchema() *botvalue.Schema {
 		botvalue.FieldSpec{Name: "side", Kind: botvalue.KindEnum, Vocab: sideVocab},
 		botvalue.FieldSpec{Name: "rank", Kind: botvalue.KindEnum, Vocab: rankVocab},
 		botvalue.FieldSpec{Name: "cargo_count", Kind: botvalue.KindInt},
-		botvalue.FieldSpec{Name: "guarded_by", Repeated: true},
-		botvalue.FieldSpec{Name: "threatened_by", Repeated: true},
+		botvalue.FieldSpec{Name: "guarded_by", Relation: true},
+		botvalue.FieldSpec{Name: "threatened_by", Relation: true},
 		botvalue.FieldSpec{Name: "guarded_count", Kind: botvalue.KindInt},
 		botvalue.FieldSpec{Name: "threatened_count", Kind: botvalue.KindInt},
 		botvalue.FieldSpec{Name: "destination_files", RepeatedInts: true},
@@ -314,6 +314,23 @@ func (s *unitSource) Squares(row, field int) []uint8 {
 	return nil
 }
 
+// Mask answers the relation fields as 32-bit sets over UnitIndex.
+func (s *unitSource) Mask(row, field int) uint32 {
+	u := &s.units[row]
+	var m uint32
+	switch field {
+	case fGuardedBy:
+		for _, sq := range u.guardedBy {
+			m |= 1 << uint(int(sq)%32)
+		}
+	case fThreatenedBy:
+		for _, sq := range u.threatenedBy {
+			m |= 1 << uint(int(sq)%32)
+		}
+	}
+	return m
+}
+
 func (s *unitSource) Ints(row, field int) []int32 {
 	if s.units[row].sideCode != 1 {
 		return nil
@@ -334,8 +351,8 @@ const materialConst = `MATERIAL = {"pawn": 1.0, "knight": 3.0, "bishop": 3.25, "
 const scriptB = `
 def relation_count(unit, which):
     if which == "guarded":
-        return len(unit.guarded_by)
-    return len(unit.threatened_by)
+        return unit.guarded_by.count
+    return unit.threatened_by.count
 
 ` + materialConst + `
 
