@@ -104,6 +104,25 @@ func TestRelationsResolveByUnitIdentityNotFoggedSquareOrder(t *testing.T) {
 	}
 }
 
+func TestRowViewRebindStampsOnlyRowsItCanExpose(t *testing.T) {
+	sess := &Session{}
+	schema := NewSchema("cell", FieldSpec{Name: "square", Kind: KindSquare})
+	rows := NewRowArray(schema, rowTestSource{len: 2}, sess, 2)
+	view := NewRowView(rows)
+	order := [64]uint16{1}
+	view.SetOrder(order, 1)
+	gen := sess.Begin()
+	view.Rebind(gen)
+	defer sess.End()
+
+	if _, err := rows.rows[1].Attr("square"); err != nil {
+		t.Fatalf("visible row Attr(square): %v", err)
+	}
+	if _, err := rows.rows[0].Attr("square"); err == nil {
+		t.Fatal("unexposed row read succeeded without a lifetime stamp")
+	}
+}
+
 func TestRelationMasksHideUnboundIdentities(t *testing.T) {
 	sess := &Session{}
 	schema := NewSchema("cell", FieldSpec{Name: "defenders", Relation: true})
