@@ -75,6 +75,14 @@ type Source interface {
 	Mask(row, field int) uint32
 }
 
+// NestedSource is the optional structural extension for a Source that owns a
+// root row. It answers native observation values such as row arrays and board
+// grids without forcing every existing scalar-only Source to implement an
+// otherwise meaningless method.
+type NestedSource interface {
+	Value(row, field int) Value
+}
+
 // FieldSpec declares one attribute of one row kind: its script-visible name
 // and, for enum fields, the closed vocabulary its codes index.
 //
@@ -95,6 +103,10 @@ type FieldSpec struct {
 	// Relation marks a piece-relation field, answered by Source.Mask and
 	// surfaced as a UnitMask.
 	Relation bool
+	// Nested marks a native value field answered by Source.Value. It keeps the
+	// root observation dictionary-free while allowing it to expose row arrays,
+	// board grids, and other already-immutable native values.
+	Nested bool
 }
 
 // Schema is one row kind's complete, closed attribute surface.
@@ -237,6 +249,13 @@ func (r *Row) Attr(name string) (starlark.Value, error) {
 		list := &r.ints[repeatedSlot(r.schema, field, true)]
 		list.values = r.source.Ints(r.index, field)
 		return list, nil
+	}
+	if spec.Nested {
+		nested, ok := r.source.(NestedSource)
+		if !ok {
+			return nil, fmt.Errorf("botvalue: %s.%s is nested but its source does not implement NestedSource", r.schema.typeName, name)
+		}
+		return nested.Value(r.index, field), nil
 	}
 	return boxScalar(r.source.Field(r.index, field), spec)
 }
@@ -524,6 +543,103 @@ func (a *RowArray) Rebind(gen uint64) {
 		}
 	}
 }
+
+// ValueAt returns one pre-allocated row as an opaque native Value. Hosts use
+// it when placing a row in Board or exposing a root observation row, without
+// importing go.starlark.net themselves.
+func (a *RowArray) ValueAt(index int) Value {
+	if index < 0 || index >= len(a.rows) {
+		return None
+	}
+	return a.rows[index]
+}
+
+// RowView is an ordered, immutable view over the identity-stable rows of one
+// RowArray. The host changes only the ordering between decisions; the rows
+// themselves are the exact same objects relations use, so `unit in
+// other.defenders` retains identity semantics without allocating copies.
+type RowView struct {
+	source *RowArray
+	order  [32]uint8
+	count  int
+}
+
+var (
+	_ starlark.Value     = (*RowView)(nil)
+	_ starlark.Indexable = (*RowView)(nil)
+	_ starlark.Sequence  = (*RowView)(nil)
+	_ starlark.Container = (*RowView)(nil)
+)
+
+func NewRowView(source *RowArray) *RowView {
+	return &RowView{source: source}
+}
+
+// SetOrder installs a fixed-capacity source-row ordering. The caller owns the
+// [32]uint8 arena and this copies no heap-backed slice, so rebinding a turn's
+// visible pieces has no allocation. Out-of-range entries are ignored.
+func (v *RowView) SetOrder(order [32]uint8, count int) {
+	if count < 0 {
+		count = 0
+	}
+	if count > len(v.order) {
+		count = len(v.order)
+	}
+	if v.source == nil {
+		v.count = 0
+		return
+	}
+	n := 0
+	for i := 0; i < count; i++ {
+		if int(order[i]) >= len(v.source.rows) {
+			continue
+		}
+		v.order[n] = order[i]
+		n++
+	}
+	v.count = n
+}
+
+func (v *RowView) String() string        { return fmt.Sprintf("<rows %d>", v.count) }
+func (v *RowView) Type() string          { return "rows" }
+func (v *RowView) Freeze()               {}
+func (v *RowView) Truth() starlark.Bool  { return starlark.Bool(v.count > 0) }
+func (v *RowView) Hash() (uint32, error) { return 0, fmt.Errorf("unhashable type: rows") }
+func (v *RowView) Len() int              { return v.count }
+func (v *RowView) Index(i int) starlark.Value {
+	if i < 0 || i >= v.count || v.source == nil {
+		return starlark.None
+	}
+	return v.source.rows[v.order[i]]
+}
+func (v *RowView) Iterate() starlark.Iterator { return &rowViewIter{view: v} }
+func (v *RowView) Has(y starlark.Value) (bool, error) {
+	row, ok := y.(*Row)
+	if !ok || v.source == nil {
+		return false, nil
+	}
+	for i := 0; i < v.count; i++ {
+		if v.source.rows[v.order[i]] == row {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+type rowViewIter struct {
+	view *RowView
+	i    int
+}
+
+func (it *rowViewIter) Next(p *starlark.Value) bool {
+	if it.i >= it.view.count {
+		return false
+	}
+	*p = it.view.Index(it.i)
+	it.i++
+	return true
+}
+func (it *rowViewIter) Done() {}
 
 // BindIdentityView tells every relation list on these rows which array
 // resolves a bit index back to a unit. It is a SEPARATE array from this one
