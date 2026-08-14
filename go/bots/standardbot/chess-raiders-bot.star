@@ -414,6 +414,70 @@ def is_quiet_move(observation, board, cell, destination):
 def protection_factor(candidate):
     return min(1.0, guarded_count(candidate) / 2.0)
 
+def _delivery_square_neighbors(square):
+    """The up-to-8 king-step squares adjacent to `square`. Pure board
+    arithmetic in the same idiom square_file/square_rank_number/chebyshev_
+    distance already use for heuristic purposes — never move legality
+    (this file's own top-of-file doc comment reserves "can a piece
+    physically reach a square" for the host); this only ever enumerates
+    coordinates to ask who besieges one, the same kind of question
+    chebyshev_distance already answers without ever simulating a move."""
+    file_number = square_file(square)
+    rank_number = square_rank_number(square)
+    neighbors = []
+    for file_delta in (-1, 0, 1):
+        for rank_delta in (-1, 0, 1):
+            if file_delta == 0 and rank_delta == 0:
+                continue
+            neighbor_file = file_number + file_delta
+            neighbor_rank = rank_number + rank_delta
+            if neighbor_file < 0 or neighbor_file > 7 or neighbor_rank < 0 or neighbor_rank > 7:
+                continue
+            neighbors.append(chr(ord("a") + neighbor_file) + chr(ord("1") + neighbor_rank))
+    return neighbors
+
+def delivery_lane_blockers(delivery_squares, own_by_square, enemy_by_square):
+    """Every own unit that is the reason NONE of `delivery_squares` (this
+    king-cargo convoy's own delivery squares) currently gives it a real
+    route home — SUPERSEDES the host's own blockingBase (observation.
+    blockingBase, geometry.go's blockingOwnBaseSquares), which only ever
+    fires when a delivery square is occupied BY us. Task convoy-stall
+    (founder, 2026-08-14) is this function's whole reason to exist: e8 sat
+    EMPTY — nobody stood on it — but every one of its own king-step
+    approaches (d7/d8/e7/f7/f8) was friendly-occupied, so the host's own
+    convoyPathCost (board["convoy_home"]) could never step onto it either,
+    and blockingBase read as [] because nothing stands directly on the
+    free square it was checking: a wall is not the same shape as a piece
+    parked on the goal, and the host function never asked the second
+    question. This one checks both, over the SAME facts the host observation
+    already hands the script (deliverySquares/own_by_square/enemy_by_square)
+    — no new field, no move-legality computed anywhere below.
+
+    Mirrors the host function's own all-or-nothing, never-an-enemy
+    philosophy exactly: an enemy-held delivery square, or one with even a
+    single real (free-and-open, or enemy-held) approach, is a different,
+    uncleared situation and this returns [] for the WHOLE call rather than
+    half-crediting a clearance our own pieces alone could never actually
+    open (chess-raiders-bot.star never proposes attacking or racing an
+    enemy for a delivery square, here or anywhere else)."""
+    blockers = {}
+    for target in delivery_squares:
+        if target in enemy_by_square:
+            return []
+        if target in own_by_square:
+            blockers[target] = True
+            continue
+        neighbors = _delivery_square_neighbors(target)
+        if not neighbors:
+            return []
+        for neighbor in neighbors:
+            if neighbor in enemy_by_square:
+                return []
+            if neighbor not in own_by_square:
+                return []  # a real, open approach exists -- nothing to clear
+            blockers[neighbor] = True
+    return blockers.keys()
+
 
 # =============================================================================
 # Board bookkeeping: which projected pieces are mine, which may be commanded
@@ -532,7 +596,15 @@ def build_board(observation):
         "king_threatened": king_threatened,
         "delivery_squares": observation.get("deliverySquares", []),
         "convoy_home": observation.get("convoyHome", {}),
-        "blocking_base": observation.get("blockingBase", []),
+        # delivery_lane_blockers supersedes the host's own blockingBase
+        # (observation.get("blockingBase", [])) rather than merely
+        # defaulting to it — see that function's own doc comment for why
+        # the host's narrower answer (a delivery square occupied BY us) is
+        # a proper subset of what this also catches (a free delivery
+        # square walled in by us): every input this needs is already on
+        # `observation`/the locals just above, so there is nothing left to
+        # union in.
+        "blocking_base": delivery_lane_blockers(observation.get("deliverySquares", []), own_by_square, enemy_by_square),
     }
 
 
@@ -1026,7 +1098,36 @@ def score_move(observation, board, params, memory, cell, destination):
         if destination in board["delivery_squares"]:
             score += add_term(terms, "delivery", DELIVERY_BONUS, "wins")
         else:
-            here_cost = board["convoy_home"].get(cell["square"], UNREACHABLE_PATH_COST)
+            # progress_from is the convoy's OWN square, UNLESS a charge is
+            # already in flight (active_charge, computed above for the
+            # tempo term) — move_proposals' own filter a few lines above
+            # (`if cell.get("charging") and destination == cell["charging"]
+            # ["square"]: continue`) means every candidate that reaches
+            # here WHILE charging is necessarily a REPLACEMENT of that
+            # charge, so the honest question is "does this destination
+            # out-progress where the convoy is already headed", not
+            # "out-progress where it is currently standing" (task
+            # convoy-stall, 2026-08-14 — verbatim founder report: "moved 1
+            # square and stays put"). King-step BFS routinely produces
+            # several equal-cost detours (two diagonal-then-straight paths
+            # of the same length is the ordinary case, not an edge case),
+            # and scoring every one of them against the STANDING square
+            # made two such detours score an identical "closer" bonus —
+            # letting retention_score's COMMITMENT_DECAY erode just enough
+            # (one or two decisions of age) for either to replace the
+            # other, then be replaced right back the same way one
+            # commitment later: the convoy paid a fresh charge every time
+            # and never advanced past that square. Scoring against the
+            # charge's OWN destination instead makes an equal-cost swap
+            # worth exactly 0 progress — closing the tie at its source
+            # rather than widening retention_score/COMMITMENT_DECAY, the
+            # shared, already-tuned mechanism sneat-co/chessraiders#84's
+            # own comment (ROUTE_REPLACE_BASELINE, above) documents ONE
+            # remaining open oscillation class for — a genuinely SHORTER
+            # replacement (there_cost below the charge's own here_cost)
+            # still wins immediately, unchanged.
+            progress_from = active_charge["square"] if active_charge else cell["square"]
+            here_cost = board["convoy_home"].get(progress_from, UNREACHABLE_PATH_COST)
             there_cost = board["convoy_home"].get(destination, UNREACHABLE_PATH_COST)
             if here_cost < UNREACHABLE_PATH_COST:
                 if there_cost >= UNREACHABLE_PATH_COST:
@@ -1036,7 +1137,7 @@ def score_move(observation, board, params, memory, cell, destination):
                     score += add_term(terms, "delivery",
                                       (here_cost - there_cost) * DELIVERY_STEP_VALUE * params["delivery"], "closer")
             else:
-                progress = (distance_to_nearest_square(cell["square"], board["delivery_squares"]) -
+                progress = (distance_to_nearest_square(progress_from, board["delivery_squares"]) -
                             distance_to_nearest_square(destination, board["delivery_squares"]))
                 score += add_term(terms, "delivery", progress * DELIVERY_STEP_VALUE * params["delivery"], "drift")
 
