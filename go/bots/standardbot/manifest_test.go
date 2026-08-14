@@ -118,6 +118,27 @@ func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 // losslessly as five JS-safe leaderBoard0..leaderBoard4 entries (a packed
 // nibble-per-square code) instead of twelve raw ones — see that function's
 // own doc comment. No params changed; params.resolved.json is untouched.
-const standardBotClosureDigest = "sha256:8b68a178792eb9bb250b4a112989fe49a121bf860e5df2f2429f1250d1f947f1"
+//
+// 2026-08-14 (task convoy-stall, founder production report): a king-cargo
+// convoy's own delivery square can be FREE yet walled in by the side's own
+// army standing on every one of its king-step approaches — geometry.go's
+// blockingOwnBaseSquares (private engine) only ever flags a delivery square
+// OCCUPIED by us, never one merely surrounded, so nothing ever scored
+// clearing a lane and the convoy sat put (sneat-co/chessraiders' own
+// prod-diagnostics.json: id-19 convoy parked on f2, e8 empty but
+// d7/d8/e7/f7/f8 all friendly). build_board's own "blocking_base" now
+// supersedes the host's blockingBase with delivery_lane_blockers, computed
+// from data the observation already carries (deliverySquares/own_by_square/
+// enemy_by_square) — see that function's own doc comment. Separately, once
+// unblocked, the convoy still ping-ponged between two equal-cost approach
+// squares forever (g5<->f6/g6 in the same reproduction): scoring a
+// REPLACEMENT candidate's delivery progress against the convoy's CURRENT
+// square let two king-step-equidistant destinations tie exactly, and
+// COMMITMENT_DECAY's own erosion let the tie "win" back and forth every one
+// to two decisions — score_move's delivery branch now measures progress
+// against the charge ALREADY in flight (active_charge, its own doc comment)
+// instead, so an equal-cost swap scores zero and the convoy commits. No
+// params changed; params.resolved.json is untouched.
+const standardBotClosureDigest = "sha256:72793e78aed5650740482713764e7611096c71abc6a12ecb80b8a513b5807390"
 
-const standardBotScriptDigest = "2f372be0cdaf9cb1310d968c846121774064d1ec54b381d75d013bc5fb47329a"
+const standardBotScriptDigest = "a5376128960c8efacd7f9e968f2603401c92b3c208b02c0bb1b7466ba6de8dc4"
