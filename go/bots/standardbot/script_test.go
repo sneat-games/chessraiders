@@ -183,7 +183,7 @@ func TestScriptReadsNumericActorsFromSourceSquareFacts(t *testing.T) {
 		"legal":{"a2":["a3"]}, "affordability":{}, "enPassant":{},
 		"candidates":{"a2":{"a3":{"destinationVisible":true,"patrolGain":0,"nextPossibleMoves":[],"threatens":[],"threatenedBy":[],"guards":[],"guardedBy":["a2"]}}},
 		"deliverySquares":[], "convoyHome":{}, "blockingBase":[],
-		"rules":{"veteranProgression":false,"allowsKill":true,"allowsCapture":true,"pieceChargeMs":{},"baseSquares":{},"beaconEnabled":false,"beaconForgeEnabled":false,"beaconKingStartsAsBearer":false,"specialistsEnabled":false,"woodWallsEnabled":false,"stoneWallsEnabled":false},
+		"rules":{"veteranProgression":false,"allowsKill":true,"allowsCapture":true,"pieceChargeMs":{},"baseSquares":{},"beaconEnabled":false,"beaconForgeEnabled":false,"beaconKingStartsAsBearer":false,"specialistsEnabled":false,"woodWallsEnabled":false,"stoneWallsEnabled":false,"maxActiveCommands":1},
 		"systems":{"training":false,"walls":false,"beacon":false,"prisoners":false,"morale":false,"espionage":false},
 		"beacon":{"lifecycle":"undeployed","bearerSquare":"","everHandedOff":false}, "walls":[], "enemyManaged":0
 	}`
@@ -212,7 +212,7 @@ const emptyBoardObservation = `{
 	"nowMs": 0,
 	"pieces": {},
 	"legal": {},
-	"rules": {"veteranProgression": false, "allowsCapture": true}
+	"rules": {"veteranProgression": false, "allowsCapture": true, "maxActiveCommands": 1}
 }`
 
 // decideThreeTuple decodes decide()'s own JSON return shape: a 3-element

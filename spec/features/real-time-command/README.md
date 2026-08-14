@@ -91,6 +91,24 @@ paces how quickly one person can issue new orders; it is not a property of
 the piece and is never reduced or extended by anything that shortens or
 lengthens a piece's charge.
 
+#### REQ: simultaneous-command-limit
+
+A side's whole army may have at most a configured number of pieces actively
+charging at once — one, by default. While a side is already at that limit,
+its other, idle pieces cannot begin a new command; they remain fully
+selectable and can still be commanded the moment capacity frees up (a
+charging piece finishes its route, is cancelled, or is captured). Redirecting
+a piece that is ALREADY one of the side's active commands to a different
+destination is never blocked by this limit — that piece's own command slot
+does not change, only its target does.
+
+This is an army-wide limit, not a per-piece cooldown (REQ:charge-before-move)
+or a per-player pacing rule (REQ:player-command-interval): it bounds how many
+different pieces the team can have committed to a move at the same instant,
+regardless of which teammate issued each command. The limit is a match
+setting, not a fixed rule of the game — a future ruleset may raise it above
+one, letting a side commit several pieces to simultaneous routes.
+
 ### Route planning
 
 #### REQ: route-planning-basics
