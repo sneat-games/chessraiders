@@ -270,6 +270,7 @@ var (
 	_ starlark.Value     = (*IntList)(nil)
 	_ starlark.Indexable = (*IntList)(nil)
 	_ starlark.Sequence  = (*IntList)(nil)
+	_ starlark.Container = (*IntList)(nil)
 )
 
 func (l *IntList) String() string             { return fmt.Sprintf("<ints %d>", len(l.values)) }
@@ -280,6 +281,24 @@ func (l *IntList) Hash() (uint32, error)      { return 0, fmt.Errorf("unhashable
 func (l *IntList) Len() int                   { return len(l.values) }
 func (l *IntList) Index(i int) starlark.Value { return Int(int64(l.values[i])) }
 func (l *IntList) Iterate() starlark.Iterator { return &intIter{list: l} }
+
+// Has implements `in` — see SquareList.Has for why this is required.
+func (l *IntList) Has(y starlark.Value) (bool, error) {
+	want, ok := y.(starlark.Int)
+	if !ok {
+		return false, nil
+	}
+	n, ok := want.Int64()
+	if !ok {
+		return false, nil
+	}
+	for _, v := range l.values {
+		if int64(v) == n {
+			return true, nil
+		}
+	}
+	return false, nil
+}
 
 type intIter struct {
 	list *IntList
@@ -308,6 +327,7 @@ var (
 	_ starlark.Value     = (*SquareList)(nil)
 	_ starlark.Indexable = (*SquareList)(nil)
 	_ starlark.Sequence  = (*SquareList)(nil)
+	_ starlark.Container = (*SquareList)(nil)
 )
 
 func (l *SquareList) String() string        { return fmt.Sprintf("<squares %d>", len(l.squares)) }
@@ -320,6 +340,30 @@ func (l *SquareList) Index(i int) starlark.Value {
 	return Square(int(l.squares[i]))
 }
 func (l *SquareList) Iterate() starlark.Iterator { return &squareIter{list: l} }
+
+// Has implements the `in` operator. It is REQUIRED, not optional: go.starlark.net
+// dispatches `x in y` on Container (eval.go's Binary/syntax.IN) and never on
+// Sequence, so an indexable value that omits this fails `in` with an
+// "unknown binary op" error rather than falling back to a scan. The
+// production script tests membership against relation arrays directly
+// ("is the enemy king among the squares this unit threatens"), so omitting
+// it would have broken the migration rather than merely slowed it.
+func (l *SquareList) Has(y starlark.Value) (bool, error) {
+	name, ok := y.(starlark.String)
+	if !ok {
+		return false, nil
+	}
+	index, ok := SquareIndex(string(name))
+	if !ok {
+		return false, nil
+	}
+	for _, s := range l.squares {
+		if int(s) == index {
+			return true, nil
+		}
+	}
+	return false, nil
+}
 
 type squareIter struct {
 	list *SquareList
@@ -348,6 +392,7 @@ var (
 	_ starlark.Value     = (*RowArray)(nil)
 	_ starlark.Indexable = (*RowArray)(nil)
 	_ starlark.Sequence  = (*RowArray)(nil)
+	_ starlark.Container = (*RowArray)(nil)
 )
 
 func (a *RowArray) String() string        { return fmt.Sprintf("<rows %d>", a.Len()) }
@@ -360,6 +405,23 @@ func (a *RowArray) Index(i int) starlark.Value {
 	return a.rows[i]
 }
 func (a *RowArray) Iterate() starlark.Iterator { return &rowIter{array: a} }
+
+// Has implements `in` by row IDENTITY — see SquareList.Has for why it is
+// required. Identity rather than equality is deliberate: a Row is unhashable
+// and has no defined equality, so "is this the same unit" is the only
+// question with an unambiguous answer.
+func (a *RowArray) Has(y starlark.Value) (bool, error) {
+	row, ok := y.(*Row)
+	if !ok {
+		return false, nil
+	}
+	for i, r := range a.rows {
+		if r == row {
+			return i < a.Len(), nil
+		}
+	}
+	return false, nil
+}
 
 type rowIter struct {
 	array *RowArray

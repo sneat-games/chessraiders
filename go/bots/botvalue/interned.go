@@ -260,3 +260,18 @@ func TupleAt(v Value, i int) (Value, bool) {
 	}
 	return t[i], true
 }
+
+// SquareIndex parses an algebraic square name back to its 0..63 file-major
+// index. It exists for the `in` operator (SquareList.Has), which receives
+// whatever string a script wrote, and for a host validating a returned
+// intent.
+func SquareIndex(name string) (int, bool) {
+	if len(name) != 2 {
+		return 0, false
+	}
+	file, rank := int(name[0])-'a', int(name[1])-'1'
+	if file < 0 || file > 7 || rank < 0 || rank > 7 {
+		return 0, false
+	}
+	return file*8 + rank, true
+}

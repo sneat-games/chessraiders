@@ -260,3 +260,15 @@ func TestParallelSessionsShareInternedValuesWithoutRacing(t *testing.T) {
 		t.Fatalf("parallel decision: %v", err)
 	}
 }
+
+// TestMembershipWorksOnRelationArrays probes the `in` operator, which the
+// production script uses against relation arrays ("is the enemy king among
+// the squares this unit threatens"). eval.go's Binary(IN) dispatches on
+// Container, NOT on Sequence, so an indexable value that omits Has silently
+// fails this — a gap worth a test rather than an assumption.
+func TestMembershipWorksOnRelationArrays(t *testing.T) {
+	got := runAttack(t, "    if observation.units[0].guarded_by[0] in observation.units[0].guarded_by:\n        return None, {}, []\n    fail(\"not found\")")
+	if got != "" {
+		t.Fatalf("`in` against a relation array failed: %s", got)
+	}
+}
