@@ -272,6 +272,15 @@ MAX_SQUARE_INDEX = 63  # the highest valid board index (an 8x8 board, 0-indexed)
 BOARD_FILES = 8  # files per rank, for packing (file, rank) into one 0..63 index
 REFUSED_SET_SIZE = 4  # drop_refused's own small ring buffer size — see that function's own doc comment for why ONE remembered square was not enough
 QUIET_VACATED_SQUARES = 3  # enough to break the observed queen shuffle without turning Recruit's tiny memory into a board history
+# UNLIMITED_ACTIVE_COMMANDS stands in for observation["rules"]["maxActiveCommands"]
+# being absent OR zero (chess.Rules.MaxActiveCommands' own zero-means-
+# unlimited engine convention, and every observation recorded before this
+# field existed) — see REQ:not-briefed-is-not-no-legal-moves. Comparing a
+# live route/charge count against a bare 0 would read as "always at the
+# limit," the opposite of unlimited, so the fallback lives HERE, at the one
+# place this value is consumed, rather than trusting every possible producer
+# of an observation/rules dict to apply it correctly upstream.
+UNLIMITED_ACTIVE_COMMANDS = 1000000
 MILLISECONDS_PER_SECOND = 1000.0  # unit conversion for the Tempo term's charge duration
 BITBOARD_SIGN_BIT = 1 << 63
 BITBOARD_MODULUS = 1 << 64
@@ -566,14 +575,33 @@ def build_board(observation):
         nonroute_busy_units[king_cell["unitId"]] = True
 
     actionable_units = [cell for cell in own_cells if not busy_units.get(cell["unitId"])]
-    if charging_units:
-        # One command front at a time. While any own route is active, the
-        # only permitted exception is replacing that same lower-value route;
-        # idle pieces cannot start a second move alongside it.
-        move_actionable_units = [cell for cell in own_cells if (replaceable_charging_units.get(cell["unitId"]) and
-                                                                not nonroute_busy_units.get(cell["unitId"]))]
+    # max_active_commands generalizes the old "any charge blocks everything
+    # else" boolean into a NUMBER read from rules (default 1, the exact
+    # single-command-front behaviour this replaces at that default) —
+    # REQ:not-briefed-is-not-no-legal-moves, chess.Rules.MaxActiveCommands'
+    # own doc comment. It is the SAME number the host itself compares its
+    # own routed-command count against when deciding which idle units get
+    # observation.legal/candidates at all, so this must never drift from
+    # that host-side comparison. Absent or zero (an observation recorded
+    # before this field existed, or ANY producer that has not set it) means
+    # unlimited, never "always at the limit" — see UNLIMITED_ACTIVE_COMMANDS'
+    # own doc comment for why this fallback belongs HERE and not upstream.
+    max_active_commands = observation["rules"].get("maxActiveCommands", 0) or UNLIMITED_ACTIVE_COMMANDS
+    # replaceable_now is always reconsiderable regardless of capacity: a
+    # unit already charging toward a REPLACEABLE (non-protected) target may
+    # always be redirected to a better one, at any N — this was already true
+    # at the N=1 default and generalizes unchanged.
+    replaceable_now = [cell for cell in own_cells if (replaceable_charging_units.get(cell["unitId"]) and
+                                                        not nonroute_busy_units.get(cell["unitId"]))]
+    if len(charging_units) >= max_active_commands:
+        # At the command limit: no idle piece may start a new command until
+        # capacity frees up. Below the limit, EVERY idle unit stays fully
+        # actionable alongside whatever is already charging — see the
+        # founder's own framing this generalizes ("the bot should be able to
+        # command non-charging pieces if the limit allows").
+        move_actionable_units = replaceable_now
     else:
-        move_actionable_units = actionable_units
+        move_actionable_units = actionable_units + replaceable_now
     king_threatened = king_cell != None and threatened_count(king_cell) > 0
 
     needs_first_master_engineer = observation["rules"]["veteranProgression"] and not has_master_engineer
@@ -819,7 +847,19 @@ def leader_support(observation, board, leader, destination):
 def current_morale_need(observation):
     """The highest currently visible capture threshold, also bounded by the
     number already managed. The host owns affordability; this only asks how
-    much current work more morale would unlock."""
+    much current work more morale would unlock.
+
+    "Currently visible" is deliberate, not incomplete: observation.affordability
+    only ever holds entries for units the host actually evaluated this
+    decision. At the command limit (REQ:not-briefed-is-not-no-legal-moves)
+    that is fewer than all own units with legal moves — units the bot
+    structurally cannot command this decision anyway contribute nothing to
+    `needed` here, exactly as a unit with no legal captures always has. This
+    can only ever UNDERSTATE the reserve (never invent a false one), and the
+    same units are re-evaluated the moment capacity frees up, so it never
+    strands a real requirement — see this task's own correctness-discipline
+    receipts (multi-seed decisiveness/kill-rate comparison) for the check
+    that this narrowing does not measurably change play quality."""
     needed = observation.get("ownManaged", 0)
     for by_destination in observation.get("affordability", {}).values():
         for outcomes in by_destination.values():
@@ -945,6 +985,14 @@ def formation_leader_priority(observation, board, params, cell):
 def has_other_ordinary_choice(observation, board, current_cell):
     for cell in board["actionable_units"]:
         if cell["unitId"] == current_cell["unitId"] or cell["convoy"] or cell["rank"] == "king" or is_current_beacon_bearer(observation, cell):
+            continue
+        # notBriefed (REQ:not-briefed-is-not-no-legal-moves): actionable_units
+        # is broader than move_actionable_units, so at the command limit it can
+        # hold idle units the host never evaluated this decision. Their
+        # observation["legal"] entry is simply absent — not "no moves" — so an
+        # unbriefed cell must not be read as evidence either way; skip it
+        # rather than let .get(..., []) silently read as "nothing here".
+        if cell.get("notBriefed"):
             continue
         for destination in observation["legal"].get(cell["square"], []):
             if destination != cell["square"]:
@@ -1573,6 +1621,14 @@ def priority_captive_delivery_proposal(observation, board, params):
     for cell in board["own"]:
         if (not cell["convoy"] or cell["cargoCount"] == 0 or cell["kingCargo"] or
                 cell["rank"] != "pawn" or board["busy_units"].get(cell["unitId"])):
+            continue
+        # notBriefed (REQ:not-briefed-is-not-no-legal-moves): board["own"] is
+        # every own unit, unfiltered by move_actionable_units — at the command
+        # limit an idle convoy here may be one the host never evaluated this
+        # decision. Its observation["legal"]/candidates entries are simply
+        # absent, not "no legal moves" — skip rather than treat that absence
+        # as "nowhere to deliver".
+        if cell.get("notBriefed"):
             continue
         prisoner_rank = "pawn" if observation["rules"]["cargoBasedDelivery"] else cell["rank"]
         destinations = observation["legal"].get(cell["square"], [])
@@ -2786,7 +2842,17 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     # whenever memory holds no route commitment at all.
     if board["charging_units"]:
         threshold = retention_score(memory, COMMIT_KIND_ROUTE)
-        proposals = [proposal for proposal in proposals if proposal["score"] > threshold]
+        # Scoped to the CHARGING unit's own alternatives only (proposal
+        # actor in charging_units) — at max_active_commands == 1 that is
+        # every proposal here (move_actionable_units held nothing else),
+        # unchanged from before this was made limit-driven. At N > 1 with
+        # spare capacity, move_actionable_units/move_proposals can also
+        # contain a DIFFERENT, idle unit's brand-new command — using spare
+        # capacity abandons nothing, so it must never be held to a
+        # retention bar designed to stop a unit from cancelling its OWN
+        # sunk progress for a marginal alternative.
+        proposals = [proposal for proposal in proposals
+                     if proposal.get("actor") not in board["charging_units"] or proposal["score"] > threshold]
 
     if not proposals:
         return finish_decision(observation, board, memory, None, [])

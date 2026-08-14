@@ -139,6 +139,36 @@ func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 // against the charge ALREADY in flight (active_charge, its own doc comment)
 // instead, so an equal-cost swap scores zero and the convoy commits. No
 // params changed; params.resolved.json is untouched.
-const standardBotClosureDigest = "sha256:72793e78aed5650740482713764e7611096c71abc6a12ecb80b8a513b5807390"
+//
+// 2026-08-14 (obs-briefing-limit, founder proposal "stop briefing units the
+// bot cannot act on"): the host may now skip an idle (non-charging) own
+// unit's legal/candidate/affordability/enPassant hints once the side already
+// has rules.maxActiveCommands routes in flight (chess.Rules.MaxActiveCommands,
+// default 1 — the bot's own long-standing single-command-front policy, now
+// engine-generic and host-configurable) — see spec/features/starlark-bot-
+// runtime/bot-script-contract#REQ:not-briefed-is-not-no-legal-moves. Three
+// changes to chess-raiders-bot.star: (1) build_board's own move_actionable_units
+// narrowing reads rules.maxActiveCommands as a NUMBER (len(charging_units) >=
+// max_active_commands) instead of a hard-coded "any charge blocks everything"
+// boolean, so it generalizes correctly when the limit is raised above 1; (2)
+// has_other_ordinary_choice, the master-engineer prisoner-delivery proposal,
+// and the route-retention threshold in decide() itself all now check/skip a
+// cell's notBriefed flag (or, for the retention threshold, scope to the
+// charging unit's own proposals only) rather than risk conflating "not
+// evaluated this decision" with "evaluated, no legal moves"; (3)
+// current_morale_need's doc comment now states its scan is scoped to
+// currently-briefed units, a deliberate, verified-neutral narrowing, not a
+// bug. Follow-up same day: max_active_commands now reads
+// observation["rules"].get("maxActiveCommands", 0) or
+// UNLIMITED_ACTIVE_COMMANDS instead of a bare direct index — a hand-built
+// RulesView that never sets the new field (starlarkbot's own
+// task15_regressions_test.go, private repo) sends a bare zero, and
+// `len(charging_units) >= 0` is ALWAYS true, i.e. every decision reads as
+// already at the limit — the opposite of unlimited, and total paralysis for
+// any caller that has not been updated for this field. The safe fallback now
+// lives in the script itself, the one place this value is consumed, so
+// every present and future producer gets it for free. No params changed;
+// params.resolved.json is untouched.
+const standardBotClosureDigest = "sha256:d865da7f60d346ce5f0791e033f2ad0c1b8d1ab8f6f9efc03590de8947cd5c55"
 
-const standardBotScriptDigest = "a5376128960c8efacd7f9e968f2603401c92b3c208b02c0bb1b7466ba6de8dc4"
+const standardBotScriptDigest = "1c449df0eb6d042b99bc11277bb0f30a6e72806c708988c3350d093497502c12"

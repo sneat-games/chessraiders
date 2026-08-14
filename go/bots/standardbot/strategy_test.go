@@ -22,7 +22,7 @@ const beaconScenario = `{
 	"pieces":{"e1":{"unitId":"wk","side":"white","rank":"king","convoy":false,"cargoCount":0,"kingCargo":false,"ghost":false,"refitting":false}},
 	"legal":{}, "affordability":{}, "enPassant":{}, "candidates":{},
 	"deliverySquares":[], "convoyHome":{}, "blockingBase":[],
-	"rules":{"veteranProgression":false,"allowsKill":true,"allowsCapture":true,"pieceChargeMs":{},"baseSquares":{},"beaconEnabled":true,"beaconForgeEnabled":false,"beaconKingStartsAsBearer":false,"specialistsEnabled":false,"woodWallsEnabled":false,"stoneWallsEnabled":false},
+	"rules":{"veteranProgression":false,"allowsKill":true,"allowsCapture":true,"pieceChargeMs":{},"baseSquares":{},"beaconEnabled":true,"beaconForgeEnabled":false,"beaconKingStartsAsBearer":false,"specialistsEnabled":false,"woodWallsEnabled":false,"stoneWallsEnabled":false,"maxActiveCommands":1},
 	"systems":{"training":false,"walls":false,"beacon":false,"prisoners":false,"morale":false,"espionage":false},
 	"beacon":{"lifecycle":"undeployed","bearerSquare":"","everHandedOff":false}, "walls":[], "enemyManaged":0
 }`
