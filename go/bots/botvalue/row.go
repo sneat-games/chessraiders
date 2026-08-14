@@ -610,11 +610,14 @@ func (a *RowArray) ValueAt(index int) Value {
 // other.defenders` retains identity semantics without allocating copies.
 type RowView struct {
 	source *RowArray
-	// A view is ordered by board square and therefore has room for every
-	// projected cell, including remembered fog cells. Unit relations use the
-	// separate, fixed 32-entry UnitIdentityView below.
-	order [64]uint16
-	count int
+	// Ordered views are used for board cells, which need an arbitrary square
+	// order. Range views are used for a compact producer-owned run of rows,
+	// such as one unit's candidate facts. Unit relations use the separate,
+	// fixed 32-entry UnitIdentityView below.
+	order     [64]uint16
+	start     int
+	count     int
+	rangeView bool
 }
 
 var (
@@ -640,6 +643,7 @@ func (v *RowView) SetOrder(order [64]uint16, count int) {
 	}
 	if v.source == nil {
 		v.count = 0
+		v.rangeView = false
 		return
 	}
 	n := 0
@@ -651,6 +655,33 @@ func (v *RowView) SetOrder(order [64]uint16, count int) {
 		n++
 	}
 	v.count = n
+	v.rangeView = false
+}
+
+// SetRange exposes count contiguous source rows beginning at start. It is the
+// compact counterpart to SetOrder: a producer that already packs related rows
+// together needs neither a per-view order array nor a copied list. Bounds are
+// clamped to the pre-allocated RowArray, so this is allocation-free and safe
+// for stale or partial producer state.
+func (v *RowView) SetRange(start, count int) {
+	v.rangeView = true
+	v.start = 0
+	v.count = 0
+	if v.source == nil || count <= 0 || start < 0 || start >= len(v.source.rows) {
+		return
+	}
+	if count > len(v.source.rows)-start {
+		count = len(v.source.rows) - start
+	}
+	v.start = start
+	v.count = count
+}
+
+func (v *RowView) sourceIndex(i int) int {
+	if v.rangeView {
+		return v.start + i
+	}
+	return int(v.order[i])
 }
 
 // Rebind stamps only this view's currently exposed rows. It is the sparse
@@ -664,7 +695,7 @@ func (v *RowView) Rebind(gen uint64) {
 		return
 	}
 	for i := 0; i < v.count; i++ {
-		rebindRow(v.source.rows[v.order[i]], gen)
+		rebindRow(v.source.rows[v.sourceIndex(i)], gen)
 	}
 }
 
@@ -678,7 +709,7 @@ func (v *RowView) Index(i int) starlark.Value {
 	if i < 0 || i >= v.count || v.source == nil {
 		return starlark.None
 	}
-	return v.source.rows[v.order[i]]
+	return v.source.rows[v.sourceIndex(i)]
 }
 func (v *RowView) Iterate() starlark.Iterator { return &rowViewIter{view: v} }
 func (v *RowView) Has(y starlark.Value) (bool, error) {
@@ -687,7 +718,7 @@ func (v *RowView) Has(y starlark.Value) (bool, error) {
 		return false, nil
 	}
 	for i := 0; i < v.count; i++ {
-		if v.source.rows[v.order[i]] == row {
+		if v.source.rows[v.sourceIndex(i)] == row {
 			return true, nil
 		}
 	}
