@@ -83,6 +83,15 @@ type NestedSource interface {
 	Value(row, field int) Value
 }
 
+// SquareMaskSource is the fixed-board counterpart to Source.Squares. A legal
+// destination set is a subset of exactly 64 squares, so returning a uint64
+// avoids allocating or retaining a host slice merely to make it iterable in a
+// script. A SquareMaskList exposes the same ordinary immutable sequence shape
+// to Starlark.
+type SquareMaskSource interface {
+	SquareMask(row, field int) uint64
+}
+
 // FieldSpec declares one attribute of one row kind: its script-visible name
 // and, for enum fields, the closed vocabulary its codes index.
 //
@@ -98,6 +107,11 @@ type FieldSpec struct {
 	Vocab *Vocabulary
 	// Repeated marks a square-list field, answered by Source.Squares.
 	Repeated bool
+	// SquareMask marks a fixed-board square sequence, answered by
+	// SquareMaskSource.SquareMask. Use it for legal destinations and any other
+	// subset of the 64-square board; Repeated remains for genuinely variable
+	// host-owned lists that cannot be represented as a square set.
+	SquareMask bool
 	// RepeatedInts marks an integer-list field, answered by Source.Ints.
 	RepeatedInts bool
 	// Relation marks a piece-relation field, answered by Source.Mask and
@@ -190,8 +204,11 @@ type Row struct {
 	// field, so reading `unit.guarded_by` twice costs zero allocations and
 	// zero garbage. Nil until the kind declares repeated fields.
 	lists []SquareList
-	ints  []IntList
-	masks []UnitList
+	// squareMasks are preallocated fixed-board square sequences. Unlike lists,
+	// each one is a uint64 and never points to a host slice.
+	squareMasks []SquareMaskList
+	ints        []IntList
+	masks       []UnitList
 }
 
 var (
@@ -238,6 +255,15 @@ func (r *Row) Attr(name string) (starlark.Value, error) {
 	if spec.Repeated {
 		list := &r.lists[repeatedSlot(r.schema, field, false)]
 		list.squares = r.source.Squares(r.index, field)
+		return list, nil
+	}
+	if spec.SquareMask {
+		source, ok := r.source.(SquareMaskSource)
+		if !ok {
+			return nil, fmt.Errorf("botvalue: %s.%s is a square mask but its source does not implement SquareMaskSource", r.schema.typeName, name)
+		}
+		list := &r.squareMasks[squareMaskSlot(r.schema, field)]
+		list.bits = source.SquareMask(r.index, field)
 		return list, nil
 	}
 	if spec.Relation {
@@ -296,6 +322,16 @@ func relationSlot(s *Schema, field int) int {
 	slot := 0
 	for i := 0; i < field; i++ {
 		if s.fields[i].Relation {
+			slot++
+		}
+	}
+	return slot
+}
+
+func squareMaskSlot(s *Schema, field int) int {
+	slot := 0
+	for i := 0; i < field; i++ {
+		if s.fields[i].SquareMask {
 			slot++
 		}
 	}
@@ -484,10 +520,13 @@ func (it *rowIter) Done() {}
 // session — bounded by the protocol (<=32 live identities, <=64 projected
 // cells) — so a decision mints no row objects at all.
 func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *RowArray {
-	repeated, repeatedInts, relations := 0, 0, 0
+	repeated, squareMasks, repeatedInts, relations := 0, 0, 0, 0
 	for _, f := range schema.fields {
 		if f.Repeated {
 			repeated++
+		}
+		if f.SquareMask {
+			squareMasks++
 		}
 		if f.RepeatedInts {
 			repeatedInts++
@@ -501,6 +540,10 @@ func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *Ro
 	var lists []SquareList
 	if repeated > 0 {
 		lists = make([]SquareList, capacity*repeated)
+	}
+	var masksBySquare []SquareMaskList
+	if squareMasks > 0 {
+		masksBySquare = make([]SquareMaskList, capacity*squareMasks)
 	}
 	var ints []IntList
 	if repeatedInts > 0 {
@@ -517,6 +560,9 @@ func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *Ro
 		backing[i].sess = sess
 		if repeated > 0 {
 			backing[i].lists = lists[i*repeated : (i+1)*repeated]
+		}
+		if squareMasks > 0 {
+			backing[i].squareMasks = masksBySquare[i*squareMasks : (i+1)*squareMasks]
 		}
 		if repeatedInts > 0 {
 			backing[i].ints = ints[i*repeatedInts : (i+1)*repeatedInts]
@@ -537,10 +583,14 @@ func NewRowArray(schema *Schema, source Source, sess *Session, capacity int) *Ro
 // what makes a reference from the previous decision fail loudly.
 func (a *RowArray) Rebind(gen uint64) {
 	for _, r := range a.rows {
-		r.gen = gen
-		for j := range r.masks {
-			r.masks[j].gen = gen
-		}
+		rebindRow(r, gen)
+	}
+}
+
+func rebindRow(row *Row, gen uint64) {
+	row.gen = gen
+	for j := range row.masks {
+		row.masks[j].gen = gen
 	}
 }
 
@@ -563,7 +613,7 @@ type RowView struct {
 	// A view is ordered by board square and therefore has room for every
 	// projected cell, including remembered fog cells. Unit relations use the
 	// separate, fixed 32-entry UnitIdentityView below.
-	order [64]uint8
+	order [64]uint16
 	count int
 }
 
@@ -579,9 +629,9 @@ func NewRowView(source *RowArray) *RowView {
 }
 
 // SetOrder installs a fixed-capacity source-row ordering. The caller owns the
-// [64]uint8 arena and this copies no heap-backed slice, so rebinding a turn's
+// [64]uint16 arena and this copies no heap-backed slice, so rebinding a turn's
 // visible pieces has no allocation. Out-of-range entries are ignored.
-func (v *RowView) SetOrder(order [64]uint8, count int) {
+func (v *RowView) SetOrder(order [64]uint16, count int) {
 	if count < 0 {
 		count = 0
 	}
@@ -601,6 +651,21 @@ func (v *RowView) SetOrder(order [64]uint8, count int) {
 		n++
 	}
 	v.count = n
+}
+
+// Rebind stamps only this view's currently exposed rows. It is the sparse
+// counterpart to RowArray.Rebind: a candidate row arena may have room for all
+// 32×64 possibilities, while a decision commonly exposes none or a handful.
+// Rebinding only rows an immutable view can actually yield preserves the stale
+// lifetime boundary without paying a 2,048-row loop for an empty candidate
+// set.
+func (v *RowView) Rebind(gen uint64) {
+	if v.source == nil {
+		return
+	}
+	for i := 0; i < v.count; i++ {
+		rebindRow(v.source.rows[v.order[i]], gen)
+	}
 }
 
 func (v *RowView) String() string        { return fmt.Sprintf("<rows %d>", v.count) }

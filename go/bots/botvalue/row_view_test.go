@@ -30,7 +30,7 @@ func TestRowNestedValueAndFixedOrderView(t *testing.T) {
 	roots.Rebind(gen)
 	defer sess.End()
 
-	order := [64]uint8{2, 0}
+	order := [64]uint16{2, 0}
 	view.SetOrder(order, 2)
 	if got := view.Len(); got != 2 {
 		t.Fatalf("view.Len() = %d, want 2", got)
@@ -75,7 +75,7 @@ func TestRelationsResolveByUnitIdentityNotFoggedSquareOrder(t *testing.T) {
 	identities.Bind(7, rows.ValueAt(40))
 	rows.BindUnitIdentityView(identities)
 	view := NewRowView(rows)
-	order := [64]uint8{0, 40}
+	order := [64]uint16{0, 40}
 	view.SetOrder(order, 2)
 
 	gen := sess.Begin()
