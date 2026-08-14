@@ -40,8 +40,32 @@ import (
 // So the mask is a Go-backed value that answers all three questions natively:
 // `.count` is one bits.OnesCount32, iteration walks the set bits host-side and
 // yields unit rows directly (no shifts, no bit-index arithmetic in script), and
-// &, | and &^ compose masks through HasBinary. `.bits` is still there for an
-// author who genuinely wants the integer.
+// &, |, ^ and - compose masks through HasBinary. Note `-` and not Go's &^:
+// Starlark has no such operator.
+//
+// MEASURED PER-OPERATION COST, both targets (arch_cost_test.go), net of the
+// loop carrying it, over 32 units:
+//
+//	operation                     darwin/arm64      js/wasm
+//	.count (interned)                0.00/unit    0.00/unit
+//	membership, unit in set          0.00/unit    0.00/unit
+//	set union / difference           1.00/unit    1.00/unit
+//	.bits (raw integer)              3.19/unit    3.06/unit
+//
+// The first three rows are IDENTICAL on both targets, which is the point of
+// making this a value rather than an int: a count comes out of the interned
+// table and a composed set is a pointer, and neither is subject to the
+// two-word Int boxing that GOARCH=wasm otherwise pays.
+//
+// `.bits` is retained as an escape hatch for an author who genuinely wants the
+// integer, but it is a FOOTGUN ON BOTH TARGETS, not merely in the browser: a
+// uint32 with its high bit set exceeds MaxInt32 and becomes a *big.Int
+// regardless of architecture. Reach for the set operators instead.
+//
+// ONE FREE COMPOSITION WORTH KNOWING: `unit.guards | unit.threatens` is
+// "every piece this unit interacts with", because the two are disjoint
+// subsets of the same 32-bit identity space. An author should not have to
+// discover that property for themselves.
 //
 // Like every other type in this package it implements no mutation interface at
 // all, so a relation cannot be edited by the script that reads it.
