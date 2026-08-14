@@ -123,6 +123,39 @@ func TestRowViewRebindStampsOnlyRowsItCanExpose(t *testing.T) {
 	}
 }
 
+func TestRowViewContiguousRangeKeepsIdentityAndSparseLifetime(t *testing.T) {
+	sess := &Session{}
+	schema := NewSchema("cell", FieldSpec{Name: "square", Kind: KindSquare})
+	rows := NewRowArray(schema, rowTestSource{len: 4}, sess, 4)
+	view := NewRowView(rows)
+	view.SetRange(1, 2)
+	gen := sess.Begin()
+	view.Rebind(gen)
+	defer sess.End()
+
+	if got := view.Len(); got != 2 {
+		t.Fatalf("range view.Len() = %d, want 2", got)
+	}
+	if got := view.Index(0); got != rows.ValueAt(1) {
+		t.Fatalf("range view.Index(0) = %v, want source row 1", got)
+	}
+	if got := view.Index(1); got != rows.ValueAt(2) {
+		t.Fatalf("range view.Index(1) = %v, want source row 2", got)
+	}
+	if _, err := rows.rows[1].Attr("square"); err != nil {
+		t.Fatalf("first range row Attr(square): %v", err)
+	}
+	if _, err := rows.rows[2].Attr("square"); err != nil {
+		t.Fatalf("second range row Attr(square): %v", err)
+	}
+	if _, err := rows.rows[0].Attr("square"); err == nil {
+		t.Fatal("row before range read succeeded without a lifetime stamp")
+	}
+	if _, err := rows.rows[3].Attr("square"); err == nil {
+		t.Fatal("row after range read succeeded without a lifetime stamp")
+	}
+}
+
 func TestRelationMasksHideUnboundIdentities(t *testing.T) {
 	sess := &Session{}
 	schema := NewSchema("cell", FieldSpec{Name: "defenders", Relation: true})
