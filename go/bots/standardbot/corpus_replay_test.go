@@ -197,6 +197,42 @@ func TestCorpusReplayAgreesWithThePublishedScript(t *testing.T) {
 	t.Logf("%d/%d recorded decisions agree with a replay against %s@%s", agree, len(entries), modulePath, recordedCorpusScriptVersion)
 }
 
+func TestGoStandardBotReplayAgreesWithThePublishedCorpus(t *testing.T) {
+	entries := corpusEntries(t)
+	if len(entries) == 0 {
+		t.Fatalf("no corpus case files found under %s", corpusDir)
+	}
+	cases := make([]corpusCase, len(entries))
+	for index, path := range entries {
+		cases[index] = readCorpusCase(t, path)
+	}
+	if err := checkCorpusInventory(entries, cases); err != nil {
+		t.Fatal(err)
+	}
+	modulePath := thisModulePath(t)
+
+	agree := 0
+	for index, path := range entries {
+		c := cases[index]
+		if err := checkCorpusMetadata(path, c, modulePath); err != nil {
+			t.Error(err)
+			continue
+		}
+		if err := replayCaseGo(path, c); err != nil {
+			t.Error(err)
+			continue
+		}
+		agree++
+	}
+
+	if agree != len(entries) {
+		t.Errorf("%d of %d recorded decisions agree with Go standard bot replay against %s@%s — see errors above",
+			agree, len(entries), modulePath, recordedCorpusScriptVersion)
+		return
+	}
+	t.Logf("%d/%d recorded decisions agree with Go standard bot replay", agree, len(entries))
+}
+
 func checkCorpusInventory(entries []string, cases []corpusCase) error {
 	if len(entries) != len(cases) {
 		return fmt.Errorf("corpus has %d filenames for %d decoded cases", len(entries), len(cases))
@@ -347,6 +383,37 @@ func checkCorpusMetadata(path string, c corpusCase, expectedModule string) error
 // the test/case provenance and the field: a decode error, a decide() error,
 // or an intent mismatch are three DIFFERENT things a caller needs to
 // distinguish, not one generic "case N failed".
+func replayCaseGo(path string, c corpusCase) error {
+	draw, err := strconv.ParseInt(c.RandomDraw, 10, 64)
+	if err != nil {
+		return fmt.Errorf("%s (%s case %d): randomDraw %q does not parse as a decimal int64: %w",
+			path, c.Test, c.Case, c.RandomDraw, err)
+	}
+	memory := c.Memory
+	if len(memory) == 0 {
+		memory = json.RawMessage("{}")
+	}
+
+	intentBytes, _, _, err := standardbot.DecideJSON(c.Observation, memory, c.Parameters, draw, c.Options)
+	if err != nil {
+		return fmt.Errorf("%s (%s case %d): DecideJSON returned an error: %w", path, c.Test, c.Case, err)
+	}
+
+	got, err := canonicalJSON(intentBytes)
+	if err != nil {
+		return fmt.Errorf("%s (%s case %d): decode replayed intent %s: %w", path, c.Test, c.Case, intentBytes, err)
+	}
+	want, err := canonicalJSON(c.Intent)
+	if err != nil {
+		return fmt.Errorf("%s (%s case %d): decode recorded intent %s: %w", path, c.Test, c.Case, c.Intent, err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		return fmt.Errorf("%s (%s case %d): intent differs — replayed %s, recorded %s",
+			path, c.Test, c.Case, trimJSON(intentBytes), trimJSON(c.Intent))
+	}
+	return nil
+}
+
 func replayCase(program *runtime.Program, path string, c corpusCase) error {
 	draw, err := strconv.ParseInt(c.RandomDraw, 10, 64)
 	if err != nil {
