@@ -48,9 +48,10 @@ type parityItem struct {
 }
 
 type paritySourceAnchor struct {
-	File     string `json:"file"`
-	Function string `json:"function"`
-	Source   string `json:"source"`
+	File       string `json:"file"`
+	Function   string `json:"function"`
+	Occurrence int    `json:"occurrence"`
+	Source     string `json:"source"`
 }
 
 type semanticBinding struct {
@@ -102,7 +103,7 @@ func TestEveryStrategyConstructHasCategorizedParityID(t *testing.T) {
 	bindings := semanticBindingsFromItems(t, manifest.Inventory, goItems, starlarkItems)
 	if os.Getenv("UPDATE_PARITY_SEMANTIC_LEDGER") == "1" {
 		writeSemanticLedger(t, semanticLedger{
-			Schema:   "chess-raiders-standard-bot-semantic-parity/v1",
+			Schema:   "chess-raiders-standard-bot-semantic-parity/v2",
 			Bindings: bindings,
 		})
 		return
@@ -254,17 +255,19 @@ func goParityItems(t *testing.T) []parityItem {
 			}
 			line := fset.Position(fn.Pos()).Line
 			item := requiredParityItem(t, path, lines, line-1, line-1, "function", line)
-			item.Anchor = paritySourceAnchor{File: name, Function: fn.Name.Name, Source: sourceBetween(data, fset, fn.Pos(), fn.Body.Lbrace)}
+			item.Anchor = paritySourceAnchor{File: name, Function: fn.Name.Name, Occurrence: 1, Source: sourceBetween(data, fset, fn.Pos(), fn.Body.Lbrace)}
 			items = append(items, item)
+			branchOccurrence := 0
 			ast.Inspect(fn.Body, func(node ast.Node) bool {
 				branch, ok := node.(*ast.IfStmt)
 				if !ok {
 					return true
 				}
+				branchOccurrence++
 				start := fset.Position(branch.Pos()).Line
 				end := fset.Position(branch.Body.Lbrace).Line
 				item := requiredParityItem(t, path, lines, start, end, "branch", start)
-				item.Anchor = paritySourceAnchor{File: name, Function: fn.Name.Name, Source: sourceBetween(data, fset, branch.Cond.Pos(), branch.Cond.End())}
+				item.Anchor = paritySourceAnchor{File: name, Function: fn.Name.Name, Occurrence: branchOccurrence, Source: sourceBetween(data, fset, branch.Cond.Pos(), branch.Cond.End())}
 				items = append(items, item)
 				return true
 			})
@@ -283,18 +286,21 @@ func starlarkParityItems(t *testing.T) []parityItem {
 	lines := strings.Split(string(data), "\n")
 	var items []parityItem
 	function := ""
+	branchOccurrence := 0
 	for index, line := range lines {
 		lineNumber := index + 1
 		if match := starlarkFunctionPattern.FindStringSubmatch(line); match != nil {
 			function = match[1]
+			branchOccurrence = 0
 			item := requiredParityItem(t, path, lines, lineNumber-1, lineNumber-1, "function", lineNumber)
-			item.Anchor = paritySourceAnchor{File: path, Function: function, Source: normalizeSource(line)}
+			item.Anchor = paritySourceAnchor{File: path, Function: function, Occurrence: 1, Source: normalizeSource(line)}
 			items = append(items, item)
 		}
 		if starlarkBranchPattern.MatchString(line) {
+			branchOccurrence++
 			end, source := starlarkBranchSource(lines, index)
 			item := requiredParityItem(t, path, lines, lineNumber, end+1, "branch", lineNumber)
-			item.Anchor = paritySourceAnchor{File: path, Function: function, Source: source}
+			item.Anchor = paritySourceAnchor{File: path, Function: function, Occurrence: branchOccurrence, Source: source}
 			items = append(items, item)
 		}
 	}
@@ -392,26 +398,11 @@ func semanticBindingsFromItems(t *testing.T, inventory parityInventory, goItems,
 			binding.Starlark = append(binding.Starlark, item.Anchor)
 		}
 	}
-	result := make([]semanticBinding, 0, len(bindings))
-	for _, binding := range bindings {
-		sortAnchors(binding.Go)
-		sortAnchors(binding.Starlark)
-		result = append(result, *binding)
+	result := make([]semanticBinding, 0, len(inventory.Paired))
+	for _, id := range inventory.Paired {
+		result = append(result, *bindings[id])
 	}
-	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
 	return result
-}
-
-func sortAnchors(anchors []paritySourceAnchor) {
-	sort.Slice(anchors, func(i, j int) bool {
-		if anchors[i].File != anchors[j].File {
-			return anchors[i].File < anchors[j].File
-		}
-		if anchors[i].Function != anchors[j].Function {
-			return anchors[i].Function < anchors[j].Function
-		}
-		return anchors[i].Source < anchors[j].Source
-	})
 }
 
 func readSemanticLedger(t *testing.T) semanticLedger {
@@ -439,7 +430,7 @@ func writeSemanticLedger(t *testing.T, ledger semanticLedger) {
 }
 
 func validateSemanticLedger(inventory parityInventory, ledger semanticLedger, actual []semanticBinding) error {
-	if ledger.Schema != "chess-raiders-standard-bot-semantic-parity/v1" {
+	if ledger.Schema != "chess-raiders-standard-bot-semantic-parity/v2" {
 		return fmt.Errorf("semantic ledger schema = %q", ledger.Schema)
 	}
 	if len(ledger.Bindings) != len(inventory.Paired) || len(actual) != len(inventory.Paired) {
@@ -458,7 +449,7 @@ func validateSemanticLedger(inventory parityInventory, ledger semanticLedger, ac
 
 func TestSemanticLedgerRejectsSelfConsistentDisplacement(t *testing.T) {
 	inventory := parityInventory{Paired: []string{"SBP-B-FIRST", "SBP-B-SECOND"}}
-	ledger := semanticLedger{Schema: "chess-raiders-standard-bot-semantic-parity/v1", Bindings: []semanticBinding{
+	ledger := semanticLedger{Schema: "chess-raiders-standard-bot-semantic-parity/v2", Bindings: []semanticBinding{
 		{ID: "SBP-B-FIRST", Kind: "branch", Go: []paritySourceAnchor{{Source: "first"}}},
 		{ID: "SBP-B-SECOND", Kind: "branch", Go: []paritySourceAnchor{{Source: "second"}}},
 	}}
@@ -473,7 +464,7 @@ func TestSemanticLedgerRejectsSelfConsistentDisplacement(t *testing.T) {
 
 func TestSemanticLedgerRejectsMissingAndReorderedBindings(t *testing.T) {
 	inventory := parityInventory{Paired: []string{"SBP-B-FIRST", "SBP-B-SECOND"}}
-	ledger := semanticLedger{Schema: "chess-raiders-standard-bot-semantic-parity/v1", Bindings: []semanticBinding{
+	ledger := semanticLedger{Schema: "chess-raiders-standard-bot-semantic-parity/v2", Bindings: []semanticBinding{
 		{ID: "SBP-B-FIRST", Kind: "branch"},
 		{ID: "SBP-B-SECOND", Kind: "branch"},
 	}}
@@ -482,5 +473,38 @@ func TestSemanticLedgerRejectsMissingAndReorderedBindings(t *testing.T) {
 	}
 	if err := validateSemanticLedger(inventory, ledger, []semanticBinding{ledger.Bindings[1], ledger.Bindings[0]}); err == nil || !strings.Contains(err.Error(), "order") {
 		t.Fatalf("reordered binding error = %v", err)
+	}
+}
+
+func TestSemanticLedgerRejectsReorderedDuplicatePredicates(t *testing.T) {
+	inventory := parityInventory{Paired: []string{"SBP-B-DECIDE-10", "SBP-B-DECIDE-11"}}
+	duplicate := `proposal.get("actor") not in board["charging_units"] or proposal["score"] > threshold`
+	ledger := semanticLedger{Schema: "chess-raiders-standard-bot-semantic-parity/v2", Bindings: []semanticBinding{
+		{ID: "SBP-B-DECIDE-10", Kind: "branch", Starlark: []paritySourceAnchor{{File: "chess-raiders-bot.star", Function: "decide", Occurrence: 10, Source: duplicate}}},
+		{ID: "SBP-B-DECIDE-11", Kind: "branch", Starlark: []paritySourceAnchor{{File: "chess-raiders-bot.star", Function: "decide", Occurrence: 11, Source: duplicate}}},
+	}}
+	reordered := []semanticBinding{
+		{ID: "SBP-B-DECIDE-10", Kind: "branch", Starlark: []paritySourceAnchor{{File: "chess-raiders-bot.star", Function: "decide", Occurrence: 11, Source: duplicate}}},
+		{ID: "SBP-B-DECIDE-11", Kind: "branch", Starlark: []paritySourceAnchor{{File: "chess-raiders-bot.star", Function: "decide", Occurrence: 10, Source: duplicate}}},
+	}
+	if err := validateSemanticLedger(inventory, ledger, reordered); err == nil || !strings.Contains(err.Error(), "semantic binding") {
+		t.Fatalf("duplicate-predicate reorder error = %v", err)
+	}
+}
+
+func TestSemanticLedgerRejectsSwappedAnnotationsBetweenDuplicatePredicates(t *testing.T) {
+	inventory := parityInventory{Paired: []string{"SBP-B-SCORE-MOVE-10", "SBP-B-SCORE-MOVE-11"}}
+	duplicate := "value > 0"
+	ledgerItems := []parityItem{
+		{ID: "SBP-B-SCORE-MOVE-10", Kind: "branch", Anchor: paritySourceAnchor{File: "score.go", Function: "scoreMove", Occurrence: 10, Source: duplicate}},
+		{ID: "SBP-B-SCORE-MOVE-11", Kind: "branch", Anchor: paritySourceAnchor{File: "score.go", Function: "scoreMove", Occurrence: 11, Source: duplicate}},
+	}
+	ledger := semanticLedger{Schema: "chess-raiders-standard-bot-semantic-parity/v2", Bindings: semanticBindingsFromItems(t, inventory, ledgerItems, nil)}
+	swappedItems := []parityItem{
+		{ID: "SBP-B-SCORE-MOVE-11", Kind: "branch", Anchor: paritySourceAnchor{File: "score.go", Function: "scoreMove", Occurrence: 10, Source: duplicate}},
+		{ID: "SBP-B-SCORE-MOVE-10", Kind: "branch", Anchor: paritySourceAnchor{File: "score.go", Function: "scoreMove", Occurrence: 11, Source: duplicate}},
+	}
+	if err := validateSemanticLedger(inventory, ledger, semanticBindingsFromItems(t, inventory, swappedItems, nil)); err == nil || !strings.Contains(err.Error(), "semantic binding") {
+		t.Fatalf("duplicate-predicate annotation swap error = %v", err)
 	}
 }

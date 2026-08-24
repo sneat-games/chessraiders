@@ -1,5 +1,5 @@
 {
-  "schema": "chess-raiders-standard-bot-semantic-parity/v1",
+  "schema": "chess-raiders-standard-bot-semantic-parity/v2",
   "bindings": [
     {
       "id": "SBP-B-ACTIVE-LEADER-GUARD-1",
@@ -8,6 +8,7 @@
         {
           "file": "memory.go",
           "function": "activeLeaderGuard",
+          "occurrence": 1,
           "source": "!leaderGuardMatches(obs, memory)"
         }
       ],
@@ -15,6 +16,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "active_leader_guard",
+          "occurrence": 1,
           "source": "not leader_guard_matches(observation, memory)"
         }
       ]
@@ -26,6 +28,7 @@
         {
           "file": "score.go",
           "function": "addTerm",
+          "occurrence": 1,
           "source": "value == 0.0"
         }
       ],
@@ -33,6 +36,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "add_term",
+          "occurrence": 1,
           "source": "value == 0.0"
         }
       ]
@@ -44,6 +48,7 @@
         {
           "file": "memory.go",
           "function": "applyRepeatPenalty",
+          "occurrence": 2,
           "source": "sq \u003e= 0"
         }
       ],
@@ -51,6 +56,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "apply_repeat_penalty",
+          "occurrence": 1,
           "source": "square \u003e= 0"
         }
       ]
@@ -62,6 +68,7 @@
         {
           "file": "memory.go",
           "function": "applyRepeatPenalty",
+          "occurrence": 15,
           "source": "actorID != repeatedCell.UnitID.String()"
         }
       ],
@@ -69,6 +76,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "apply_repeat_penalty",
+          "occurrence": 10,
           "source": "proposal[\"actor\"] != repeated_cell[\"unitId\"]"
         }
       ]
@@ -80,6 +88,7 @@
         {
           "file": "memory.go",
           "function": "applyRepeatPenalty",
+          "occurrence": 16,
           "source": "isQuietMove(obs, b, repeatedCell, destination) \u0026\u0026 cellThreatenedCount(repeatedCell) == 0"
         }
       ],
@@ -87,6 +96,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "apply_repeat_penalty",
+          "occurrence": 11,
           "source": "is_quiet_move(observation, board, repeated_cell, destination) and threatened_count(repeated_cell) == 0"
         }
       ]
@@ -98,6 +108,7 @@
         {
           "file": "memory.go",
           "function": "applyRepeatPenalty",
+          "occurrence": 3,
           "source": "p.intent.Kind == \"move\" \u0026\u0026 p.intent.Promotion == \"\" \u0026\u0026 cell != nil \u0026\u0026 destination != \"\" \u0026\u0026 !cell.Convoy \u0026\u0026 cell.Rank != \"king\" \u0026\u0026 !isCurrentBeaconBearer(obs, cell) \u0026\u0026 isQuietMove(obs, b, cell, destination) \u0026\u0026 cellThreatenedCount(cell) == 0 \u0026\u0026 recentlyVacated[squareIndex(destination)]"
         }
       ],
@@ -105,6 +116,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "apply_repeat_penalty",
+          "occurrence": 2,
           "source": "(proposal[\"intent\"][\"kind\"] == \"move\" and not proposal[\"intent\"].get(\"promotion\") and cell and destination and not cell[\"convoy\"] and cell[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, cell) and is_quiet_move(observation, board, cell, destination) and threatened_count(cell) == 0 and square_index(destination) in recently_vacated)"
         }
       ]
@@ -116,6 +128,7 @@
         {
           "file": "memory.go",
           "function": "applyRepeatPenalty",
+          "occurrence": 4,
           "source": "len(cycleKeys) \u003e 0"
         }
       ],
@@ -123,6 +136,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "apply_repeat_penalty",
+          "occurrence": 3,
           "source": "cycle_keys"
         }
       ]
@@ -134,6 +148,7 @@
         {
           "file": "memory.go",
           "function": "applyRepeatPenalty",
+          "occurrence": 5,
           "source": "!cycleKeys[p.key] \u0026\u0026 candidate != nil \u0026\u0026 !candidate.Convoy \u0026\u0026 candidate.Rank != \"king\" \u0026\u0026 !isCurrentBeaconBearer(obs, candidate) \u0026\u0026 p.score \u003e= params.PassBelow"
         }
       ],
@@ -141,6 +156,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "apply_repeat_penalty",
+          "occurrence": 4,
           "source": "(proposal[\"key\"] not in cycle_keys and candidate and not candidate[\"convoy\"] and candidate[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, candidate) and proposal[\"score\"] \u003e= params[\"passBelow\"])"
         }
       ]
@@ -152,6 +168,7 @@
         {
           "file": "memory.go",
           "function": "applyRepeatPenalty",
+          "occurrence": 6,
           "source": "otherViable"
         }
       ],
@@ -159,6 +176,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "apply_repeat_penalty",
+          "occurrence": 5,
           "source": "other_viable"
         }
       ]
@@ -170,6 +188,7 @@
         {
           "file": "memory.go",
           "function": "applyRepeatPenalty",
+          "occurrence": 9,
           "source": "lastToVal \u003c 0"
         }
       ],
@@ -177,6 +196,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "apply_repeat_penalty",
+          "occurrence": 6,
           "source": "last_to \u003c 0"
         }
       ]
@@ -188,6 +208,7 @@
         {
           "file": "memory.go",
           "function": "applyRepeatPenalty",
+          "occurrence": 10,
           "source": "repeatedCell == nil || repeatedCell.Convoy || repeatedCell.Rank == \"king\" || isCurrentBeaconBearer(obs, repeatedCell)"
         }
       ],
@@ -195,6 +216,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "apply_repeat_penalty",
+          "occurrence": 7,
           "source": "not repeated_cell or repeated_cell[\"convoy\"] or repeated_cell[\"rank\"] == \"king\" or is_current_beacon_bearer(observation, repeated_cell)"
         }
       ]
@@ -206,6 +228,7 @@
         {
           "file": "memory.go",
           "function": "applyRepeatPenalty",
+          "occurrence": 11,
           "source": "candidate != nil \u0026\u0026 candidate.UnitID.String() != repeatedCell.UnitID.String() \u0026\u0026 !candidate.Convoy \u0026\u0026 candidate.Rank != \"king\" \u0026\u0026 !isCurrentBeaconBearer(obs, candidate) \u0026\u0026 p.score \u003e= params.PassBelow"
         }
       ],
@@ -213,6 +236,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "apply_repeat_penalty",
+          "occurrence": 8,
           "source": "(candidate and candidate[\"unitId\"] != repeated_cell[\"unitId\"] and not candidate[\"convoy\"] and candidate[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, candidate) and proposal[\"score\"] \u003e= params[\"passBelow\"])"
         }
       ]
@@ -224,6 +248,7 @@
         {
           "file": "memory.go",
           "function": "applyRepeatPenalty",
+          "occurrence": 12,
           "source": "!otherViable"
         }
       ],
@@ -231,6 +256,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "apply_repeat_penalty",
+          "occurrence": 9,
           "source": "not other_viable"
         }
       ]
@@ -242,6 +268,7 @@
         {
           "file": "systems.go",
           "function": "beaconDeployOrRestoreProposal",
+          "occurrence": 1,
           "source": "!obs.Rules.BeaconEnabled"
         }
       ],
@@ -249,6 +276,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_deploy_or_restore_proposal",
+          "occurrence": 1,
           "source": "not observation[\"rules\"].get(\"beaconEnabled\", False)"
         }
       ]
@@ -260,6 +288,7 @@
         {
           "file": "systems.go",
           "function": "beaconDeployOrRestoreProposal",
+          "occurrence": 2,
           "source": "kingCell == nil || b.busyUnits[kingCell.UnitID.String()]"
         }
       ],
@@ -267,6 +296,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_deploy_or_restore_proposal",
+          "occurrence": 2,
           "source": "king_cell == None or board[\"busy_units\"].get(king_cell[\"unitId\"])"
         }
       ]
@@ -278,6 +308,7 @@
         {
           "file": "systems.go",
           "function": "beaconDeployOrRestoreProposal",
+          "occurrence": 3,
           "source": "beacon.Lifecycle == \"undeployed\""
         }
       ],
@@ -285,6 +316,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_deploy_or_restore_proposal",
+          "occurrence": 3,
           "source": "beacon[\"lifecycle\"] == \"undeployed\""
         }
       ]
@@ -296,6 +328,7 @@
         {
           "file": "systems.go",
           "function": "beaconDeployOrRestoreProposal",
+          "occurrence": 4,
           "source": "beacon.Lifecycle == \"lost\""
         }
       ],
@@ -303,6 +336,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_deploy_or_restore_proposal",
+          "occurrence": 4,
           "source": "beacon[\"lifecycle\"] == \"lost\""
         }
       ]
@@ -314,6 +348,7 @@
         {
           "file": "systems.go",
           "function": "beaconForgeProposals",
+          "occurrence": 1,
           "source": "!obs.Rules.BeaconEnabled || !obs.Rules.BeaconForgeEnabled"
         }
       ],
@@ -321,6 +356,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_forge_proposals",
+          "occurrence": 1,
           "source": "not observation[\"rules\"].get(\"beaconEnabled\", False) or not observation[\"rules\"].get(\"beaconForgeEnabled\", False)"
         }
       ]
@@ -332,6 +368,7 @@
         {
           "file": "systems.go",
           "function": "beaconForgeProposals",
+          "occurrence": 2,
           "source": "obs.Beacon.Lifecycle != \"lost\""
         }
       ],
@@ -339,6 +376,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_forge_proposals",
+          "occurrence": 2,
           "source": "observation[\"beacon\"][\"lifecycle\"] != \"lost\""
         }
       ]
@@ -350,6 +388,7 @@
         {
           "file": "systems.go",
           "function": "beaconForgeProposals",
+          "occurrence": 3,
           "source": "cell.Convoy || cell.Refitting || cell.Rank != \"pawn\""
         }
       ],
@@ -357,6 +396,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_forge_proposals",
+          "occurrence": 3,
           "source": "cell[\"convoy\"] or cell[\"refitting\"] or cell[\"rank\"] != \"pawn\""
         }
       ]
@@ -368,6 +408,7 @@
         {
           "file": "systems.go",
           "function": "beaconForgeProposals",
+          "occurrence": 4,
           "source": "!containsString(ownPawnBaseSquares, cell.Square)"
         }
       ],
@@ -375,6 +416,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_forge_proposals",
+          "occurrence": 4,
           "source": "cell[\"square\"] not in own_pawn_base_squares"
         }
       ]
@@ -386,6 +428,7 @@
         {
           "file": "systems.go",
           "function": "beaconForgeProposals",
+          "occurrence": 5,
           "source": "cellThreatenedCount(cell) \u003e 0"
         }
       ],
@@ -393,6 +436,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_forge_proposals",
+          "occurrence": 5,
           "source": "threatened_count(cell) \u003e 0"
         }
       ]
@@ -404,6 +448,7 @@
         {
           "file": "systems.go",
           "function": "beaconHandOffProposal",
+          "occurrence": 1,
           "source": "!obs.Rules.BeaconEnabled"
         }
       ],
@@ -411,6 +456,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_hand_off_proposal",
+          "occurrence": 1,
           "source": "not observation[\"rules\"].get(\"beaconEnabled\", False)"
         }
       ]
@@ -422,6 +468,7 @@
         {
           "file": "systems.go",
           "function": "beaconHandOffProposal",
+          "occurrence": 2,
           "source": "kingCell == nil || b.busyUnits[kingCell.UnitID.String()]"
         }
       ],
@@ -429,6 +476,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_hand_off_proposal",
+          "occurrence": 2,
           "source": "king_cell == None or board[\"busy_units\"].get(king_cell[\"unitId\"])"
         }
       ]
@@ -440,6 +488,7 @@
         {
           "file": "systems.go",
           "function": "beaconHandOffProposal",
+          "occurrence": 3,
           "source": "!obs.Rules.BeaconKingStartsAsBearer"
         }
       ],
@@ -447,6 +496,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_hand_off_proposal",
+          "occurrence": 3,
           "source": "not observation[\"rules\"][\"beaconKingStartsAsBearer\"]"
         }
       ]
@@ -458,6 +508,7 @@
         {
           "file": "systems.go",
           "function": "beaconHandOffProposal",
+          "occurrence": 4,
           "source": "beacon.Lifecycle != \"deployed\" || beacon.EverHandedOff"
         }
       ],
@@ -465,6 +516,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_hand_off_proposal",
+          "occurrence": 4,
           "source": "beacon[\"lifecycle\"] != \"deployed\" or beacon[\"everHandedOff\"]"
         }
       ]
@@ -476,6 +528,7 @@
         {
           "file": "systems.go",
           "function": "beaconHandOffProposal",
+          "occurrence": 5,
           "source": "beacon.BearerSquare != kingCell.Square"
         }
       ],
@@ -483,6 +536,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_hand_off_proposal",
+          "occurrence": 5,
           "source": "beacon[\"bearerSquare\"] != king_cell[\"square\"]"
         }
       ]
@@ -494,6 +548,7 @@
         {
           "file": "systems.go",
           "function": "beaconHandOffProposal",
+          "occurrence": 6,
           "source": "to == \"\""
         }
       ],
@@ -501,6 +556,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_hand_off_proposal",
+          "occurrence": 6,
           "source": "to == None"
         }
       ]
@@ -512,6 +568,7 @@
         {
           "file": "systems.go",
           "function": "beaconHandOffProposal",
+          "occurrence": 7,
           "source": "cell.Square == to"
         }
       ],
@@ -519,6 +576,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_hand_off_proposal",
+          "occurrence": 7,
           "source": "cell[\"square\"] == to"
         }
       ]
@@ -530,6 +588,7 @@
         {
           "file": "board.go",
           "function": "buildBoard",
+          "occurrence": 1,
           "source": "cellCopy.Side == obs.Side"
         }
       ],
@@ -537,6 +596,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_board",
+          "occurrence": 1,
           "source": "cell[\"side\"] == observation[\"side\"]"
         }
       ]
@@ -548,6 +608,7 @@
         {
           "file": "board.go",
           "function": "buildBoard",
+          "occurrence": 10,
           "source": "ownInterrogationTargets[uid]"
         }
       ],
@@ -555,6 +616,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_board",
+          "occurrence": 10,
           "source": "own_interrogation_targets.get(unit_id)"
         }
       ]
@@ -566,6 +628,7 @@
         {
           "file": "board.go",
           "function": "buildBoard",
+          "occurrence": 11,
           "source": "enemyInterrogationActive \u0026\u0026 b.kingCell != nil"
         }
       ],
@@ -573,6 +636,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_board",
+          "occurrence": 11,
           "source": "enemy_interrogation_active and king_cell"
         }
       ]
@@ -584,6 +648,7 @@
         {
           "file": "board.go",
           "function": "buildBoard",
+          "occurrence": 12,
           "source": "!b.busyUnits[cell.UnitID.String()]"
         }
       ],
@@ -591,6 +656,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_board",
+          "occurrence": 12,
           "source": "len(charging_units) \u003e= max_active_commands"
         }
       ]
@@ -602,6 +668,7 @@
         {
           "file": "board.go",
           "function": "buildBoard",
+          "occurrence": 2,
           "source": "cell.TargetLocked"
         }
       ],
@@ -609,6 +676,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_board",
+          "occurrence": 2,
           "source": "cell.get(\"targetLocked\")"
         }
       ]
@@ -620,6 +688,7 @@
         {
           "file": "board.go",
           "function": "buildBoard",
+          "occurrence": 3,
           "source": "cell.InterrogationRemainingMs != nil"
         }
       ],
@@ -627,6 +696,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_board",
+          "occurrence": 3,
           "source": "cell.get(\"interrogationRemainingMs\") != None"
         }
       ]
@@ -638,6 +708,7 @@
         {
           "file": "board.go",
           "function": "buildBoard",
+          "occurrence": 4,
           "source": "cell.Side == obs.Side"
         }
       ],
@@ -645,6 +716,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_board",
+          "occurrence": 4,
           "source": "cell[\"side\"] == observation[\"side\"]"
         }
       ]
@@ -656,6 +728,7 @@
         {
           "file": "board.go",
           "function": "buildBoard",
+          "occurrence": 5,
           "source": "cell.Profession == \"engineer\" \u0026\u0026 cell.Grade == \"master\""
         }
       ],
@@ -663,6 +736,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_board",
+          "occurrence": 5,
           "source": "cell.get(\"profession\", \"\") == \"engineer\" and cell.get(\"grade\") == \"master\""
         }
       ]
@@ -674,6 +748,7 @@
         {
           "file": "board.go",
           "function": "buildBoard",
+          "occurrence": 6,
           "source": "cell.Rank == \"king\" \u0026\u0026 !cell.Convoy"
         }
       ],
@@ -681,6 +756,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_board",
+          "occurrence": 6,
           "source": "cell[\"rank\"] == \"king\" and not cell[\"convoy\"]"
         }
       ]
@@ -692,6 +768,7 @@
         {
           "file": "board.go",
           "function": "buildBoard",
+          "occurrence": 7,
           "source": "cell.Charging != nil"
         }
       ],
@@ -699,6 +776,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_board",
+          "occurrence": 7,
           "source": "charging"
         }
       ]
@@ -710,6 +788,7 @@
         {
           "file": "board.go",
           "function": "buildBoard",
+          "occurrence": 8,
           "source": "target != nil \u0026\u0026 target.Rank == \"king\" \u0026\u0026 !target.Ghost"
         }
       ],
@@ -717,6 +796,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_board",
+          "occurrence": 8,
           "source": "target and target[\"rank\"] == \"king\" and not target[\"ghost\"]"
         }
       ]
@@ -728,6 +808,7 @@
         {
           "file": "board.go",
           "function": "buildBoard",
+          "occurrence": 9,
           "source": "cell.Training != nil || cell.ForgingRemainingMs \u003e 0 || cell.RecoveryRemainingMs \u003e 0"
         }
       ],
@@ -735,6 +816,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_board",
+          "occurrence": 9,
           "source": "cell.get(\"training\") or cell.get(\"forgingRemainingMs\", 0) \u003e 0 or cell.get(\"recoveryRemainingMs\", 0) \u003e 0"
         }
       ]
@@ -746,6 +828,7 @@
         {
           "file": "memory.go",
           "function": "buildMemory",
+          "occurrence": 1,
           "source": "updatedMemory[\"leaderGuardActive\"] == 1 \u0026\u0026 !leaderGuardMatches(obs, updatedMemory)"
         }
       ],
@@ -753,6 +836,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_memory",
+          "occurrence": 1,
           "source": "updated_memory.get(\"leaderGuardActive\", 0) == 1 and not leader_guard_matches(observation, updated_memory)"
         }
       ]
@@ -764,6 +848,7 @@
         {
           "file": "memory.go",
           "function": "buildMemory",
+          "occurrence": 2,
           "source": "intent != nil"
         }
       ],
@@ -771,6 +856,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_memory",
+          "occurrence": 2,
           "source": "not still_frozen"
         }
       ]
@@ -782,6 +868,7 @@
         {
           "file": "memory.go",
           "function": "buildMemory",
+          "occurrence": 3,
           "source": "stillFrozen"
         }
       ],
@@ -789,6 +876,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_memory",
+          "occurrence": 3,
           "source": "intent and intent[\"kind\"] == \"action\""
         }
       ]
@@ -800,6 +888,7 @@
         {
           "file": "memory.go",
           "function": "buildMemory",
+          "occurrence": 4,
           "source": "intent != nil \u0026\u0026 intent.Kind == \"action\""
         }
       ],
@@ -807,6 +896,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_memory",
+          "occurrence": 4,
           "source": "intent and intent[\"kind\"] == \"move\""
         }
       ]
@@ -818,6 +908,7 @@
         {
           "file": "memory.go",
           "function": "buildMemory",
+          "occurrence": 5,
           "source": "intent != nil \u0026\u0026 intent.Kind == \"move\""
         }
       ],
@@ -825,6 +916,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_memory",
+          "occurrence": 5,
           "source": "leader"
         }
       ]
@@ -836,6 +928,7 @@
         {
           "file": "memory.go",
           "function": "buildMemory",
+          "occurrence": 6,
           "source": "leader != nil"
         }
       ],
@@ -843,6 +936,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_memory",
+          "occurrence": 6,
           "source": "quiet_ordinary"
         }
       ]
@@ -854,6 +948,7 @@
         {
           "file": "memory.go",
           "function": "buildMemory",
+          "occurrence": 7,
           "source": "quietOrdinary != nil"
         }
       ],
@@ -861,6 +956,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_memory",
+          "occurrence": 7,
           "source": "intent and intent[\"kind\"] == \"move\""
         }
       ]
@@ -872,6 +968,7 @@
         {
           "file": "score.go",
           "function": "canPromoteNextMove",
+          "occurrence": 1,
           "source": "candidate == nil"
         }
       ],
@@ -879,6 +976,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "can_promote_next_move",
+          "occurrence": 1,
           "source": "is_promotion_square(side, next_destination)"
         }
       ]
@@ -890,6 +988,7 @@
         {
           "file": "score.go",
           "function": "captureChoiceAvailable",
+          "occurrence": 1,
           "source": "targetCell == nil"
         }
       ],
@@ -897,6 +996,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "capture_choice_available",
+          "occurrence": 1,
           "source": "not target_cell"
         }
       ]
@@ -908,6 +1008,7 @@
         {
           "file": "score.go",
           "function": "captureChoiceAvailable",
+          "occurrence": 2,
           "source": "targetCell.Rank == \"king\" || targetCell.Convoy"
         }
       ],
@@ -915,6 +1016,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "capture_choice_available",
+          "occurrence": 2,
           "source": "target_cell[\"rank\"] == \"king\" or target_cell[\"convoy\"]"
         }
       ]
@@ -926,6 +1028,7 @@
         {
           "file": "score.go",
           "function": "captureChoiceAvailable",
+          "occurrence": 3,
           "source": "obs.Rules.AllowsKill \u0026\u0026 outcomes != nil \u0026\u0026 outcomes.Kill != nil \u0026\u0026 outcomes.Kill.Affordable"
         }
       ],
@@ -933,6 +1036,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "capture_choice_available",
+          "occurrence": 3,
           "source": "observation[\"rules\"][\"allowsKill\"] and outcomes.get(\"kill\", EMPTY_OUTCOME)[\"affordable\"]"
         }
       ]
@@ -944,6 +1048,7 @@
         {
           "file": "score.go",
           "function": "captureChoiceAvailable",
+          "occurrence": 4,
           "source": "obs.Rules.AllowsCapture \u0026\u0026 outcomes != nil \u0026\u0026 outcomes.Capture != nil \u0026\u0026 outcomes.Capture.Affordable"
         }
       ],
@@ -951,6 +1056,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "capture_choice_available",
+          "occurrence": 4,
           "source": "observation[\"rules\"][\"allowsCapture\"] and outcomes.get(\"capture\", EMPTY_OUTCOME)[\"affordable\"]"
         }
       ]
@@ -962,6 +1068,7 @@
         {
           "file": "score.go",
           "function": "captureExpectedSuccess",
+          "occurrence": 1,
           "source": "outcome == nil || !outcome.OddsKnown"
         }
       ],
@@ -969,6 +1076,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "capture_expected_success",
+          "occurrence": 1,
           "source": "not outcome[\"oddsKnown\"]"
         }
       ]
@@ -980,6 +1088,7 @@
         {
           "file": "board.go",
           "function": "cellValue",
+          "occurrence": 1,
           "source": "cell == nil"
         }
       ],
@@ -987,6 +1096,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "cell_value",
+          "occurrence": 1,
           "source": "cell[\"kingCargo\"]"
         }
       ]
@@ -998,6 +1108,7 @@
         {
           "file": "board.go",
           "function": "cellValue",
+          "occurrence": 2,
           "source": "cell.KingCargo"
         }
       ],
@@ -1005,6 +1116,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "cell_value",
+          "occurrence": 2,
           "source": "cell[\"ghost\"]"
         }
       ]
@@ -1016,6 +1128,7 @@
         {
           "file": "score.go",
           "function": "currentMoraleNeed",
+          "occurrence": 1,
           "source": "obs.CaptureMoraleNeed != nil"
         }
       ],
@@ -1023,6 +1136,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "current_morale_need",
+          "occurrence": 1,
           "source": "\"captureMoraleNeed\" in observation"
         }
       ]
@@ -1034,6 +1148,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 1,
           "source": "obs.Lifecycle != \"playing\""
         }
       ],
@@ -1041,6 +1156,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 1,
           "source": "observation[\"lifecycle\"] != \"playing\""
         }
       ]
@@ -1052,6 +1168,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 10,
           "source": "ok"
         }
       ],
@@ -1059,6 +1176,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 10,
           "source": "board[\"charging_units\"]"
         }
       ]
@@ -1070,6 +1188,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 11,
           "source": "ok"
         }
       ],
@@ -1077,6 +1196,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 11,
           "source": "proposal.get(\"actor\") not in board[\"charging_units\"] or proposal[\"score\"] \u003e threshold] if not proposals"
         }
       ]
@@ -1088,6 +1208,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 12,
           "source": "actorID != kingID || p.score \u003e kingThreshold"
         }
       ],
@@ -1095,6 +1216,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 12,
           "source": "not proposals"
         }
       ]
@@ -1106,6 +1228,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 13,
           "source": "len(b.chargingUnits) \u003e 0"
         }
       ],
@@ -1113,6 +1236,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 13,
           "source": "best_proposal[\"score\"] \u003c params[\"passBelow\"]"
         }
       ]
@@ -1124,6 +1248,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 2,
           "source": "len(b.own) == 0"
         }
       ],
@@ -1131,6 +1256,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 2,
           "source": "not board[\"own\"]"
         }
       ]
@@ -1142,6 +1268,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 3,
           "source": "len(b.protectedChargingUnits) \u003e 0"
         }
       ],
@@ -1149,6 +1276,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 3,
           "source": "board[\"protected_charging_units\"]"
         }
       ]
@@ -1160,6 +1288,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 4,
           "source": "priorityCaptiveDeliveryInFlight(obs, b)"
         }
       ],
@@ -1167,6 +1296,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 4,
           "source": "priority_captive_delivery_in_flight(observation, board)"
         }
       ]
@@ -1178,6 +1308,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 5,
           "source": "len(b.chargingUnits) == 0 \u0026\u0026 !holdsFocus(b, memory) \u0026\u0026 len(b.convoyHome) == 0"
         }
       ],
@@ -1185,6 +1316,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 5,
           "source": "not board[\"charging_units\"] and not holds_focus(board, memory) and not board[\"convoy_home\"]"
         }
       ]
@@ -1196,6 +1328,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 6,
           "source": "priority != nil"
         }
       ],
@@ -1203,6 +1336,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 6,
           "source": "priority != None"
         }
       ]
@@ -1214,6 +1348,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 7,
           "source": "!holdsFocus(b, memory)"
         }
       ],
@@ -1221,6 +1356,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 7,
           "source": "not holds_focus(board, memory)"
         }
       ]
@@ -1232,6 +1368,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 8,
           "source": "len(b.chargingUnits) == 0"
         }
       ],
@@ -1239,6 +1376,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 8,
           "source": "not board[\"charging_units\"]"
         }
       ]
@@ -1250,6 +1388,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 9,
           "source": "kingChannelActive(obs, b) \u0026\u0026 len(b.chargingUnits) == 0 \u0026\u0026 b.kingCell != nil"
         }
       ],
@@ -1257,6 +1396,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 9,
           "source": "king_channel_active(observation, board) and not board[\"charging_units\"] and board[\"king_cell\"] != None"
         }
       ]
@@ -1268,6 +1408,7 @@
         {
           "file": "board.go",
           "function": "deliveryLaneBlockers",
+          "occurrence": 1,
           "source": "enemyBySquare[target] != nil"
         }
       ],
@@ -1275,6 +1416,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "delivery_lane_blockers",
+          "occurrence": 1,
           "source": "target in enemy_by_square"
         }
       ]
@@ -1286,6 +1428,7 @@
         {
           "file": "board.go",
           "function": "deliveryLaneBlockers",
+          "occurrence": 2,
           "source": "ownBySquare[target] != nil"
         }
       ],
@@ -1293,6 +1436,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "delivery_lane_blockers",
+          "occurrence": 2,
           "source": "target in own_by_square"
         }
       ]
@@ -1304,6 +1448,7 @@
         {
           "file": "board.go",
           "function": "deliveryLaneBlockers",
+          "occurrence": 3,
           "source": "len(neighbors) == 0"
         }
       ],
@@ -1311,6 +1456,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "delivery_lane_blockers",
+          "occurrence": 3,
           "source": "not neighbors"
         }
       ]
@@ -1322,6 +1468,7 @@
         {
           "file": "board.go",
           "function": "deliveryLaneBlockers",
+          "occurrence": 4,
           "source": "enemyBySquare[neighbor] != nil"
         }
       ],
@@ -1329,6 +1476,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "delivery_lane_blockers",
+          "occurrence": 4,
           "source": "neighbor in enemy_by_square"
         }
       ]
@@ -1340,6 +1488,7 @@
         {
           "file": "board.go",
           "function": "deliveryLaneBlockers",
+          "occurrence": 5,
           "source": "ownBySquare[neighbor] == nil"
         }
       ],
@@ -1347,6 +1496,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "delivery_lane_blockers",
+          "occurrence": 5,
           "source": "neighbor not in own_by_square"
         }
       ]
@@ -1358,6 +1508,7 @@
         {
           "file": "board.go",
           "function": "deliverySquareNeighbors",
+          "occurrence": 1,
           "source": "df == 0 \u0026\u0026 dr == 0"
         }
       ],
@@ -1365,6 +1516,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "_delivery_square_neighbors",
+          "occurrence": 1,
           "source": "file_delta == 0 and rank_delta == 0"
         }
       ]
@@ -1376,6 +1528,7 @@
         {
           "file": "board.go",
           "function": "deliverySquareNeighbors",
+          "occurrence": 2,
           "source": "nf \u003c 0 || nf \u003e 7 || nr \u003c 0 || nr \u003e 7"
         }
       ],
@@ -1383,6 +1536,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "_delivery_square_neighbors",
+          "occurrence": 2,
           "source": "neighbor_file \u003c 0 or neighbor_file \u003e 7 or neighbor_rank \u003c 0 or neighbor_rank \u003e 7"
         }
       ]
@@ -1394,6 +1548,7 @@
         {
           "file": "board.go",
           "function": "distanceToNearestEnemy",
+          "occurrence": 1,
           "source": "gap \u003c closest"
         }
       ],
@@ -1401,6 +1556,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "distance_to_nearest_enemy",
+          "occurrence": 1,
           "source": "gap \u003c closest"
         }
       ]
@@ -1412,6 +1568,7 @@
         {
           "file": "board.go",
           "function": "distanceToNearestSquare",
+          "occurrence": 1,
           "source": "gap \u003c closest"
         }
       ],
@@ -1419,6 +1576,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "distance_to_nearest_square",
+          "occurrence": 1,
           "source": "gap \u003c closest"
         }
       ]
@@ -1430,6 +1588,7 @@
         {
           "file": "memory.go",
           "function": "dropRefused",
+          "occurrence": 1,
           "source": "memory == nil || memory[\"revision\"] != obs.Revision"
         }
       ],
@@ -1437,6 +1596,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "drop_refused",
+          "occurrence": 1,
           "source": "not memory or memory.get(\"revision\") != observation[\"revision\"]"
         }
       ]
@@ -1448,6 +1608,7 @@
         {
           "file": "memory.go",
           "function": "dropRefused",
+          "occurrence": 2,
           "source": "ok \u0026\u0026 idx \u003e= 0 \u0026\u0026 idx \u003c= MaxSquareIndex"
         }
       ],
@@ -1455,6 +1616,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "drop_refused",
+          "occurrence": 2,
           "source": "index \u003e= 0 and index \u003c= MAX_SQUARE_INDEX"
         }
       ]
@@ -1466,6 +1628,7 @@
         {
           "file": "memory.go",
           "function": "dropRefused",
+          "occurrence": 3,
           "source": "len(refusedSquares) == 0"
         }
       ],
@@ -1473,6 +1636,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "drop_refused",
+          "occurrence": 3,
           "source": "not refused_squares"
         }
       ]
@@ -1484,6 +1648,7 @@
         {
           "file": "score.go",
           "function": "effectiveCaptureTarget",
+          "occurrence": 1,
           "source": "targetCell != nil"
         }
       ],
@@ -1491,6 +1656,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "effective_capture_target",
+          "occurrence": 1,
           "source": "target_cell"
         }
       ]
@@ -1502,6 +1668,7 @@
         {
           "file": "score.go",
           "function": "effectiveCaptureTarget",
+          "occurrence": 2,
           "source": "cell.Convoy || cell.Rank != \"pawn\""
         }
       ],
@@ -1509,6 +1676,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "effective_capture_target",
+          "occurrence": 2,
           "source": "cell[\"convoy\"] or cell[\"rank\"] != \"pawn\""
         }
       ]
@@ -1520,6 +1688,7 @@
         {
           "file": "score.go",
           "function": "effectiveCaptureTarget",
+          "occurrence": 3,
           "source": "ok"
         }
       ],
@@ -1527,6 +1696,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "effective_capture_target",
+          "occurrence": 3,
           "source": "not victim_square"
         }
       ]
@@ -1538,6 +1708,7 @@
         {
           "file": "systems.go",
           "function": "espionageProposals",
+          "occurrence": 1,
           "source": "kingCell == nil || b.busyUnits[kingCell.UnitID.String()]"
         }
       ],
@@ -1545,6 +1716,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "espionage_proposals",
+          "occurrence": 1,
           "source": "king_cell == None or board[\"busy_units\"].get(king_cell[\"unitId\"])"
         }
       ]
@@ -1556,6 +1728,7 @@
         {
           "file": "systems.go",
           "function": "espionageProposals",
+          "occurrence": 2,
           "source": "obs.EnemyManaged \u003c= 0"
         }
       ],
@@ -1563,6 +1736,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "espionage_proposals",
+          "occurrence": 2,
           "source": "observation[\"enemyManaged\"] \u003c= 0"
         }
       ]
@@ -1574,6 +1748,7 @@
         {
           "file": "systems.go",
           "function": "espionageProposals",
+          "occurrence": 3,
           "source": "suspect.Rank == \"king\" || suspect.Convoy"
         }
       ],
@@ -1581,6 +1756,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "espionage_proposals",
+          "occurrence": 3,
           "source": "suspect[\"rank\"] == \"king\" or suspect[\"convoy\"]"
         }
       ]
@@ -1592,6 +1768,7 @@
         {
           "file": "systems.go",
           "function": "espionageProposals",
+          "occurrence": 4,
           "source": "chebyshevDistance(kingCell.Square, suspect.Square) != 1"
         }
       ],
@@ -1599,6 +1776,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "espionage_proposals",
+          "occurrence": 4,
           "source": "chebyshev_distance(king_cell[\"square\"], suspect[\"square\"]) != 1"
         }
       ]
@@ -1610,6 +1788,7 @@
         {
           "file": "memory.go",
           "function": "finishDecision",
+          "occurrence": 1,
           "source": "chosen != nil"
         }
       ],
@@ -1617,6 +1796,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "finish_decision",
+          "occurrence": 1,
           "source": "committed == 0"
         }
       ]
@@ -1628,6 +1808,7 @@
         {
           "file": "score.go",
           "function": "formationLeaderPriority",
+          "occurrence": 1,
           "source": "cell.Convoy"
         }
       ],
@@ -1635,6 +1816,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "formation_leader_priority",
+          "occurrence": 1,
           "source": "cell[\"convoy\"]"
         }
       ]
@@ -1646,6 +1828,7 @@
         {
           "file": "score.go",
           "function": "formationLeaderPriority",
+          "occurrence": 2,
           "source": "cell.Rank == \"king\""
         }
       ],
@@ -1653,6 +1836,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "formation_leader_priority",
+          "occurrence": 2,
           "source": "cell[\"rank\"] == \"king\""
         }
       ]
@@ -1664,6 +1848,7 @@
         {
           "file": "score.go",
           "function": "formationLeaderPriority",
+          "occurrence": 3,
           "source": "params.MoralePush \u003c= 0"
         }
       ],
@@ -1671,6 +1856,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "formation_leader_priority",
+          "occurrence": 3,
           "source": "params[\"moralePush\"] \u003c= 0"
         }
       ]
@@ -1682,6 +1868,7 @@
         {
           "file": "score.go",
           "function": "formationLeaderPriority",
+          "occurrence": 4,
           "source": "obs.OwnMorale-needed \u003e= LeaderExcessMorale"
         }
       ],
@@ -1689,6 +1876,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "formation_leader_priority",
+          "occurrence": 4,
           "source": "observation.get(\"ownMorale\", 0) - needed \u003e= LEADER_EXCESS_MORALE"
         }
       ]
@@ -1700,6 +1888,7 @@
         {
           "file": "score.go",
           "function": "formationLeaderPriority",
+          "occurrence": 5,
           "source": "isQuietMove(obs, b, cell, destination) \u0026\u0026 hasCandidate(obs, cell.Square, destination) \u0026\u0026 fact != nil \u0026\u0026 fact.DestinationVisible \u0026\u0026 supportedAndUnthreatened(fact) \u0026\u0026 after \u003c current \u0026\u0026 after \u003e= needed+1"
         }
       ],
@@ -1707,6 +1896,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "formation_leader_priority",
+          "occurrence": 5,
           "source": "(is_quiet_move(observation, board, cell, destination) and has_candidate(observation, cell[\"square\"], destination) and fact.get(\"destinationVisible\", False) and supported_and_unthreatened(fact) and after \u003c current and after \u003e= needed + 1)"
         }
       ]
@@ -1718,6 +1908,7 @@
         {
           "file": "score.go",
           "function": "formationLeaderPriority",
+          "occurrence": 6,
           "source": "current \u003e= needed+1"
         }
       ],
@@ -1725,6 +1916,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "formation_leader_priority",
+          "occurrence": 6,
           "source": "current \u003e= needed + 1"
         }
       ]
@@ -1736,6 +1928,7 @@
         {
           "file": "score.go",
           "function": "formationLeaderPriority",
+          "occurrence": 7,
           "source": "isQuietMove(obs, b, cell, destination) \u0026\u0026 hasCandidate(obs, cell.Square, destination) \u0026\u0026 fact != nil \u0026\u0026 fact.DestinationVisible \u0026\u0026 supportedAndUnthreatened(fact) \u0026\u0026 after \u003e current \u0026\u0026 after \u003c= needed+2"
         }
       ],
@@ -1743,6 +1936,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "formation_leader_priority",
+          "occurrence": 7,
           "source": "(is_quiet_move(observation, board, cell, destination) and has_candidate(observation, cell[\"square\"], destination) and fact.get(\"destinationVisible\", False) and supported_and_unthreatened(fact) and after \u003e current and after \u003c= needed + 2)"
         }
       ]
@@ -1754,6 +1948,7 @@
         {
           "file": "score.go",
           "function": "formationLeaderPriority",
+          "occurrence": 8,
           "source": "!isCurrentBeaconBearer(obs, cell) || params.BeaconAggression \u003c= 0"
         }
       ],
@@ -1761,6 +1956,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "formation_leader_priority",
+          "occurrence": 8,
           "source": "not is_current_beacon_bearer(observation, cell) or params[\"beaconAggression\"] \u003c= 0"
         }
       ]
@@ -1772,6 +1968,7 @@
         {
           "file": "score.go",
           "function": "formationLeaderPriority",
+          "occurrence": 9,
           "source": "!(cell.Rank == \"pawn\" \u0026\u0026 isPromotionSquare(b.side, destination)) \u0026\u0026 isQuietMove(obs, b, cell, destination) \u0026\u0026 hasCandidate(obs, cell.Square, destination) \u0026\u0026 fact != nil \u0026\u0026 fact.DestinationVisible \u0026\u0026 supportedAndUnthreatened(fact) \u0026\u0026 leaderSupport(obs, b, cell, destination) \u003e currentSupport"
         }
       ],
@@ -1779,6 +1976,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "formation_leader_priority",
+          "occurrence": 9,
           "source": "(not (cell[\"rank\"] == \"pawn\" and is_promotion_square(board[\"side\"], destination)) and is_quiet_move(observation, board, cell, destination) and has_candidate(observation, cell[\"square\"], destination) and fact.get(\"destinationVisible\", False) and supported_and_unthreatened(fact) and leader_support(observation, board, cell, destination) \u003e current_support)"
         }
       ]
@@ -1790,6 +1988,7 @@
         {
           "file": "score.go",
           "function": "guardChanges",
+          "occurrence": 1,
           "source": "target != nil \u0026\u0026 !containsString(target.GuardedBy, oldSquare)"
         }
       ],
@@ -1797,6 +1996,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "guard_changes",
+          "occurrence": 1,
           "source": "target and old_square not in relation_squares(target, \"guardedBy\")"
         }
       ]
@@ -1808,6 +2008,7 @@
         {
           "file": "score.go",
           "function": "guardChanges",
+          "occurrence": 2,
           "source": "containsString(after, square)"
         }
       ],
@@ -1815,6 +2016,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "guard_changes",
+          "occurrence": 2,
           "source": "square in after"
         }
       ]
@@ -1826,6 +2028,7 @@
         {
           "file": "score.go",
           "function": "guardChanges",
+          "occurrence": 3,
           "source": "target != nil \u0026\u0026 len(target.GuardedBy) == 1 \u0026\u0026 target.GuardedBy[0] == oldSquare"
         }
       ],
@@ -1833,6 +2036,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "guard_changes",
+          "occurrence": 3,
           "source": "target and relation_squares(target, \"guardedBy\") == [old_square]"
         }
       ]
@@ -1844,6 +2048,7 @@
         {
           "file": "memory.go",
           "function": "holdsFocus",
+          "occurrence": 1,
           "source": "focusMarker \u003c= 0"
         }
       ],
@@ -1851,6 +2056,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "holds_focus",
+          "occurrence": 1,
           "source": "focus_marker \u003c= 0"
         }
       ]
@@ -1862,6 +2068,7 @@
         {
           "file": "bot.go",
           "function": "intn",
+          "occurrence": 1,
           "source": "count \u003c= 1"
         }
       ],
@@ -1869,6 +2076,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "intn",
+          "occurrence": 1,
           "source": "count \u003c= 1"
         }
       ]
@@ -1880,6 +2088,7 @@
         {
           "file": "board.go",
           "function": "isQuietMove",
+          "occurrence": 1,
           "source": "b.enemyBySquare[destination] != nil"
         }
       ],
@@ -1887,6 +2096,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "is_quiet_move",
+          "occurrence": 1,
           "source": "board[\"enemy_by_square\"].get(destination)"
         }
       ]
@@ -1898,6 +2108,7 @@
         {
           "file": "memory.go",
           "function": "kingChannelActive",
+          "occurrence": 1,
           "source": "b.kingCell == nil"
         }
       ],
@@ -1905,6 +2116,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "king_channel_active",
+          "occurrence": 1,
           "source": "board[\"king_cell\"] == None"
         }
       ]
@@ -1916,6 +2128,7 @@
         {
           "file": "memory.go",
           "function": "leaderGuardMatches",
+          "occurrence": 1,
           "source": "memory[\"leaderGuardActive\"] != 1"
         }
       ],
@@ -1923,6 +2136,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_guard_matches",
+          "occurrence": 1,
           "source": "memory.get(\"leaderGuardActive\", 0) != 1"
         }
       ]
@@ -1934,6 +2148,7 @@
         {
           "file": "memory.go",
           "function": "leaderGuardMatches",
+          "occurrence": 2,
           "source": "sourceCell != nil \u0026\u0026 sourceCell.Side != obs.Side"
         }
       ],
@@ -1941,6 +2156,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_guard_matches",
+          "occurrence": 2,
           "source": "source_cell and source_cell[\"side\"] != observation[\"side\"]"
         }
       ]
@@ -1952,6 +2168,7 @@
         {
           "file": "memory.go",
           "function": "leaderGuardMatches",
+          "occurrence": 3,
           "source": "sourceCell != nil \u0026\u0026 leaderKind(obs, sourceCell) == memory[\"leaderGuardKind\"]"
         }
       ],
@@ -1959,6 +2176,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_guard_matches",
+          "occurrence": 3,
           "source": "source_cell and leader_kind(observation, source_cell) == memory[\"leaderGuardKind\"]"
         }
       ]
@@ -1970,6 +2188,7 @@
         {
           "file": "memory.go",
           "function": "leaderGuardMatches",
+          "occurrence": 4,
           "source": "sourceCell.Side != \"white\""
         }
       ],
@@ -1977,6 +2196,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_guard_matches",
+          "occurrence": 4,
           "source": "value \u003c 0"
         }
       ]
@@ -1988,6 +2208,7 @@
         {
           "file": "memory.go",
           "function": "leaderGuardMatches",
+          "occurrence": 5,
           "source": "destinationCell != nil \u0026\u0026 destinationCell.Side != obs.Side"
         }
       ],
@@ -1995,6 +2216,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_guard_matches",
+          "occurrence": 5,
           "source": "destination_cell and destination_cell[\"side\"] != observation[\"side\"]"
         }
       ]
@@ -2006,6 +2228,7 @@
         {
           "file": "memory.go",
           "function": "leaderGuardMatches",
+          "occurrence": 6,
           "source": "destinationCell == nil || leaderKind(obs, destinationCell) != memory[\"leaderGuardKind\"]"
         }
       ],
@@ -2013,6 +2236,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_guard_matches",
+          "occurrence": 6,
           "source": "not destination_cell or leader_kind(observation, destination_cell) != memory[\"leaderGuardKind\"]"
         }
       ]
@@ -2024,6 +2248,7 @@
         {
           "file": "memory.go",
           "function": "leaderKind",
+          "occurrence": 1,
           "source": "cell.Rank == \"king\""
         }
       ],
@@ -2031,6 +2256,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_kind",
+          "occurrence": 1,
           "source": "cell[\"rank\"] == \"king\""
         }
       ]
@@ -2042,6 +2268,7 @@
         {
           "file": "memory.go",
           "function": "leaderKind",
+          "occurrence": 2,
           "source": "isCurrentBeaconBearer(obs, cell)"
         }
       ],
@@ -2049,6 +2276,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_kind",
+          "occurrence": 2,
           "source": "is_current_beacon_bearer(observation, cell)"
         }
       ]
@@ -2060,6 +2288,7 @@
         {
           "file": "memory.go",
           "function": "leaderReverseForbidden",
+          "occurrence": 1,
           "source": "guard == nil"
         }
       ],
@@ -2067,6 +2296,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_reverse_forbidden",
+          "occurrence": 1,
           "source": "guard == None"
         }
       ]
@@ -2078,6 +2308,7 @@
         {
           "file": "memory.go",
           "function": "leaderReverseForbidden",
+          "occurrence": 2,
           "source": "cell.Square != squareName(int(guard.to)) || destination != squareName(int(guard.from))"
         }
       ],
@@ -2085,6 +2316,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_reverse_forbidden",
+          "occurrence": 2,
           "source": "cell[\"square\"] != square_name(guard[\"to\"]) or destination != square_name(guard[\"from\"])"
         }
       ]
@@ -2096,6 +2328,7 @@
         {
           "file": "memory.go",
           "function": "leaderReverseForbidden",
+          "occurrence": 3,
           "source": "leaderKind(obs, cell) != guard.kind"
         }
       ],
@@ -2103,6 +2336,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_reverse_forbidden",
+          "occurrence": 3,
           "source": "leader_kind(observation, cell) != guard[\"kind\"]"
         }
       ]
@@ -2114,6 +2348,7 @@
         {
           "file": "score.go",
           "function": "leaderSupport",
+          "occurrence": 1,
           "source": "ally.UnitID.String() == leaderUID"
         }
       ],
@@ -2121,6 +2356,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_support",
+          "occurrence": 1,
           "source": "ally[\"unitId\"] == leader[\"unitId\"]"
         }
       ]
@@ -2132,6 +2368,7 @@
         {
           "file": "score.go",
           "function": "leaderSupport",
+          "occurrence": 2,
           "source": "dist == 0"
         }
       ],
@@ -2139,6 +2376,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_support",
+          "occurrence": 2,
           "source": "distance == 0"
         }
       ]
@@ -2150,6 +2388,7 @@
         {
           "file": "systems.go",
           "function": "mostAdvancedAdjacentAlly",
+          "occurrence": 1,
           "source": "kingCell == nil"
         }
       ],
@@ -2157,6 +2396,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "most_advanced_adjacent_ally",
+          "occurrence": 1,
           "source": "king_cell == None"
         }
       ]
@@ -2168,6 +2408,7 @@
         {
           "file": "systems.go",
           "function": "mostAdvancedAdjacentAlly",
+          "occurrence": 2,
           "source": "cell.Rank == \"king\" || cell.Convoy"
         }
       ],
@@ -2175,6 +2416,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "most_advanced_adjacent_ally",
+          "occurrence": 2,
           "source": "cell[\"rank\"] == \"king\" or cell[\"convoy\"]"
         }
       ]
@@ -2186,6 +2428,7 @@
         {
           "file": "systems.go",
           "function": "mostAdvancedAdjacentAlly",
+          "occurrence": 3,
           "source": "chebyshevDistance(kingCell.Square, cell.Square) != 1"
         }
       ],
@@ -2193,6 +2436,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "most_advanced_adjacent_ally",
+          "occurrence": 3,
           "source": "chebyshev_distance(king_cell[\"square\"], cell[\"square\"]) != 1"
         }
       ]
@@ -2204,6 +2448,7 @@
         {
           "file": "systems.go",
           "function": "mostAdvancedAdjacentAlly",
+          "occurrence": 4,
           "source": "progress \u003e bestProgress"
         }
       ],
@@ -2211,6 +2456,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "most_advanced_adjacent_ally",
+          "occurrence": 4,
           "source": "progress \u003e best_progress"
         }
       ]
@@ -2222,6 +2468,7 @@
         {
           "file": "memory.go",
           "function": "moveProposals",
+          "occurrence": 1,
           "source": "len(b.moveActionableUnits) == 0"
         }
       ],
@@ -2229,6 +2476,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "move_proposals",
+          "occurrence": 1,
           "source": "not board[\"move_actionable_units\"]"
         }
       ]
@@ -2240,6 +2488,7 @@
         {
           "file": "memory.go",
           "function": "moveProposals",
+          "occurrence": 2,
           "source": "rankedUnits[i].priority != rankedUnits[j].priority"
         }
       ],
@@ -2247,6 +2496,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "move_proposals",
+          "occurrence": 2,
           "source": "breadth \u003c= 0 or breadth \u003e len(ranked_units)"
         }
       ]
@@ -2258,6 +2508,7 @@
         {
           "file": "memory.go",
           "function": "moveProposals",
+          "occurrence": 3,
           "source": "breadth \u003c= 0 || breadth \u003e len(rankedUnits)"
         }
       ],
@@ -2265,6 +2516,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "move_proposals",
+          "occurrence": 3,
           "source": "destination == cell[\"square\"]"
         }
       ]
@@ -2276,6 +2528,7 @@
         {
           "file": "memory.go",
           "function": "moveProposals",
+          "occurrence": 4,
           "source": "destination == cell.Square"
         }
       ],
@@ -2283,6 +2536,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "move_proposals",
+          "occurrence": 4,
           "source": "cell.get(\"charging\") and destination == cell[\"charging\"][\"square\"]"
         }
       ]
@@ -2294,6 +2548,7 @@
         {
           "file": "memory.go",
           "function": "moveProposals",
+          "occurrence": 5,
           "source": "cell.Charging != nil \u0026\u0026 destination == cell.Charging.Square"
         }
       ],
@@ -2301,6 +2556,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "move_proposals",
+          "occurrence": 5,
           "source": "not capture_choice_available(observation, board, cell, destination)"
         }
       ]
@@ -2312,6 +2568,7 @@
         {
           "file": "memory.go",
           "function": "moveProposals",
+          "occurrence": 6,
           "source": "!captureChoiceAvailable(obs, b, cell, destination)"
         }
       ],
@@ -2319,6 +2576,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "move_proposals",
+          "occurrence": 6,
           "source": "leader_reverse_forbidden(observation, leader_guard, cell, destination)"
         }
       ]
@@ -2330,6 +2588,7 @@
         {
           "file": "memory.go",
           "function": "moveProposals",
+          "occurrence": 7,
           "source": "leaderReverseForbidden(obs, leaderGuard, cell, destination)"
         }
       ],
@@ -2337,6 +2596,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "move_proposals",
+          "occurrence": 7,
           "source": "candidate_spread \u003c= 0 or candidate_spread \u003e len(candidates)"
         }
       ]
@@ -2348,6 +2608,7 @@
         {
           "file": "memory.go",
           "function": "nextCommitted",
+          "occurrence": 1,
           "source": "chosen != nil"
         }
       ],
@@ -2355,6 +2616,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "next_committed",
+          "occurrence": 1,
           "source": "intent != None and intent[\"kind\"] == \"move\""
         }
       ]
@@ -2366,6 +2628,7 @@
         {
           "file": "memory.go",
           "function": "nextCommitted",
+          "occurrence": 2,
           "source": "intent != nil \u0026\u0026 intent.Kind == \"move\""
         }
       ],
@@ -2373,6 +2636,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "next_committed",
+          "occurrence": 2,
           "source": "charge_ms \u003e 0"
         }
       ]
@@ -2384,6 +2648,7 @@
         {
           "file": "memory.go",
           "function": "nextCommitted",
+          "occurrence": 3,
           "source": "mover != nil"
         }
       ],
@@ -2391,6 +2656,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "next_committed",
+          "occurrence": 3,
           "source": "is_king_channel_start(intent)"
         }
       ]
@@ -2402,6 +2668,7 @@
         {
           "file": "memory.go",
           "function": "nextCommitted",
+          "occurrence": 4,
           "source": "chargeMs \u003e 0"
         }
       ],
@@ -2409,6 +2676,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "next_committed",
+          "occurrence": 4,
           "source": "board[\"charging_units\"] and stored_kind == COMMIT_KIND_ROUTE"
         }
       ]
@@ -2420,6 +2688,7 @@
         {
           "file": "memory.go",
           "function": "nextCommitted",
+          "occurrence": 5,
           "source": "isKingChannelStart(intent)"
         }
       ],
@@ -2427,6 +2696,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "next_committed",
+          "occurrence": 5,
           "source": "king_channel_active(observation, board) and stored_kind == COMMIT_KIND_KING and actor != king_id"
         }
       ]
@@ -2438,6 +2708,7 @@
         {
           "file": "memory.go",
           "function": "packCommitted",
+          "occurrence": 1,
           "source": "offsetScore \u003c 0"
         }
       ],
@@ -2445,6 +2716,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "pack_committed",
+          "occurrence": 1,
           "source": "offset_score \u003c 0"
         }
       ]
@@ -2456,6 +2728,7 @@
         {
           "file": "memory.go",
           "function": "packCommitted",
+          "occurrence": 2,
           "source": "offsetScore \u003e= CommitScoreField"
         }
       ],
@@ -2463,6 +2736,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "pack_committed",
+          "occurrence": 2,
           "source": "offset_score \u003e= COMMIT_SCORE_FIELD"
         }
       ]
@@ -2474,6 +2748,7 @@
         {
           "file": "memory.go",
           "function": "packPlacementBoards",
+          "occurrence": 1,
           "source": "64-baseSquare \u003c squaresInSlot"
         }
       ],
@@ -2481,6 +2756,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "pack_placement_boards",
+          "occurrence": 1,
           "source": "raw \u003c 0"
         }
       ]
@@ -2492,6 +2768,7 @@
         {
           "file": "memory.go",
           "function": "packPlacementBoards",
+          "occurrence": 2,
           "source": "(raw\u003e\u003esquare)\u00261 == 1"
         }
       ],
@@ -2499,6 +2776,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "pack_placement_boards",
+          "occurrence": 2,
           "source": "(raw \u003e\u003e square) \u0026 1"
         }
       ]
@@ -2510,6 +2788,7 @@
         {
           "file": "memory.go",
           "function": "placementBitboards",
+          "occurrence": 1,
           "source": "rankSlot \u003c 0"
         }
       ],
@@ -2517,6 +2796,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "placement_bitboards",
+          "occurrence": 1,
           "source": "rank_slot == None"
         }
       ]
@@ -2528,6 +2808,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryInFlight",
+          "occurrence": 1,
           "source": "!b.needsFirstMasterEngineer"
         }
       ],
@@ -2535,6 +2816,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_in_flight",
+          "occurrence": 1,
           "source": "not board[\"needs_first_master_engineer\"]"
         }
       ]
@@ -2546,6 +2828,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryInFlight",
+          "occurrence": 2,
           "source": "charging == nil || !cell.Convoy || cell.CargoCount == 0 || cell.KingCargo || cell.Rank != \"pawn\""
         }
       ],
@@ -2553,6 +2836,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_in_flight",
+          "occurrence": 2,
           "source": "(not charging or not cell[\"convoy\"] or cell[\"cargoCount\"] == 0 or cell[\"kingCargo\"] or cell[\"rank\"] != \"pawn\")"
         }
       ]
@@ -2564,6 +2848,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryInFlight",
+          "occurrence": 3,
           "source": "b.allBySquare[charging.Square] != nil"
         }
       ],
@@ -2571,6 +2856,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_in_flight",
+          "occurrence": 3,
           "source": "board[\"all_by_square\"].get(charging[\"square\"])"
         }
       ]
@@ -2582,6 +2868,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryInFlight",
+          "occurrence": 4,
           "source": "obs.Rules.CargoBasedDelivery"
         }
       ],
@@ -2589,6 +2876,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_in_flight",
+          "occurrence": 4,
           "source": "cell[\"square\"] in base_squares"
         }
       ]
@@ -2600,6 +2888,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryInFlight",
+          "occurrence": 5,
           "source": "containsString(baseSquares, cell.Square)"
         }
       ],
@@ -2607,6 +2896,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_in_flight",
+          "occurrence": 5,
           "source": "distance_to_nearest_square(charging[\"square\"], base_squares) \u003c distance_to_nearest_square(cell[\"square\"], base_squares)"
         }
       ]
@@ -2618,6 +2908,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
+          "occurrence": 1,
           "source": "!b.needsFirstMasterEngineer"
         }
       ],
@@ -2625,6 +2916,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_proposal",
+          "occurrence": 1,
           "source": "not board[\"needs_first_master_engineer\"]"
         }
       ]
@@ -2636,6 +2928,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
+          "occurrence": 10,
           "source": "to == \"\""
         }
       ],
@@ -2643,6 +2936,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_proposal",
+          "occurrence": 10,
           "source": "(candidate == cell[\"square\"] or board[\"enemy_by_square\"].get(candidate) or not has_candidate(observation, cell[\"square\"], candidate) or not fact.get(\"destinationVisible\", False) or not is_safe_subject(fact))"
         }
       ]
@@ -2654,6 +2948,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
+          "occurrence": 11,
           "source": "candidate == cell.Square || b.enemyBySquare[candidate] != nil || !hasCandidate(obs, cell.Square, candidate) || fact == nil || !fact.DestinationVisible || !isSafeSubject(fact)"
         }
       ],
@@ -2661,6 +2956,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_proposal",
+          "occurrence": 11,
           "source": "gain \u003e best_gain"
         }
       ]
@@ -2672,6 +2968,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
+          "occurrence": 12,
           "source": "gain \u003e bestGain"
         }
       ],
@@ -2679,6 +2976,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_proposal",
+          "occurrence": 12,
           "source": "to == None"
         }
       ]
@@ -2690,6 +2988,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
+          "occurrence": 2,
           "source": "!cell.Convoy || cell.CargoCount == 0 || cell.KingCargo || cell.Rank != \"pawn\" || b.busyUnits[cell.UnitID.String()]"
         }
       ],
@@ -2697,6 +2996,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_proposal",
+          "occurrence": 2,
           "source": "(not cell[\"convoy\"] or cell[\"cargoCount\"] == 0 or cell[\"kingCargo\"] or cell[\"rank\"] != \"pawn\" or board[\"busy_units\"].get(cell[\"unitId\"]))"
         }
       ]
@@ -2708,6 +3008,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
+          "occurrence": 3,
           "source": "cell.NotBriefed"
         }
       ],
@@ -2715,6 +3016,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_proposal",
+          "occurrence": 3,
           "source": "cell.get(\"notBriefed\")"
         }
       ]
@@ -2726,6 +3028,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
+          "occurrence": 4,
           "source": "obs.Rules.CargoBasedDelivery"
         }
       ],
@@ -2733,6 +3036,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_proposal",
+          "occurrence": 4,
           "source": "not destinations"
         }
       ]
@@ -2744,6 +3048,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
+          "occurrence": 5,
           "source": "len(destinations) == 0"
         }
       ],
@@ -2751,6 +3056,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_proposal",
+          "occurrence": 5,
           "source": "cell[\"square\"] in base_squares"
         }
       ]
@@ -2762,6 +3068,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
+          "occurrence": 6,
           "source": "containsString(baseSquares, cell.Square)"
         }
       ],
@@ -2769,6 +3076,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_proposal",
+          "occurrence": 6,
           "source": "(candidate == cell[\"square\"] or board[\"enemy_by_square\"].get(candidate) or not has_candidate(observation, cell[\"square\"], candidate) or not fact.get(\"destinationVisible\", False) or not is_safe_subject(fact))"
         }
       ]
@@ -2780,6 +3088,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
+          "occurrence": 7,
           "source": "candidate == cell.Square || b.enemyBySquare[candidate] != nil || !hasCandidate(obs, cell.Square, candidate) || fact == nil || !fact.DestinationVisible || !isSafeSubject(fact)"
         }
       ],
@@ -2787,6 +3096,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_proposal",
+          "occurrence": 7,
           "source": "candidate in base_squares"
         }
       ]
@@ -2798,6 +3108,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
+          "occurrence": 8,
           "source": "containsString(baseSquares, candidate)"
         }
       ],
@@ -2805,6 +3116,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_proposal",
+          "occurrence": 8,
           "source": "fallback == None"
         }
       ]
@@ -2816,6 +3128,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
+          "occurrence": 9,
           "source": "fallback == \"\""
         }
       ],
@@ -2823,6 +3136,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_proposal",
+          "occurrence": 9,
           "source": "to == None"
         }
       ]
@@ -2834,6 +3148,7 @@
         {
           "file": "memory.go",
           "function": "projectedCell",
+          "occurrence": 1,
           "source": "ok"
         }
       ],
@@ -2841,6 +3156,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "projected_cell",
+          "occurrence": 1,
           "source": "raw == None"
         }
       ]
@@ -2852,6 +3168,7 @@
         {
           "file": "memory.go",
           "function": "quietLeaderIntent",
+          "occurrence": 1,
           "source": "intent == nil || intent.Kind != \"move\" || intent.Promotion != \"\""
         }
       ],
@@ -2859,6 +3176,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "quiet_leader_intent",
+          "occurrence": 1,
           "source": "not intent or intent[\"kind\"] != \"move\" or intent.get(\"promotion\")"
         }
       ]
@@ -2870,6 +3188,7 @@
         {
           "file": "memory.go",
           "function": "quietLeaderIntent",
+          "occurrence": 2,
           "source": "cell != nil \u0026\u0026 cell.Side != obs.Side"
         }
       ],
@@ -2877,6 +3196,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "quiet_leader_intent",
+          "occurrence": 2,
           "source": "cell and cell[\"side\"] != observation[\"side\"]"
         }
       ]
@@ -2888,6 +3208,7 @@
         {
           "file": "memory.go",
           "function": "quietLeaderIntent",
+          "occurrence": 3,
           "source": "cell == nil || cell.Convoy || leaderKind(obs, cell) == 0"
         }
       ],
@@ -2895,6 +3216,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "quiet_leader_intent",
+          "occurrence": 3,
           "source": "not cell or cell[\"convoy\"] or not leader_kind(observation, cell)"
         }
       ]
@@ -2906,6 +3228,7 @@
         {
           "file": "memory.go",
           "function": "quietLeaderIntent",
+          "occurrence": 4,
           "source": "piece.Side != obs.Side"
         }
       ],
@@ -2913,6 +3236,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "quiet_leader_intent",
+          "occurrence": 4,
           "source": "not is_quiet_move(observation, board, cell, intent[\"to\"])"
         }
       ]
@@ -2924,6 +3248,7 @@
         {
           "file": "memory.go",
           "function": "quietOrdinaryIntent",
+          "occurrence": 1,
           "source": "intent == nil || intent.Kind != \"move\" || intent.Promotion != \"\""
         }
       ],
@@ -2931,6 +3256,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "quiet_ordinary_intent",
+          "occurrence": 1,
           "source": "not intent or intent[\"kind\"] != \"move\" or intent.get(\"promotion\")"
         }
       ]
@@ -2942,6 +3268,7 @@
         {
           "file": "memory.go",
           "function": "quietOrdinaryIntent",
+          "occurrence": 2,
           "source": "cell != nil \u0026\u0026 cell.Side != obs.Side"
         }
       ],
@@ -2949,6 +3276,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "quiet_ordinary_intent",
+          "occurrence": 2,
           "source": "cell and cell[\"side\"] != observation[\"side\"]"
         }
       ]
@@ -2960,6 +3288,7 @@
         {
           "file": "memory.go",
           "function": "quietOrdinaryIntent",
+          "occurrence": 3,
           "source": "cell == nil || cell.Convoy || leaderKind(obs, cell) != 0"
         }
       ],
@@ -2967,6 +3296,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "quiet_ordinary_intent",
+          "occurrence": 3,
           "source": "not cell or cell[\"convoy\"] or leader_kind(observation, cell)"
         }
       ]
@@ -2978,6 +3308,7 @@
         {
           "file": "score.go",
           "function": "rankOptions",
+          "occurrence": 1,
           "source": "count \u003c= 0"
         }
       ],
@@ -2985,6 +3316,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "rank_options",
+          "occurrence": 1,
           "source": "count \u003c= 0"
         }
       ]
@@ -2996,6 +3328,7 @@
         {
           "file": "score.go",
           "function": "rankOptions",
+          "occurrence": 2,
           "source": "p.score \u003c params.PassBelow"
         }
       ],
@@ -3003,6 +3336,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "rank_options",
+          "occurrence": 2,
           "source": "proposal[\"score\"] \u003c params[\"passBelow\"]"
         }
       ]
@@ -3014,6 +3348,7 @@
         {
           "file": "score.go",
           "function": "rankOptions",
+          "occurrence": 3,
           "source": "p.actor != nil"
         }
       ],
@@ -3021,6 +3356,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "rank_options",
+          "occurrence": 3,
           "source": "seen_actors.get(actor)"
         }
       ]
@@ -3032,6 +3368,7 @@
         {
           "file": "score.go",
           "function": "rankOptions",
+          "occurrence": 4,
           "source": "ok \u0026\u0026 !uid.IsZero()"
         }
       ],
@@ -3039,6 +3376,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "rank_options",
+          "occurrence": 4,
           "source": "len(chosen) \u003e= count"
         }
       ]
@@ -3050,6 +3388,7 @@
         {
           "file": "score.go",
           "function": "rankOptions",
+          "occurrence": 5,
           "source": "ok \u0026\u0026 str != \"\""
         }
       ],
@@ -3057,6 +3396,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "rank_options",
+          "occurrence": 5,
           "source": "index == 0 or proposal[\"score\"] \u003c leader_score - TIE_BREAK_BAND"
         }
       ]
@@ -3068,6 +3408,7 @@
         {
           "file": "memory.go",
           "function": "retentionScore",
+          "occurrence": 1,
           "source": "storedKind != kind"
         }
       ],
@@ -3075,6 +3416,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "retention_score",
+          "occurrence": 1,
           "source": "stored_kind != kind"
         }
       ]
@@ -3086,6 +3428,7 @@
         {
           "file": "memory.go",
           "function": "roundHalfUp",
+          "occurrence": 1,
           "source": "value \u003e= 0"
         }
       ],
@@ -3093,6 +3436,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "round_half_up",
+          "occurrence": 1,
           "source": "value \u003e= 0"
         }
       ]
@@ -3104,6 +3448,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 1,
           "source": "targetCell != nil \u0026\u0026 targetCell.Rank != \"king\" \u0026\u0026 !targetCell.Convoy"
         }
       ],
@@ -3111,6 +3456,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 1,
           "source": "target_cell and target_cell[\"rank\"] != \"king\" and not target_cell[\"convoy\"]"
         }
       ]
@@ -3122,6 +3468,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 10,
           "source": "params.Prisoner \u003e 0 \u0026\u0026 targetCell.Rank != \"king\" \u0026\u0026 !targetCell.Convoy"
         }
       ],
@@ -3129,6 +3476,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 10,
           "source": "candidate_known"
         }
       ]
@@ -3140,6 +3488,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 11,
           "source": "b.needsFirstMasterEngineer \u0026\u0026 cell.Rank == \"pawn\" \u0026\u0026 !cell.Convoy \u0026\u0026 outcomes != nil \u0026\u0026 outcomes.Capture != nil \u0026\u0026 outcomes.Capture.Affordable \u0026\u0026 (captureBackingCount(targetCell, cell.Square) \u003e 0 || cellGuardedCount(targetCell) == 0)"
         }
       ],
@@ -3147,6 +3496,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 11,
           "source": "target_cell"
         }
       ]
@@ -3158,6 +3508,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 12,
           "source": "candidateKnown \u0026\u0026 candidate != nil"
         }
       ],
@@ -3165,6 +3516,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 12,
           "source": "post_threat \u003e 0"
         }
       ]
@@ -3176,6 +3528,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 13,
           "source": "targetCell != nil"
         }
       ],
@@ -3183,6 +3536,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 13,
           "source": "cell[\"kingCargo\"]"
         }
       ]
@@ -3194,6 +3548,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 14,
           "source": "postThreat \u003e 0"
         }
       ],
@@ -3201,6 +3556,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 14,
           "source": "captured_value \u003e= risk"
         }
       ]
@@ -3212,6 +3568,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 15,
           "source": "cell.KingCargo"
         }
       ],
@@ -3219,6 +3576,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 15,
           "source": "post_guarded \u003e 0"
         }
       ]
@@ -3230,6 +3588,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 16,
           "source": "capturedValue \u003e= risk"
         }
       ],
@@ -3237,6 +3596,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 16,
           "source": "params[\"tempo\"] \u003e 0"
         }
       ]
@@ -3248,6 +3608,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 17,
           "source": "postGuarded \u003e 0"
         }
       ],
@@ -3255,6 +3616,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 17,
           "source": "charge_ms \u003e 0"
         }
       ]
@@ -3266,6 +3628,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 18,
           "source": "params.Tempo \u003e 0"
         }
       ],
@@ -3273,6 +3636,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 18,
           "source": "active_charge and destination != active_charge[\"square\"]"
         }
       ]
@@ -3284,6 +3648,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 19,
           "source": "chargeMs \u003e 0"
         }
       ],
@@ -3291,6 +3656,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 19,
           "source": "cell[\"convoy\"] and cell[\"kingCargo\"]"
         }
       ]
@@ -3302,6 +3668,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 2,
           "source": "params.Prisoner \u003e 0 \u0026\u0026 obs.Rules.AllowsCapture \u0026\u0026 outcomes != nil \u0026\u0026 outcomes.Capture != nil \u0026\u0026 outcomes.Capture.Affordable"
         }
       ],
@@ -3309,6 +3676,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 2,
           "source": "(params[\"prisoner\"] \u003e 0 and observation[\"rules\"][\"allowsCapture\"] and outcomes.get(\"capture\", EMPTY_OUTCOME)[\"affordable\"])"
         }
       ]
@@ -3320,6 +3688,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 20,
           "source": "activeCharge != nil \u0026\u0026 destination != activeCharge.Square"
         }
       ],
@@ -3327,6 +3696,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 20,
           "source": "destination in board[\"delivery_squares\"]"
         }
       ]
@@ -3338,6 +3708,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 21,
           "source": "cell.Convoy \u0026\u0026 cell.KingCargo"
         }
       ],
@@ -3345,6 +3716,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 21,
           "source": "here_cost \u003c UNREACHABLE_PATH_COST"
         }
       ]
@@ -3356,6 +3728,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 22,
           "source": "containsString(b.deliverySquares, destination)"
         }
       ],
@@ -3363,6 +3736,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 22,
           "source": "there_cost \u003e= UNREACHABLE_PATH_COST"
         }
       ]
@@ -3374,6 +3748,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 23,
           "source": "activeCharge != nil"
         }
       ],
@@ -3381,6 +3756,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 23,
           "source": "cell[\"convoy\"] and cell[\"cargoCount\"] \u003e 0 and params[\"prisoner\"] \u003e 0"
         }
       ]
@@ -3392,6 +3768,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 24,
           "source": "!okHere"
         }
       ],
@@ -3399,6 +3776,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 24,
           "source": "board[\"needs_first_master_engineer\"] and cell[\"rank\"] == \"pawn\""
         }
       ]
@@ -3410,6 +3788,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 25,
           "source": "!okThere"
         }
       ],
@@ -3417,6 +3796,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 25,
           "source": "not cell[\"convoy\"] and params[\"delivery\"] \u003e 0 and cell[\"square\"] in board[\"blocking_base\"]"
         }
       ]
@@ -3428,6 +3808,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 26,
           "source": "hereCost \u003c UnreachablePathCost"
         }
       ],
@@ -3435,6 +3816,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 26,
           "source": "params[\"advance\"] \u003e 0 and not cell[\"convoy\"]"
         }
       ]
@@ -3446,6 +3828,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 27,
           "source": "thereCost \u003e= UnreachablePathCost"
         }
       ],
@@ -3453,6 +3836,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 27,
           "source": "quiet_move and (not candidate_known or not candidate.get(\"destinationVisible\", False))"
         }
       ]
@@ -3464,6 +3848,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 28,
           "source": "cell.Convoy \u0026\u0026 cell.CargoCount \u003e 0 \u0026\u0026 params.Prisoner \u003e 0"
         }
       ],
@@ -3471,6 +3856,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 28,
           "source": "quiet_move and guarded_count(candidate) \u003c= 0"
         }
       ]
@@ -3482,6 +3868,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 29,
           "source": "obs.Rules.CargoBasedDelivery"
         }
       ],
@@ -3489,6 +3876,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 29,
           "source": "cell[\"rank\"] == \"pawn\" and positional_known_and_supported and ordinary_piece"
         }
       ]
@@ -3500,6 +3888,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 3,
           "source": "obs.Rules.AllowsKill"
         }
       ],
@@ -3507,6 +3896,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 3,
           "source": "observation[\"rules\"][\"allowsKill\"]"
         }
       ]
@@ -3518,6 +3908,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 30,
           "source": "b.needsFirstMasterEngineer \u0026\u0026 cell.Rank == \"pawn\""
         }
       ],
@@ -3525,6 +3916,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 30,
           "source": "is_promotion_square(board[\"side\"], destination)"
         }
       ]
@@ -3536,6 +3928,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 31,
           "source": "!cell.Convoy \u0026\u0026 params.Delivery \u003e 0 \u0026\u0026 containsString(b.blockingBase, cell.Square)"
         }
       ],
@@ -3543,6 +3936,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 31,
           "source": "(quiet_move and candidate_known and candidate.get(\"destinationVisible\", False) and supported_and_unthreatened(candidate) and can_promote_next_move(board[\"side\"], candidate))"
         }
       ]
@@ -3554,6 +3948,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 32,
           "source": "rankVal \u003e QueenValue"
         }
       ],
@@ -3561,6 +3956,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 32,
           "source": "ordinary_piece and positional_known_and_supported"
         }
       ]
@@ -3572,6 +3968,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 33,
           "source": "params.Advance \u003e 0 \u0026\u0026 !cell.Convoy"
         }
       ],
@@ -3579,6 +3976,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 33,
           "source": "(quiet_move and positional_known_and_supported and cell[\"rank\"] in [\"knight\", \"bishop\", \"rook\", \"queen\"] and ordinary_piece and not cell.get(\"moved\", False) and gain \u003e 0)"
         }
       ]
@@ -3590,6 +3988,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 34,
           "source": "quietMove \u0026\u0026 (!candidateKnown || candidate == nil || !candidate.DestinationVisible)"
         }
       ],
@@ -3597,6 +3996,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 34,
           "source": "quiet_move and positional_known_and_supported and ordinary_piece and candidate.get(\"patrolGain\", 0) \u003e 0"
         }
       ]
@@ -3608,6 +4008,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 35,
           "source": "quietMove \u0026\u0026 guardedCount(candidate) \u003c= 0"
         }
       ],
@@ -3615,6 +4016,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 35,
           "source": "(quiet_move and candidate_known and not is_promotion_square(board[\"side\"], destination) and candidate.get(\"destinationVisible\", False) and threatened_count(candidate) == 0 and ordinary_piece)"
         }
       ]
@@ -3626,6 +4028,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 36,
           "source": "cell.Rank == \"pawn\" \u0026\u0026 positionalKnownAndSupported \u0026\u0026 ordinaryPiece"
         }
       ],
@@ -3633,6 +4036,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 36,
           "source": "net_outbound_material \u003e 0"
         }
       ]
@@ -3644,6 +4048,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 37,
           "source": "isPromotionSquare(b.side, destination)"
         }
       ],
@@ -3651,6 +4056,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 37,
           "source": "net_outbound_material \u003c 0"
         }
       ]
@@ -3662,6 +4068,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 38,
           "source": "quietMove \u0026\u0026 candidateKnown \u0026\u0026 candidate != nil \u0026\u0026 candidate.DestinationVisible \u0026\u0026 supportedAndUnthreatened(candidate) \u0026\u0026 canPromoteNextMove(b.side, candidate)"
         }
       ],
@@ -3669,6 +4076,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 38,
           "source": "inbound_material \u003e 0"
         }
       ]
@@ -3680,6 +4088,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 39,
           "source": "ordinaryPiece \u0026\u0026 positionalKnownAndSupported"
         }
       ],
@@ -3687,6 +4096,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 39,
           "source": "(not cell[\"convoy\"] and quiet_move and candidate_known and candidate.get(\"destinationVisible\", False) and supported_and_unthreatened(candidate) and cell[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, cell))"
         }
       ]
@@ -3698,6 +4108,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 4,
           "source": "captureChoice != \"\" \u0026\u0026 outcomes != nil"
         }
       ],
@@ -3705,6 +4116,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 4,
           "source": "capture_choice"
         }
       ]
@@ -3716,6 +4128,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 40,
           "source": "quietMove \u0026\u0026 positionalKnownAndSupported \u0026\u0026 (cell.Rank == \"knight\" || cell.Rank == \"bishop\" || cell.Rank == \"rook\" || cell.Rank == \"queen\") \u0026\u0026 ordinaryPiece \u0026\u0026 !cell.Moved \u0026\u0026 gain \u003e 0"
         }
       ],
@@ -3723,6 +4136,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 40,
           "source": "enemy[\"rank\"] == \"king\" and not enemy[\"ghost\"] and enemy[\"square\"] in (candidate.get(\"nextPossibleMoves\", []) or [])"
         }
       ]
@@ -3734,6 +4148,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 41,
           "source": "quietMove \u0026\u0026 positionalKnownAndSupported \u0026\u0026 ordinaryPiece \u0026\u0026 candidate != nil \u0026\u0026 candidate.PatrolGain \u003e 0"
         }
       ],
@@ -3741,6 +4156,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 41,
           "source": "params[\"targetLock\"] \u003e 0 and board[\"locked_units\"].get(cell[\"unitId\"])"
         }
       ]
@@ -3752,6 +4168,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 42,
           "source": "patrol \u003e float64(PatrolGainCap)"
         }
       ],
@@ -3759,6 +4176,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 42,
           "source": "post_safety_known and post_threat == 0"
         }
       ]
@@ -3770,6 +4188,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 43,
           "source": "quietMove \u0026\u0026 candidateKnown \u0026\u0026 candidate != nil \u0026\u0026 !isPromotionSquare(b.side, destination) \u0026\u0026 candidate.DestinationVisible \u0026\u0026 threatenedCount(candidate) == 0 \u0026\u0026 ordinaryPiece"
         }
       ],
@@ -3777,6 +4196,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 43,
           "source": "params[\"kingSafety\"] \u003e 0 and board[\"king_threatened\"]"
         }
       ]
@@ -3788,6 +4208,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 44,
           "source": "netOutboundMaterial \u003e 0"
         }
       ],
@@ -3795,6 +4216,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 44,
           "source": "cell[\"rank\"] == \"king\" and not cell[\"convoy\"] and post_safety_known and post_threat == 0"
         }
       ]
@@ -3806,6 +4228,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 45,
           "source": "netOutboundMaterial \u003c 0"
         }
       ],
@@ -3813,6 +4236,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 45,
           "source": "(target_cell and board[\"king_cell\"] and board[\"king_cell\"][\"square\"] in relation_squares(target_cell, \"threatens\"))"
         }
       ]
@@ -3824,6 +4248,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 46,
           "source": "inboundMaterial \u003e 0"
         }
       ],
@@ -3831,6 +4256,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 46,
           "source": "params[\"moralePush\"] \u003e 0 and cell[\"rank\"] == \"king\" and not cell[\"convoy\"]"
         }
       ]
@@ -3842,6 +4268,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 47,
           "source": "!cell.Convoy \u0026\u0026 quietMove \u0026\u0026 candidateKnown \u0026\u0026 candidate != nil \u0026\u0026 candidate.DestinationVisible \u0026\u0026 supportedAndUnthreatened(candidate) \u0026\u0026 cell.Rank != \"king\" \u0026\u0026 !isCurrentBeaconBearer(obs, cell)"
         }
       ],
@@ -3849,6 +4276,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 47,
           "source": "gain \u003e 0 and king_safe_after"
         }
       ]
@@ -3860,6 +4288,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 48,
           "source": "enemy.Rank == \"king\" \u0026\u0026 !enemy.Ghost \u0026\u0026 containsString(candidate.NextPossibleMoves, enemy.Square)"
         }
       ],
@@ -3867,6 +4296,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 48,
           "source": "candidate_known"
         }
       ]
@@ -3878,6 +4308,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 49,
           "source": "params.TargetLock \u003e 0 \u0026\u0026 b.lockedUnits[cell.UnitID.String()]"
         }
       ],
@@ -3885,6 +4316,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 49,
           "source": "excess \u003e= LEADER_EXCESS_MORALE"
         }
       ]
@@ -3896,6 +4328,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 5,
           "source": "captureChoice == \"capture\" \u0026\u0026 outcomes.Capture != nil"
         }
       ],
@@ -3903,6 +4336,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 5,
           "source": "target_cell"
         }
       ]
@@ -3914,6 +4348,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 50,
           "source": "postSafetyKnown \u0026\u0026 postThreat == 0"
         }
       ],
@@ -3921,6 +4356,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 50,
           "source": "candidate_known and gain \u003c 0 and king_safe_after"
         }
       ]
@@ -3932,6 +4368,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 51,
           "source": "params.KingSafety \u003e 0 \u0026\u0026 b.kingThreatened"
         }
       ],
@@ -3939,6 +4376,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 51,
           "source": "(observation.get(\"ownMorale\", 0) - needed \u003e= LEADER_EXCESS_MORALE and after_morale \u003e= needed + 1)"
         }
       ]
@@ -3950,6 +4388,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 52,
           "source": "cell.Rank == \"king\" \u0026\u0026 !cell.Convoy \u0026\u0026 postSafetyKnown \u0026\u0026 postThreat == 0"
         }
       ],
@@ -3957,6 +4396,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 52,
           "source": "post_threat \u003e 0"
         }
       ]
@@ -3968,6 +4408,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 53,
           "source": "targetCell != nil \u0026\u0026 b.kingCell != nil \u0026\u0026 containsString(targetCell.Threatens, b.kingCell.Square)"
         }
       ],
@@ -3975,6 +4416,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 53,
           "source": "(is_current_beacon_bearer(observation, cell) and cell[\"rank\"] != \"king\" and not cell[\"convoy\"] and quiet_move and params[\"beaconAggression\"] \u003e 0)"
         }
       ]
@@ -3986,6 +4428,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 54,
           "source": "params.MoralePush \u003e 0 \u0026\u0026 cell.Rank == \"king\" \u0026\u0026 !cell.Convoy"
         }
       ],
@@ -3993,6 +4436,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 54,
           "source": "candidate_known and candidate.get(\"destinationVisible\", False) and supported_and_unthreatened(candidate)"
         }
       ]
@@ -4004,6 +4448,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 55,
           "source": "candidateKnown \u0026\u0026 candidate != nil"
         }
       ],
@@ -4011,6 +4456,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 55,
           "source": "support_gain \u003e 0"
         }
       ]
@@ -4022,6 +4468,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 56,
           "source": "gain \u003e 0 \u0026\u0026 kingSafeAfter"
         }
       ],
@@ -4029,6 +4476,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 56,
           "source": "cell[\"rank\"] == \"pawn\" and not cell[\"convoy\"] and is_promotion_square(board[\"side\"], destination)"
         }
       ]
@@ -4040,6 +4488,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 57,
           "source": "candidateKnown"
         }
       ],
@@ -4047,6 +4496,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 57,
           "source": "capture_choice"
         }
       ]
@@ -4058,6 +4508,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 6,
           "source": "captureChoice == \"kill\" \u0026\u0026 outcomes.Kill != nil"
         }
       ],
@@ -4065,6 +4516,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 6,
           "source": "(board[\"needs_first_master_engineer\"] and cell[\"rank\"] == \"pawn\" and cell[\"convoy\"] and cell[\"cargoCount\"] \u003e 0)"
         }
       ]
@@ -4076,6 +4528,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 7,
           "source": "targetCell != nil"
         }
       ],
@@ -4083,6 +4536,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 7,
           "source": "target_cell[\"rank\"] == \"king\" and not target_cell[\"ghost\"]"
         }
       ]
@@ -4094,6 +4548,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 8,
           "source": "b.needsFirstMasterEngineer \u0026\u0026 cell.Rank == \"pawn\" \u0026\u0026 cell.Convoy \u0026\u0026 cell.CargoCount \u003e 0"
         }
       ],
@@ -4101,6 +4556,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 8,
           "source": "params[\"prisoner\"] \u003e 0 and target_cell[\"rank\"] != \"king\" and not target_cell[\"convoy\"]"
         }
       ]
@@ -4112,6 +4568,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 9,
           "source": "targetCell.Rank == \"king\" \u0026\u0026 !targetCell.Ghost"
         }
       ],
@@ -4119,6 +4576,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 9,
           "source": "(board[\"needs_first_master_engineer\"] and cell[\"rank\"] == \"pawn\" and not cell[\"convoy\"] and outcomes.get(\"capture\", EMPTY_OUTCOME)[\"affordable\"] and (capture_backing_count(target_cell, cell[\"square\"]) \u003e 0 or guarded_count(target_cell) == 0))"
         }
       ]
@@ -4130,6 +4588,7 @@
         {
           "file": "systems.go",
           "function": "sergeantSupported",
+          "occurrence": 1,
           "source": "cell.Profession == \"sergeant\" \u0026\u0026 !cell.Convoy \u0026\u0026 !cell.Refitting \u0026\u0026 chebyshevDistance(square, cell.Square) == 1"
         }
       ],
@@ -4137,6 +4596,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "sergeant_supported",
+          "occurrence": 1,
           "source": "(cell.get(\"profession\", \"\") == \"sergeant\" and not cell[\"convoy\"] and not cell[\"refitting\"] and chebyshev_distance(square, cell[\"square\"]) == 1)"
         }
       ]
@@ -4148,6 +4608,7 @@
         {
           "file": "score.go",
           "function": "supportMaterial",
+          "occurrence": 1,
           "source": "cell != nil"
         }
       ],
@@ -4155,6 +4616,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "support_material",
+          "occurrence": 1,
           "source": "cell"
         }
       ]
@@ -4166,6 +4628,7 @@
         {
           "file": "systems.go",
           "function": "systemProposals",
+          "occurrence": 1,
           "source": "!beaconAllowed \u0026\u0026 (!anyOtherSystemEnabled || params.System \u003c= 0)"
         }
       ],
@@ -4173,6 +4636,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "system_proposals",
+          "occurrence": 1,
           "source": "(not beacon_allowed and (not any_other_system_enabled or params[\"system\"] \u003c= 0))"
         }
       ]
@@ -4184,6 +4648,7 @@
         {
           "file": "systems.go",
           "function": "systemProposals",
+          "occurrence": 2,
           "source": "params.System \u003e 0"
         }
       ],
@@ -4191,6 +4656,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "system_proposals",
+          "occurrence": 2,
           "source": "params[\"system\"] \u003e 0"
         }
       ]
@@ -4202,6 +4668,7 @@
         {
           "file": "systems.go",
           "function": "systemProposals",
+          "occurrence": 3,
           "source": "systems.Training \u0026\u0026 obs.Rules.SpecialistsEnabled"
         }
       ],
@@ -4209,6 +4676,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "system_proposals",
+          "occurrence": 3,
           "source": "systems[\"training\"] and observation[\"rules\"][\"specialistsEnabled\"]"
         }
       ]
@@ -4220,6 +4688,7 @@
         {
           "file": "systems.go",
           "function": "systemProposals",
+          "occurrence": 4,
           "source": "systems.Walls \u0026\u0026 (obs.Rules.WoodWallsEnabled || obs.Rules.StoneWallsEnabled)"
         }
       ],
@@ -4227,6 +4696,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "system_proposals",
+          "occurrence": 4,
           "source": "systems[\"walls\"] and (observation[\"rules\"][\"woodWallsEnabled\"] or observation[\"rules\"][\"stoneWallsEnabled\"])"
         }
       ]
@@ -4238,6 +4708,7 @@
         {
           "file": "systems.go",
           "function": "systemProposals",
+          "occurrence": 5,
           "source": "systems.Espionage"
         }
       ],
@@ -4245,6 +4716,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "system_proposals",
+          "occurrence": 5,
           "source": "systems[\"espionage\"]"
         }
       ]
@@ -4256,6 +4728,7 @@
         {
           "file": "systems.go",
           "function": "systemProposals",
+          "occurrence": 6,
           "source": "beaconAllowed"
         }
       ],
@@ -4263,6 +4736,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "system_proposals",
+          "occurrence": 6,
           "source": "beacon_allowed"
         }
       ]
@@ -4274,6 +4748,7 @@
         {
           "file": "systems.go",
           "function": "systemProposals",
+          "occurrence": 7,
           "source": "handOff != nil"
         }
       ],
@@ -4281,6 +4756,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "system_proposals",
+          "occurrence": 7,
           "source": "hand_off != None"
         }
       ]
@@ -4292,6 +4768,7 @@
         {
           "file": "systems.go",
           "function": "systemProposals",
+          "occurrence": 8,
           "source": "deployOrRestore != nil"
         }
       ],
@@ -4299,6 +4776,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "system_proposals",
+          "occurrence": 8,
           "source": "deploy_or_restore != None"
         }
       ]
@@ -4310,6 +4788,7 @@
         {
           "file": "systems.go",
           "function": "systemProposals",
+          "occurrence": 9,
           "source": "obs.Rules.BeaconForgeEnabled"
         }
       ],
@@ -4317,6 +4796,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "system_proposals",
+          "occurrence": 9,
           "source": "observation[\"rules\"][\"beaconForgeEnabled\"]"
         }
       ]
@@ -4328,6 +4808,7 @@
         {
           "file": "systems.go",
           "function": "trainingProposals",
+          "occurrence": 1,
           "source": "cell.Profession == \"engineer\""
         }
       ],
@@ -4335,6 +4816,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "training_proposals",
+          "occurrence": 1,
           "source": "cell.get(\"profession\", \"\") == \"engineer\""
         }
       ]
@@ -4346,6 +4828,7 @@
         {
           "file": "systems.go",
           "function": "trainingProposals",
+          "occurrence": 10,
           "source": "params.AdvancedTraining \u0026\u0026 cell.Profession == \"engineer\" \u0026\u0026 containsString(cell.EligibleFor, \"masterEngineerTraining\") \u0026\u0026 cell.Grade != \"master\""
         }
       ],
@@ -4353,6 +4836,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "training_proposals",
+          "occurrence": 10,
           "source": "(params[\"advancedTraining\"] and cell.get(\"profession\", \"\") == \"engineer\" and \"masterEngineerTraining\" in (cell.get(\"eligibleFor\", []) or []) and cell.get(\"grade\") != \"master\")"
         }
       ]
@@ -4364,6 +4848,7 @@
         {
           "file": "systems.go",
           "function": "trainingProposals",
+          "occurrence": 2,
           "source": "cell.Convoy || cell.Refitting || cell.Rank != \"pawn\" || b.busyUnits[cell.UnitID.String()]"
         }
       ],
@@ -4371,6 +4856,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "training_proposals",
+          "occurrence": 2,
           "source": "(cell[\"convoy\"] or cell[\"refitting\"] or cell[\"rank\"] != \"pawn\" or board[\"busy_units\"].get(cell[\"unitId\"]))"
         }
       ]
@@ -4382,6 +4868,7 @@
         {
           "file": "systems.go",
           "function": "trainingProposals",
+          "occurrence": 3,
           "source": "!containsString(baseSquares, cell.Square)"
         }
       ],
@@ -4389,6 +4876,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "training_proposals",
+          "occurrence": 3,
           "source": "cell[\"square\"] not in base_squares"
         }
       ]
@@ -4400,6 +4888,7 @@
         {
           "file": "systems.go",
           "function": "trainingProposals",
+          "occurrence": 4,
           "source": "cellThreatenedCount(cell) \u003e 0"
         }
       ],
@@ -4407,6 +4896,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "training_proposals",
+          "occurrence": 4,
           "source": "threatened_count(cell) \u003e 0"
         }
       ]
@@ -4418,6 +4908,7 @@
         {
           "file": "systems.go",
           "function": "trainingProposals",
+          "occurrence": 5,
           "source": "cell.Profession == \"\""
         }
       ],
@@ -4425,6 +4916,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "training_proposals",
+          "occurrence": 5,
           "source": "cell.get(\"profession\", \"\") == \"\""
         }
       ]
@@ -4436,6 +4928,7 @@
         {
           "file": "systems.go",
           "function": "trainingProposals",
+          "occurrence": 6,
           "source": "obs.Rules.VeteranProgression \u0026\u0026 !cell.Veteran"
         }
       ],
@@ -4443,6 +4936,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "training_proposals",
+          "occurrence": 6,
           "source": "observation[\"rules\"][\"veteranProgression\"] and not cell.get(\"veteran\", False)"
         }
       ]
@@ -4454,6 +4948,7 @@
         {
           "file": "systems.go",
           "function": "trainingProposals",
+          "occurrence": 7,
           "source": "obs.OwnSpecialists \u003e= ceiling"
         }
       ],
@@ -4461,6 +4956,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "training_proposals",
+          "occurrence": 7,
           "source": "observation[\"ownSpecialists\"] \u003e= ceiling"
         }
       ]
@@ -4472,6 +4968,7 @@
         {
           "file": "systems.go",
           "function": "trainingProposals",
+          "occurrence": 8,
           "source": "!haveEngineer \u0026\u0026 containsString(permitted, \"engineer\")"
         }
       ],
@@ -4479,6 +4976,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "training_proposals",
+          "occurrence": 8,
           "source": "not have_engineer and \"engineer\" in permitted"
         }
       ]
@@ -4490,6 +4988,7 @@
         {
           "file": "systems.go",
           "function": "trainingProposals",
+          "occurrence": 9,
           "source": "!containsString(permitted, profession)"
         }
       ],
@@ -4497,6 +4996,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "training_proposals",
+          "occurrence": 9,
           "source": "profession not in permitted"
         }
       ]
@@ -4508,6 +5008,7 @@
         {
           "file": "score.go",
           "function": "unitPriority",
+          "occurrence": 1,
           "source": "cell.Convoy \u0026\u0026 cell.KingCargo"
         }
       ],
@@ -4515,6 +5016,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unit_priority",
+          "occurrence": 1,
           "source": "cell[\"convoy\"] and cell[\"kingCargo\"]"
         }
       ]
@@ -4526,6 +5028,7 @@
         {
           "file": "score.go",
           "function": "unitPriority",
+          "occurrence": 10,
           "source": "isQuietMove(obs, b, cell, destination) \u0026\u0026 hasCandidate(obs, cell.Square, destination) \u0026\u0026 fact != nil \u0026\u0026 fact.DestinationVisible \u0026\u0026 supportedAndUnthreatened(fact) \u0026\u0026 containsString(fact.NextPossibleMoves, enemy.Square)"
         }
       ],
@@ -4533,6 +5036,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unit_priority",
+          "occurrence": 10,
           "source": "(is_quiet_move(observation, board, cell, destination) and has_candidate(observation, cell[\"square\"], destination) and fact.get(\"destinationVisible\", False) and supported_and_unthreatened(fact) and enemy[\"square\"] in (fact.get(\"nextPossibleMoves\", []) or []))"
         }
       ]
@@ -4544,6 +5048,7 @@
         {
           "file": "score.go",
           "function": "unitPriority",
+          "occurrence": 2,
           "source": "cell.Convoy \u0026\u0026 cell.CargoCount \u003e 0 \u0026\u0026 params.Prisoner \u003e 0"
         }
       ],
@@ -4551,6 +5056,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unit_priority",
+          "occurrence": 2,
           "source": "cell[\"convoy\"] and cell[\"cargoCount\"] \u003e 0 and params[\"prisoner\"] \u003e 0"
         }
       ]
@@ -4562,6 +5068,7 @@
         {
           "file": "score.go",
           "function": "unitPriority",
+          "occurrence": 3,
           "source": "params.TargetLock \u003e 0 \u0026\u0026 b.lockedUnits[cell.UnitID.String()]"
         }
       ],
@@ -4569,6 +5076,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unit_priority",
+          "occurrence": 3,
           "source": "params[\"targetLock\"] \u003e 0 and board[\"locked_units\"].get(cell[\"unitId\"])"
         }
       ]
@@ -4580,6 +5088,7 @@
         {
           "file": "score.go",
           "function": "unitPriority",
+          "occurrence": 4,
           "source": "params.KingSafety \u003e 0 \u0026\u0026 b.kingThreatened"
         }
       ],
@@ -4587,6 +5096,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unit_priority",
+          "occurrence": 4,
           "source": "params[\"kingSafety\"] \u003e 0 and board[\"king_threatened\"]"
         }
       ]
@@ -4598,6 +5108,7 @@
         {
           "file": "score.go",
           "function": "unitPriority",
+          "occurrence": 5,
           "source": "cell.Rank == \"king\""
         }
       ],
@@ -4605,6 +5116,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unit_priority",
+          "occurrence": 5,
           "source": "cell[\"rank\"] == \"king\""
         }
       ]
@@ -4616,6 +5128,7 @@
         {
           "file": "score.go",
           "function": "unitPriority",
+          "occurrence": 6,
           "source": "b.kingCell != nil \u0026\u0026 chebyshevDistance(cell.Square, b.kingCell.Square) \u003c= NearKingRadius"
         }
       ],
@@ -4623,6 +5136,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unit_priority",
+          "occurrence": 6,
           "source": "board[\"king_cell\"] and chebyshev_distance(cell[\"square\"], board[\"king_cell\"][\"square\"]) \u003c= NEAR_KING_RADIUS"
         }
       ]
@@ -4634,6 +5148,7 @@
         {
           "file": "score.go",
           "function": "unitPriority",
+          "occurrence": 7,
           "source": "!cell.Convoy \u0026\u0026 cell.Rank != \"king\" \u0026\u0026 !isCurrentBeaconBearer(obs, cell)"
         }
       ],
@@ -4641,6 +5156,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unit_priority",
+          "occurrence": 7,
           "source": "not cell[\"convoy\"] and cell[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, cell)"
         }
       ]
@@ -4652,6 +5168,7 @@
         {
           "file": "score.go",
           "function": "unitPriority",
+          "occurrence": 8,
           "source": "enemy.Rank != \"king\" || enemy.Ghost"
         }
       ],
@@ -4659,6 +5176,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unit_priority",
+          "occurrence": 8,
           "source": "enemy[\"rank\"] != \"king\" or enemy[\"ghost\"]"
         }
       ]
@@ -4670,6 +5188,7 @@
         {
           "file": "score.go",
           "function": "unitPriority",
+          "occurrence": 9,
           "source": "containsString(obs.Legal[cell.Square], enemy.Square) \u0026\u0026 captureChoiceAvailable(obs, b, cell, enemy.Square)"
         }
       ],
@@ -4677,6 +5196,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unit_priority",
+          "occurrence": 9,
           "source": "(enemy[\"square\"] in observation[\"legal\"].get(cell[\"square\"], []) and capture_choice_available(observation, board, cell, enemy[\"square\"]))"
         }
       ]
@@ -4688,6 +5208,7 @@
         {
           "file": "memory.go",
           "function": "unpackPlacementBoards",
+          "occurrence": 1,
           "source": "64-baseSquare \u003c squaresInSlot"
         }
       ],
@@ -4695,6 +5216,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unpack_placement_boards",
+          "occurrence": 1,
           "source": "code != 0"
         }
       ]
@@ -4706,6 +5228,7 @@
         {
           "file": "systems.go",
           "function": "wallProposals",
+          "occurrence": 1,
           "source": "cell.Convoy || cell.Refitting"
         }
       ],
@@ -4713,6 +5236,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "wall_proposals",
+          "occurrence": 1,
           "source": "cell[\"convoy\"] or cell[\"refitting\"]"
         }
       ]
@@ -4724,6 +5248,7 @@
         {
           "file": "systems.go",
           "function": "wallProposals",
+          "occurrence": 2,
           "source": "wall.A == cell.Square"
         }
       ],
@@ -4731,6 +5256,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "wall_proposals",
+          "occurrence": 2,
           "source": "wall[\"a\"] == cell[\"square\"]"
         }
       ]
@@ -4742,6 +5268,7 @@
         {
           "file": "systems.go",
           "function": "wallProposals",
+          "occurrence": 3,
           "source": "wall.B == cell.Square"
         }
       ],
@@ -4749,6 +5276,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "wall_proposals",
+          "occurrence": 3,
           "source": "wall[\"b\"] == cell[\"square\"]"
         }
       ]
@@ -4760,6 +5288,7 @@
         {
           "file": "systems.go",
           "function": "wallProposals",
+          "occurrence": 4,
           "source": "wall.OwnWorkSession"
         }
       ],
@@ -4767,6 +5296,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "wall_proposals",
+          "occurrence": 4,
           "source": "wall[\"ownWorkSession\"]"
         }
       ]
@@ -4778,6 +5308,7 @@
         {
           "file": "systems.go",
           "function": "wallProposals",
+          "occurrence": 5,
           "source": "wall.Side == b.side \u0026\u0026 cell.Profession == \"engineer\" \u0026\u0026 wall.MaximumIntegrity \u003e 0 \u0026\u0026 wall.Integrity*10 \u003c wall.MaximumIntegrity*6"
         }
       ],
@@ -4785,6 +5316,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "wall_proposals",
+          "occurrence": 5,
           "source": "(wall[\"side\"] == board[\"side\"] and cell.get(\"profession\", \"\") == \"engineer\" and wall[\"maximumIntegrity\"] \u003e 0 and wall[\"integrity\"] * 10 \u003c wall[\"maximumIntegrity\"] * 6)"
         }
       ]
@@ -4796,6 +5328,7 @@
         {
           "file": "systems.go",
           "function": "wallProposals",
+          "occurrence": 6,
           "source": "sergeantSupported(b, cell.Square)"
         }
       ],
@@ -4803,6 +5336,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "wall_proposals",
+          "occurrence": 6,
           "source": "sergeant_supported(board, cell[\"square\"])"
         }
       ]
@@ -4814,6 +5348,7 @@
         {
           "file": "systems.go",
           "function": "wallProposals",
+          "occurrence": 7,
           "source": "wall.Side != b.side \u0026\u0026 params.ContestEnemyWork"
         }
       ],
@@ -4821,6 +5356,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "wall_proposals",
+          "occurrence": 7,
           "source": "wall[\"side\"] != board[\"side\"] and params[\"contestEnemyWork\"]"
         }
       ]
@@ -4832,6 +5368,7 @@
         {
           "file": "systems.go",
           "function": "wallProposals",
+          "occurrence": 8,
           "source": "sergeantSupported(b, cell.Square)"
         }
       ],
@@ -4839,6 +5376,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "wall_proposals",
+          "occurrence": 8,
           "source": "sergeant_supported(board, cell[\"square\"])"
         }
       ]
@@ -4850,6 +5388,7 @@
         {
           "file": "memory.go",
           "function": "activeLeaderGuard",
+          "occurrence": 1,
           "source": "func activeLeaderGuard(obs *Observation, memory map[string]int64) *leaderGuard"
         }
       ],
@@ -4857,6 +5396,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "active_leader_guard",
+          "occurrence": 1,
           "source": "def active_leader_guard(observation, memory):"
         }
       ]
@@ -4868,6 +5408,7 @@
         {
           "file": "score.go",
           "function": "addTerm",
+          "occurrence": 1,
           "source": "func addTerm(terms *[]Term, term string, value float64, detail string) float64"
         }
       ],
@@ -4875,6 +5416,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "add_term",
+          "occurrence": 1,
           "source": "def add_term(terms, term, value, detail):"
         }
       ]
@@ -4886,6 +5428,7 @@
         {
           "file": "memory.go",
           "function": "applyRepeatPenalty",
+          "occurrence": 1,
           "source": "func applyRepeatPenalty(obs *Observation, b *boardContext, params *BotParams, memory map[string]int64, proposals []proposal) []proposal"
         }
       ],
@@ -4893,6 +5436,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "apply_repeat_penalty",
+          "occurrence": 1,
           "source": "def apply_repeat_penalty(observation, board, params, memory, proposals):"
         }
       ]
@@ -4904,6 +5448,7 @@
         {
           "file": "board.go",
           "function": "beaconAggression",
+          "occurrence": 1,
           "source": "func beaconAggression(obs *Observation, params *BotParams) float64"
         }
       ],
@@ -4911,6 +5456,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_aggression",
+          "occurrence": 1,
           "source": "def beacon_aggression(observation, params):"
         }
       ]
@@ -4922,6 +5468,7 @@
         {
           "file": "systems.go",
           "function": "beaconDeployOrRestoreProposal",
+          "occurrence": 1,
           "source": "func beaconDeployOrRestoreProposal(obs *Observation, b *boardContext, params *BotParams) *proposal"
         }
       ],
@@ -4929,6 +5476,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_deploy_or_restore_proposal",
+          "occurrence": 1,
           "source": "def beacon_deploy_or_restore_proposal(observation, board, params):"
         }
       ]
@@ -4940,6 +5488,7 @@
         {
           "file": "systems.go",
           "function": "beaconForgeProposals",
+          "occurrence": 1,
           "source": "func beaconForgeProposals(obs *Observation, b *boardContext, params *BotParams) []proposal"
         }
       ],
@@ -4947,6 +5496,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_forge_proposals",
+          "occurrence": 1,
           "source": "def beacon_forge_proposals(observation, board, params):"
         }
       ]
@@ -4958,6 +5508,7 @@
         {
           "file": "systems.go",
           "function": "beaconHandOffProposal",
+          "occurrence": 1,
           "source": "func beaconHandOffProposal(obs *Observation, b *boardContext, params *BotParams) *proposal"
         }
       ],
@@ -4965,6 +5516,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "beacon_hand_off_proposal",
+          "occurrence": 1,
           "source": "def beacon_hand_off_proposal(observation, board, params):"
         }
       ]
@@ -4976,6 +5528,7 @@
         {
           "file": "board.go",
           "function": "buildBoard",
+          "occurrence": 1,
           "source": "func buildBoard(obs *Observation) *boardContext"
         }
       ],
@@ -4983,6 +5536,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_board",
+          "occurrence": 1,
           "source": "def build_board(observation):"
         }
       ]
@@ -4994,6 +5548,7 @@
         {
           "file": "memory.go",
           "function": "buildMemory",
+          "occurrence": 1,
           "source": "func buildMemory(obs *Observation, memory map[string]int64, intent *Intent) map[string]int64"
         }
       ],
@@ -5001,6 +5556,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "build_memory",
+          "occurrence": 1,
           "source": "def build_memory(observation, memory, intent):"
         }
       ]
@@ -5012,6 +5568,7 @@
         {
           "file": "score.go",
           "function": "canPromoteNextMove",
+          "occurrence": 1,
           "source": "func canPromoteNextMove(side string, candidate *CandidateFact) bool"
         }
       ],
@@ -5019,6 +5576,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "can_promote_next_move",
+          "occurrence": 1,
           "source": "def can_promote_next_move(side, candidate):"
         }
       ]
@@ -5030,6 +5588,7 @@
         {
           "file": "score.go",
           "function": "candidateAt",
+          "occurrence": 1,
           "source": "func candidateAt(obs *Observation, sourceSquare, destination string) *CandidateFact"
         }
       ],
@@ -5037,6 +5596,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "candidate_at",
+          "occurrence": 1,
           "source": "def candidate_at(observation, source_square, destination):"
         }
       ]
@@ -5048,6 +5608,7 @@
         {
           "file": "score.go",
           "function": "captureBackingCount",
+          "occurrence": 1,
           "source": "func captureBackingCount(targetCell *Cell, moverSquare string) int"
         }
       ],
@@ -5055,6 +5616,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "capture_backing_count",
+          "occurrence": 1,
           "source": "def capture_backing_count(target_cell, mover_square):"
         }
       ]
@@ -5066,6 +5628,7 @@
         {
           "file": "score.go",
           "function": "captureChoiceAvailable",
+          "occurrence": 1,
           "source": "func captureChoiceAvailable(obs *Observation, b *boardContext, cell *Cell, destination string) bool"
         }
       ],
@@ -5073,6 +5636,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "capture_choice_available",
+          "occurrence": 1,
           "source": "def capture_choice_available(observation, board, cell, destination):"
         }
       ]
@@ -5084,6 +5648,7 @@
         {
           "file": "score.go",
           "function": "captureExpectedSuccess",
+          "occurrence": 1,
           "source": "func captureExpectedSuccess(outcome *CaptureOutcome) float64"
         }
       ],
@@ -5091,6 +5656,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "capture_expected_success",
+          "occurrence": 1,
           "source": "def capture_expected_success(outcome):"
         }
       ]
@@ -5102,6 +5668,7 @@
         {
           "file": "board.go",
           "function": "cellValue",
+          "occurrence": 1,
           "source": "func cellValue(cell *Cell) float64"
         }
       ],
@@ -5109,6 +5676,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "cell_value",
+          "occurrence": 1,
           "source": "def cell_value(cell):"
         }
       ]
@@ -5120,6 +5688,7 @@
         {
           "file": "board.go",
           "function": "chebyshevDistance",
+          "occurrence": 1,
           "source": "func chebyshevDistance(firstSquare, secondSquare string) int"
         }
       ],
@@ -5127,6 +5696,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "chebyshev_distance",
+          "occurrence": 1,
           "source": "def chebyshev_distance(first_square, second_square):"
         }
       ]
@@ -5138,6 +5708,7 @@
         {
           "file": "memory.go",
           "function": "clearLeaderGuard",
+          "occurrence": 1,
           "source": "func clearLeaderGuard(memory map[string]int64)"
         }
       ],
@@ -5145,6 +5716,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "clear_leader_guard",
+          "occurrence": 1,
           "source": "def clear_leader_guard(memory):"
         }
       ]
@@ -5156,6 +5728,7 @@
         {
           "file": "score.go",
           "function": "currentMoraleNeed",
+          "occurrence": 1,
           "source": "func currentMoraleNeed(obs *Observation) int"
         }
       ],
@@ -5163,6 +5736,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "current_morale_need",
+          "occurrence": 1,
           "source": "def current_morale_need(observation):"
         }
       ]
@@ -5174,6 +5748,7 @@
         {
           "file": "memory.go",
           "function": "decayPower",
+          "occurrence": 1,
           "source": "func decayPower(age int64) float64"
         }
       ],
@@ -5181,6 +5756,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decay_power",
+          "occurrence": 1,
           "source": "def decay_power(age):"
         }
       ]
@@ -5192,6 +5768,7 @@
         {
           "file": "bot.go",
           "function": "Decide",
+          "occurrence": 1,
           "source": "func Decide(obs *Observation, memory map[string]int64, params *BotParams, hostRandomDraw int64, options int) (*Intent, map[string]int64, []Option)"
         }
       ],
@@ -5199,6 +5776,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "decide",
+          "occurrence": 1,
           "source": "def decide(observation, memory, params, host_random_draw, options = 0):"
         }
       ]
@@ -5210,6 +5788,7 @@
         {
           "file": "board.go",
           "function": "deliveryLaneBlockers",
+          "occurrence": 1,
           "source": "func deliveryLaneBlockers(deliverySquares []string, ownBySquare map[string]*Cell, enemyBySquare map[string]*Cell) []string"
         }
       ],
@@ -5217,6 +5796,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "delivery_lane_blockers",
+          "occurrence": 1,
           "source": "def delivery_lane_blockers(delivery_squares, own_by_square, enemy_by_square):"
         }
       ]
@@ -5228,6 +5808,7 @@
         {
           "file": "board.go",
           "function": "deliverySquareNeighbors",
+          "occurrence": 1,
           "source": "func deliverySquareNeighbors(square string) []string"
         }
       ],
@@ -5235,6 +5816,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "_delivery_square_neighbors",
+          "occurrence": 1,
           "source": "def _delivery_square_neighbors(square):"
         }
       ]
@@ -5246,6 +5828,7 @@
         {
           "file": "board.go",
           "function": "distanceToNearestEnemy",
+          "occurrence": 1,
           "source": "func distanceToNearestEnemy(square string, enemyCells []*Cell) int"
         }
       ],
@@ -5253,6 +5836,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "distance_to_nearest_enemy",
+          "occurrence": 1,
           "source": "def distance_to_nearest_enemy(square, enemy_cells):"
         }
       ]
@@ -5264,6 +5848,7 @@
         {
           "file": "board.go",
           "function": "distanceToNearestSquare",
+          "occurrence": 1,
           "source": "func distanceToNearestSquare(square string, candidateSquares []string) int"
         }
       ],
@@ -5271,6 +5856,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "distance_to_nearest_square",
+          "occurrence": 1,
           "source": "def distance_to_nearest_square(square, candidate_squares):"
         }
       ]
@@ -5282,6 +5868,7 @@
         {
           "file": "memory.go",
           "function": "dropRefused",
+          "occurrence": 1,
           "source": "func dropRefused(proposals []proposal, obs *Observation, memory map[string]int64) []proposal"
         }
       ],
@@ -5289,6 +5876,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "drop_refused",
+          "occurrence": 1,
           "source": "def drop_refused(proposals, observation, memory):"
         }
       ]
@@ -5300,6 +5888,7 @@
         {
           "file": "score.go",
           "function": "effectiveCaptureTarget",
+          "occurrence": 1,
           "source": "func effectiveCaptureTarget(obs *Observation, b *boardContext, cell *Cell, destination string) *Cell"
         }
       ],
@@ -5307,6 +5896,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "effective_capture_target",
+          "occurrence": 1,
           "source": "def effective_capture_target(observation, board, cell, destination):"
         }
       ]
@@ -5318,6 +5908,7 @@
         {
           "file": "systems.go",
           "function": "espionageProposals",
+          "occurrence": 1,
           "source": "func espionageProposals(obs *Observation, b *boardContext, params *BotParams) []proposal"
         }
       ],
@@ -5325,6 +5916,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "espionage_proposals",
+          "occurrence": 1,
           "source": "def espionage_proposals(observation, board, params):"
         }
       ]
@@ -5336,6 +5928,7 @@
         {
           "file": "memory.go",
           "function": "finishDecision",
+          "occurrence": 1,
           "source": "func finishDecision(obs *Observation, b *boardContext, memory map[string]int64, chosen *proposal, ranked []Option) (*Intent, map[string]int64, []Option)"
         }
       ],
@@ -5343,6 +5936,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "finish_decision",
+          "occurrence": 1,
           "source": "def finish_decision(observation, board, memory, chosen, ranked):"
         }
       ]
@@ -5354,6 +5948,7 @@
         {
           "file": "score.go",
           "function": "formationLeaderPriority",
+          "occurrence": 1,
           "source": "func formationLeaderPriority(obs *Observation, b *boardContext, params *BotParams, cell *Cell) float64"
         }
       ],
@@ -5361,6 +5956,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "formation_leader_priority",
+          "occurrence": 1,
           "source": "def formation_leader_priority(observation, board, params, cell):"
         }
       ]
@@ -5372,6 +5968,7 @@
         {
           "file": "board.go",
           "function": "forwardProgress",
+          "occurrence": 1,
           "source": "func forwardProgress(side, square string) int"
         }
       ],
@@ -5379,6 +5976,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "forward_progress",
+          "occurrence": 1,
           "source": "def forward_progress(side, square):"
         }
       ]
@@ -5390,6 +5988,7 @@
         {
           "file": "score.go",
           "function": "guardChanges",
+          "occurrence": 1,
           "source": "func guardChanges(b *boardContext, cell *Cell, candidate *CandidateFact) ([]string, []string)"
         }
       ],
@@ -5397,6 +5996,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "guard_changes",
+          "occurrence": 1,
           "source": "def guard_changes(board, cell, candidate):"
         }
       ]
@@ -5407,19 +6007,22 @@
       "go": [
         {
           "file": "board.go",
-          "function": "cellGuardedCount",
-          "source": "func cellGuardedCount(cell *Cell) int"
+          "function": "guardedCount",
+          "occurrence": 1,
+          "source": "func guardedCount(fact *CandidateFact) int"
         },
         {
           "file": "board.go",
-          "function": "guardedCount",
-          "source": "func guardedCount(fact *CandidateFact) int"
+          "function": "cellGuardedCount",
+          "occurrence": 1,
+          "source": "func cellGuardedCount(cell *Cell) int"
         }
       ],
       "starlark": [
         {
           "file": "chess-raiders-bot.star",
           "function": "guarded_count",
+          "occurrence": 1,
           "source": "def guarded_count(subject):"
         }
       ]
@@ -5431,6 +6034,7 @@
         {
           "file": "score.go",
           "function": "hasCandidate",
+          "occurrence": 1,
           "source": "func hasCandidate(obs *Observation, sourceSquare, destination string) bool"
         }
       ],
@@ -5438,6 +6042,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "has_candidate",
+          "occurrence": 1,
           "source": "def has_candidate(observation, source_square, destination):"
         }
       ]
@@ -5449,6 +6054,7 @@
         {
           "file": "memory.go",
           "function": "holdsFocus",
+          "occurrence": 1,
           "source": "func holdsFocus(b *boardContext, memory map[string]int64) bool"
         }
       ],
@@ -5456,6 +6062,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "holds_focus",
+          "occurrence": 1,
           "source": "def holds_focus(board, memory):"
         }
       ]
@@ -5467,6 +6074,7 @@
         {
           "file": "score.go",
           "function": "inboundSupportMaterial",
+          "occurrence": 1,
           "source": "func inboundSupportMaterial(cell *Cell, candidate *CandidateFact) float64"
         }
       ],
@@ -5474,6 +6082,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "inbound_support_material",
+          "occurrence": 1,
           "source": "def inbound_support_material(cell, candidate):"
         }
       ]
@@ -5485,6 +6094,7 @@
         {
           "file": "bot.go",
           "function": "intn",
+          "occurrence": 1,
           "source": "func intn(randomDraw int64, count int) int"
         }
       ],
@@ -5492,6 +6102,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "intn",
+          "occurrence": 1,
           "source": "def intn(random_draw, count):"
         }
       ]
@@ -5503,6 +6114,7 @@
         {
           "file": "score.go",
           "function": "isCurrentBeaconBearer",
+          "occurrence": 1,
           "source": "func isCurrentBeaconBearer(obs *Observation, cell *Cell) bool"
         }
       ],
@@ -5510,6 +6122,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "is_current_beacon_bearer",
+          "occurrence": 1,
           "source": "def is_current_beacon_bearer(observation, cell):"
         }
       ]
@@ -5521,6 +6134,7 @@
         {
           "file": "memory.go",
           "function": "isKingChannelStart",
+          "occurrence": 1,
           "source": "func isKingChannelStart(intent *Intent) bool"
         }
       ],
@@ -5528,6 +6142,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "is_king_channel_start",
+          "occurrence": 1,
           "source": "def is_king_channel_start(intent):"
         }
       ]
@@ -5539,6 +6154,7 @@
         {
           "file": "board.go",
           "function": "isPromotionSquare",
+          "occurrence": 1,
           "source": "func isPromotionSquare(side, square string) bool"
         }
       ],
@@ -5546,6 +6162,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "is_promotion_square",
+          "occurrence": 1,
           "source": "def is_promotion_square(side, square):"
         }
       ]
@@ -5557,6 +6174,7 @@
         {
           "file": "board.go",
           "function": "isQuietMove",
+          "occurrence": 1,
           "source": "func isQuietMove(obs *Observation, b *boardContext, cell *Cell, destination string) bool"
         }
       ],
@@ -5564,6 +6182,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "is_quiet_move",
+          "occurrence": 1,
           "source": "def is_quiet_move(observation, board, cell, destination):"
         }
       ]
@@ -5575,6 +6194,7 @@
         {
           "file": "board.go",
           "function": "isSafeSubject",
+          "occurrence": 1,
           "source": "func isSafeSubject(fact *CandidateFact) bool"
         }
       ],
@@ -5582,6 +6202,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "is_safe_subject",
+          "occurrence": 1,
           "source": "def is_safe_subject(subject):"
         }
       ]
@@ -5593,6 +6214,7 @@
         {
           "file": "memory.go",
           "function": "kingChannelActive",
+          "occurrence": 1,
           "source": "func kingChannelActive(obs *Observation, b *boardContext) bool"
         }
       ],
@@ -5600,6 +6222,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "king_channel_active",
+          "occurrence": 1,
           "source": "def king_channel_active(observation, board):"
         }
       ]
@@ -5611,6 +6234,7 @@
         {
           "file": "memory.go",
           "function": "leaderGuardKeys",
+          "occurrence": 1,
           "source": "func leaderGuardKeys() []string"
         }
       ],
@@ -5618,6 +6242,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_guard_keys",
+          "occurrence": 1,
           "source": "def leader_guard_keys():"
         }
       ]
@@ -5629,6 +6254,7 @@
         {
           "file": "memory.go",
           "function": "leaderGuardMatches",
+          "occurrence": 1,
           "source": "func leaderGuardMatches(obs *Observation, memory map[string]int64) bool"
         }
       ],
@@ -5636,6 +6262,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_guard_matches",
+          "occurrence": 1,
           "source": "def leader_guard_matches(observation, memory):"
         }
       ]
@@ -5647,6 +6274,7 @@
         {
           "file": "memory.go",
           "function": "leaderKind",
+          "occurrence": 1,
           "source": "func leaderKind(obs *Observation, cell *Cell) int64"
         }
       ],
@@ -5654,6 +6282,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_kind",
+          "occurrence": 1,
           "source": "def leader_kind(observation, cell):"
         }
       ]
@@ -5665,6 +6294,7 @@
         {
           "file": "memory.go",
           "function": "leaderReverseForbidden",
+          "occurrence": 1,
           "source": "func leaderReverseForbidden(obs *Observation, guard *leaderGuard, cell *Cell, destination string) bool"
         }
       ],
@@ -5672,6 +6302,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_reverse_forbidden",
+          "occurrence": 1,
           "source": "def leader_reverse_forbidden(observation, guard, cell, destination):"
         }
       ]
@@ -5683,6 +6314,7 @@
         {
           "file": "score.go",
           "function": "leaderSupport",
+          "occurrence": 1,
           "source": "func leaderSupport(obs *Observation, b *boardContext, leader *Cell, destination string) float64"
         }
       ],
@@ -5690,6 +6322,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "leader_support",
+          "occurrence": 1,
           "source": "def leader_support(observation, board, leader, destination):"
         }
       ]
@@ -5701,6 +6334,7 @@
         {
           "file": "systems.go",
           "function": "mostAdvancedAdjacentAlly",
+          "occurrence": 1,
           "source": "func mostAdvancedAdjacentAlly(b *boardContext) string"
         }
       ],
@@ -5708,6 +6342,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "most_advanced_adjacent_ally",
+          "occurrence": 1,
           "source": "def most_advanced_adjacent_ally(board):"
         }
       ]
@@ -5719,6 +6354,7 @@
         {
           "file": "memory.go",
           "function": "moveProposals",
+          "occurrence": 1,
           "source": "func moveProposals(obs *Observation, b *boardContext, params *BotParams, memory map[string]int64) []proposal"
         }
       ],
@@ -5726,6 +6362,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "move_proposals",
+          "occurrence": 1,
           "source": "def move_proposals(observation, board, params, memory):"
         }
       ]
@@ -5737,6 +6374,7 @@
         {
           "file": "memory.go",
           "function": "nextCommitted",
+          "occurrence": 1,
           "source": "func nextCommitted(obs *Observation, b *boardContext, memory map[string]int64, chosen *proposal) int64"
         }
       ],
@@ -5744,6 +6382,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "next_committed",
+          "occurrence": 1,
           "source": "def next_committed(observation, board, memory, chosen):"
         }
       ]
@@ -5755,6 +6394,7 @@
         {
           "file": "score.go",
           "function": "outcomesAt",
+          "occurrence": 1,
           "source": "func outcomesAt(obs *Observation, sourceSquare, destination string) *DestinationOutcomes"
         }
       ],
@@ -5762,6 +6402,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "outcomes_at",
+          "occurrence": 1,
           "source": "def outcomes_at(observation, source_square, destination):"
         }
       ]
@@ -5773,6 +6414,7 @@
         {
           "file": "memory.go",
           "function": "packCommitted",
+          "occurrence": 1,
           "source": "func packCommitted(kind int64, age int64, score float64) int64"
         }
       ],
@@ -5780,6 +6422,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "pack_committed",
+          "occurrence": 1,
           "source": "def pack_committed(kind, age, score):"
         }
       ]
@@ -5791,6 +6434,7 @@
         {
           "file": "memory.go",
           "function": "packPlacementBoards",
+          "occurrence": 1,
           "source": "func packPlacementBoards(bitboards [12]int64) map[string]int64"
         }
       ],
@@ -5798,6 +6442,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "pack_placement_boards",
+          "occurrence": 1,
           "source": "def pack_placement_boards(bitboards):"
         }
       ]
@@ -5809,6 +6454,7 @@
         {
           "file": "board.go",
           "function": "pieceSquares",
+          "occurrence": 1,
           "source": "func pieceSquares(obs *Observation) []string"
         }
       ],
@@ -5816,6 +6462,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "piece_squares",
+          "occurrence": 1,
           "source": "def piece_squares(observation):"
         }
       ]
@@ -5827,6 +6474,7 @@
         {
           "file": "memory.go",
           "function": "placementBitboards",
+          "occurrence": 1,
           "source": "func placementBitboards(obs *Observation, movedUnitID string, movedTo string) [12]int64"
         }
       ],
@@ -5834,6 +6482,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "placement_bitboards",
+          "occurrence": 1,
           "source": "def placement_bitboards(observation, moved_unit_id = 0, moved_to = \"\"):"
         }
       ]
@@ -5845,6 +6494,7 @@
         {
           "file": "score.go",
           "function": "postMoveMorale",
+          "occurrence": 1,
           "source": "func postMoveMorale(obs *Observation, b *boardContext, fromSquare, destination string) int"
         }
       ],
@@ -5852,6 +6502,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "post_move_morale",
+          "occurrence": 1,
           "source": "def post_move_morale(observation, board, from_square, destination):"
         }
       ]
@@ -5863,6 +6514,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryInFlight",
+          "occurrence": 1,
           "source": "func priorityCaptiveDeliveryInFlight(obs *Observation, b *boardContext) bool"
         }
       ],
@@ -5870,6 +6522,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_in_flight",
+          "occurrence": 1,
           "source": "def priority_captive_delivery_in_flight(observation, board):"
         }
       ]
@@ -5881,6 +6534,7 @@
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
+          "occurrence": 1,
           "source": "func priorityCaptiveDeliveryProposal(obs *Observation, b *boardContext, params *BotParams) *proposal"
         }
       ],
@@ -5888,6 +6542,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "priority_captive_delivery_proposal",
+          "occurrence": 1,
           "source": "def priority_captive_delivery_proposal(observation, board, params):"
         }
       ]
@@ -5899,6 +6554,7 @@
         {
           "file": "memory.go",
           "function": "projectedCell",
+          "occurrence": 1,
           "source": "func projectedCell(obs *Observation, square string) *Cell"
         }
       ],
@@ -5906,6 +6562,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "projected_cell",
+          "occurrence": 1,
           "source": "def projected_cell(observation, square):"
         }
       ]
@@ -5917,6 +6574,7 @@
         {
           "file": "board.go",
           "function": "protectionFactor",
+          "occurrence": 1,
           "source": "func protectionFactor(fact *CandidateFact) float64"
         }
       ],
@@ -5924,6 +6582,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "protection_factor",
+          "occurrence": 1,
           "source": "def protection_factor(candidate):"
         }
       ]
@@ -5935,6 +6594,7 @@
         {
           "file": "memory.go",
           "function": "quietLeaderIntent",
+          "occurrence": 1,
           "source": "func quietLeaderIntent(obs *Observation, intent *Intent) *Cell"
         }
       ],
@@ -5942,6 +6602,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "quiet_leader_intent",
+          "occurrence": 1,
           "source": "def quiet_leader_intent(observation, intent):"
         }
       ]
@@ -5953,6 +6614,7 @@
         {
           "file": "memory.go",
           "function": "quietOrdinaryIntent",
+          "occurrence": 1,
           "source": "func quietOrdinaryIntent(obs *Observation, intent *Intent) *Cell"
         }
       ],
@@ -5960,6 +6622,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "quiet_ordinary_intent",
+          "occurrence": 1,
           "source": "def quiet_ordinary_intent(observation, intent):"
         }
       ]
@@ -5971,6 +6634,7 @@
         {
           "file": "score.go",
           "function": "rankOptions",
+          "occurrence": 1,
           "source": "func rankOptions(proposals []proposal, params *BotParams, count int) []Option"
         }
       ],
@@ -5978,6 +6642,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "rank_options",
+          "occurrence": 1,
           "source": "def rank_options(proposals, params, count):"
         }
       ]
@@ -5989,6 +6654,7 @@
         {
           "file": "board.go",
           "function": "rankValue",
+          "occurrence": 1,
           "source": "func rankValue(rank string) float64"
         }
       ],
@@ -5996,6 +6662,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "rank_value",
+          "occurrence": 1,
           "source": "def rank_value(rank):"
         }
       ]
@@ -6007,6 +6674,7 @@
         {
           "file": "memory.go",
           "function": "retentionScore",
+          "occurrence": 1,
           "source": "func retentionScore(memory map[string]int64, kind int64) float64"
         }
       ],
@@ -6014,6 +6682,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "retention_score",
+          "occurrence": 1,
           "source": "def retention_score(memory, kind):"
         }
       ]
@@ -6025,6 +6694,7 @@
         {
           "file": "memory.go",
           "function": "roundHalfUp",
+          "occurrence": 1,
           "source": "func roundHalfUp(value float64) int64"
         }
       ],
@@ -6032,6 +6702,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "round_half_up",
+          "occurrence": 1,
           "source": "def round_half_up(value):"
         }
       ]
@@ -6043,6 +6714,7 @@
         {
           "file": "score.go",
           "function": "scoreMove",
+          "occurrence": 1,
           "source": "func scoreMove(obs *Observation, b *boardContext, params *BotParams, memory map[string]int64, cell *Cell, destination string) proposal"
         }
       ],
@@ -6050,6 +6722,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "score_move",
+          "occurrence": 1,
           "source": "def score_move(observation, board, params, memory, cell, destination):"
         }
       ]
@@ -6061,6 +6734,7 @@
         {
           "file": "systems.go",
           "function": "sergeantSupported",
+          "occurrence": 1,
           "source": "func sergeantSupported(b *boardContext, square string) bool"
         }
       ],
@@ -6068,6 +6742,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "sergeant_supported",
+          "occurrence": 1,
           "source": "def sergeant_supported(board, square):"
         }
       ]
@@ -6079,6 +6754,7 @@
         {
           "file": "board.go",
           "function": "squareFile",
+          "occurrence": 1,
           "source": "func squareFile(square string) int"
         }
       ],
@@ -6086,6 +6762,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "square_file",
+          "occurrence": 1,
           "source": "def square_file(square):"
         }
       ]
@@ -6097,6 +6774,7 @@
         {
           "file": "board.go",
           "function": "squareIndex",
+          "occurrence": 1,
           "source": "func squareIndex(square string) int"
         }
       ],
@@ -6104,6 +6782,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "square_index",
+          "occurrence": 1,
           "source": "def square_index(square):"
         }
       ]
@@ -6115,6 +6794,7 @@
         {
           "file": "board.go",
           "function": "squareName",
+          "occurrence": 1,
           "source": "func squareName(index int) string"
         }
       ],
@@ -6122,6 +6802,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "square_name",
+          "occurrence": 1,
           "source": "def square_name(index):"
         }
       ]
@@ -6133,6 +6814,7 @@
         {
           "file": "board.go",
           "function": "squareRankNumber",
+          "occurrence": 1,
           "source": "func squareRankNumber(square string) int"
         }
       ],
@@ -6140,6 +6822,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "square_rank_number",
+          "occurrence": 1,
           "source": "def square_rank_number(square):"
         }
       ]
@@ -6151,6 +6834,7 @@
         {
           "file": "score.go",
           "function": "supportMaterial",
+          "occurrence": 1,
           "source": "func supportMaterial(b *boardContext, squares []string) float64"
         }
       ],
@@ -6158,6 +6842,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "support_material",
+          "occurrence": 1,
           "source": "def support_material(board, squares):"
         }
       ]
@@ -6169,6 +6854,7 @@
         {
           "file": "board.go",
           "function": "supportedAndUnthreatened",
+          "occurrence": 1,
           "source": "func supportedAndUnthreatened(fact *CandidateFact) bool"
         }
       ],
@@ -6176,6 +6862,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "supported_and_unthreatened",
+          "occurrence": 1,
           "source": "def supported_and_unthreatened(subject):"
         }
       ]
@@ -6187,6 +6874,7 @@
         {
           "file": "systems.go",
           "function": "systemProposals",
+          "occurrence": 1,
           "source": "func systemProposals(obs *Observation, b *boardContext, params *BotParams) []proposal"
         }
       ],
@@ -6194,6 +6882,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "system_proposals",
+          "occurrence": 1,
           "source": "def system_proposals(observation, board, params):"
         }
       ]
@@ -6204,19 +6893,22 @@
       "go": [
         {
           "file": "board.go",
-          "function": "cellThreatenedCount",
-          "source": "func cellThreatenedCount(cell *Cell) int"
+          "function": "threatenedCount",
+          "occurrence": 1,
+          "source": "func threatenedCount(fact *CandidateFact) int"
         },
         {
           "file": "board.go",
-          "function": "threatenedCount",
-          "source": "func threatenedCount(fact *CandidateFact) int"
+          "function": "cellThreatenedCount",
+          "occurrence": 1,
+          "source": "func cellThreatenedCount(cell *Cell) int"
         }
       ],
       "starlark": [
         {
           "file": "chess-raiders-bot.star",
           "function": "threatened_count",
+          "occurrence": 1,
           "source": "def threatened_count(subject):"
         }
       ]
@@ -6228,6 +6920,7 @@
         {
           "file": "systems.go",
           "function": "trainingProposals",
+          "occurrence": 1,
           "source": "func trainingProposals(obs *Observation, b *boardContext, params *BotParams) []proposal"
         }
       ],
@@ -6235,6 +6928,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "training_proposals",
+          "occurrence": 1,
           "source": "def training_proposals(observation, board, params):"
         }
       ]
@@ -6246,6 +6940,7 @@
         {
           "file": "score.go",
           "function": "unitPriority",
+          "occurrence": 1,
           "source": "func unitPriority(obs *Observation, b *boardContext, params *BotParams, cell *Cell) float64"
         }
       ],
@@ -6253,6 +6948,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unit_priority",
+          "occurrence": 1,
           "source": "def unit_priority(observation, board, params, cell):"
         }
       ]
@@ -6264,6 +6960,7 @@
         {
           "file": "memory.go",
           "function": "unpackCommitted",
+          "occurrence": 1,
           "source": "func unpackCommitted(packed int64) (kind int64, age int64, score float64)"
         }
       ],
@@ -6271,6 +6968,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unpack_committed",
+          "occurrence": 1,
           "source": "def unpack_committed(packed):"
         }
       ]
@@ -6282,6 +6980,7 @@
         {
           "file": "memory.go",
           "function": "unpackPlacementBoards",
+          "occurrence": 1,
           "source": "func unpackPlacementBoards(memory map[string]int64) [12]int64"
         }
       ],
@@ -6289,6 +6988,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "unpack_placement_boards",
+          "occurrence": 1,
           "source": "def unpack_placement_boards(memory):"
         }
       ]
@@ -6300,6 +7000,7 @@
         {
           "file": "systems.go",
           "function": "wallProposals",
+          "occurrence": 1,
           "source": "func wallProposals(obs *Observation, b *boardContext, params *BotParams) []proposal"
         }
       ],
@@ -6307,6 +7008,7 @@
         {
           "file": "chess-raiders-bot.star",
           "function": "wall_proposals",
+          "occurrence": 1,
           "source": "def wall_proposals(observation, board, params):"
         }
       ]
