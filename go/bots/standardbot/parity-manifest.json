@@ -25,14 +25,17 @@
       "starlark",
       "go"
     ],
-    "externalConsumer": {
-      "repository": "github.com/sneat-co/chessraiders",
-      "runner": "TypeScript/WASM parity harness",
-      "consumes": [
+    "exportContract": {
+      "intendedRepository": "github.com/sneat-co/chessraiders",
+      "intendedConsumers": [
+        "typescript",
+        "future-wasm-lane"
+      ],
+      "artifacts": [
         "testdata/corpus",
         "parity-manifest.json"
       ],
-      "note": "The public Go package exports the shared cases and IDs; it does not execute TypeScript or WASM."
+      "coverageStatus": "No external consumer receipt is recorded. Public tests prove Go and Starlark only; current TypeScript or WASM parity coverage is not claimed."
     }
   },
   "inventory": {

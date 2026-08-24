@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -543,6 +544,13 @@ func canonicalJSON(raw json.RawMessage) (interface{}, error) {
 	decoder.UseNumber()
 	if err := decoder.Decode(&v); err != nil {
 		return nil, err
+	}
+	var trailing interface{}
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		if err == nil {
+			return nil, fmt.Errorf("multiple JSON values")
+		}
+		return nil, fmt.Errorf("decode trailing JSON: %w", err)
 	}
 	return v, nil
 }

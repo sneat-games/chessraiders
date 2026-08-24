@@ -296,12 +296,12 @@ manifest, or a paired ID missing from either implementation. The manifest's
 representation and error-handling control flow which is intentionally local to
 one implementation.
 
-This public package intentionally executes only the Go and Starlark
-implementations. The private `github.com/sneat-co/chessraiders` TypeScript/WASM
-parity harness consumes this exact `testdata/corpus` directory and
-`parity-manifest.json`; that cross-repository test architecture does not mean
-the public Go package executes TypeScript or WASM, nor that the browser loads a
-WASM bot.
+This public package executes and proves only the Go and Starlark
+implementations. It exports `testdata/corpus` and `parity-manifest.json` as the
+contract an exact private TypeScript consumer, and a future WASM lane, are
+intended to consume. No current TypeScript or WASM parity coverage is claimed
+until the private repository records a consumer receipt against these exact
+artifacts. This contract does not mean the browser loads a WASM bot.
 
 reports `N/N recorded decisions agree` on success, or one line per
 disagreeing case naming the file, the originating test/case and the

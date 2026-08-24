@@ -141,6 +141,16 @@ func TestDecisionComparisonPreservesJSONIntegersBeyondFloat64Precision(t *testin
 	}
 }
 
+func TestCanonicalJSONRejectsConcatenatedValues(t *testing.T) {
+	_, err := canonicalJSON(json.RawMessage(`{"first":1}{"second":2}`))
+	if err == nil {
+		t.Fatal("canonicalJSON accepted two concatenated JSON values")
+	}
+	if !strings.Contains(err.Error(), "multiple JSON values") {
+		t.Fatalf("concatenated JSON error = %v, want multiple-value rejection", err)
+	}
+}
+
 // TestReplayCaseDetectsAPerturbedParameterRow perturbs `parameters` rather
 // than the recorded intent directly — proving the detector also catches a
 // disagreement that arises from decide() itself scoring differently, not

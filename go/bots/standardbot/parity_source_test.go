@@ -4,6 +4,7 @@ package standardbot_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -101,6 +102,9 @@ func countItems(t *testing.T, counts map[parityKey]parityCounts, items []parityI
 
 func expectedParityCounts(t *testing.T, inventory parityInventory) map[parityKey]parityCounts {
 	t.Helper()
+	if err := validateFanOutDeclarations(inventory.FanOut); err != nil {
+		t.Fatal(err)
+	}
 	expected := make(map[parityKey]parityCounts)
 	for _, id := range inventory.Paired {
 		key := parityKey{ID: id, Kind: parityKind(t, id)}
@@ -134,6 +138,35 @@ func expectedParityCounts(t *testing.T, inventory parityInventory) map[parityKey
 		expected[key] = parityCounts{Starlark: 1}
 	}
 	return expected
+}
+
+func validateFanOutDeclarations(fanOuts []parityMultiplicity) error {
+	seen := make(map[parityKey]bool, len(fanOuts))
+	for _, fanOut := range fanOuts {
+		key := parityKey{ID: fanOut.ID, Kind: fanOut.Kind}
+		if seen[key] {
+			return fmt.Errorf("duplicate fan-out declaration for %s/%s", fanOut.ID, fanOut.Kind)
+		}
+		seen[key] = true
+	}
+	return nil
+}
+
+func TestDuplicateFanOutDeclarationsAreRejected(t *testing.T) {
+	declaration := parityMultiplicity{
+		ID:       "SBP-F-DUPLICATE",
+		Kind:     "function",
+		Go:       2,
+		Starlark: 1,
+		Reason:   "fixture",
+	}
+	err := validateFanOutDeclarations([]parityMultiplicity{declaration, declaration})
+	if err == nil {
+		t.Fatal("duplicate fan-out declarations were accepted")
+	}
+	if !strings.Contains(err.Error(), "duplicate fan-out declaration") {
+		t.Fatalf("duplicate fan-out error = %v", err)
+	}
 }
 
 func parityKind(t *testing.T, id string) string {
