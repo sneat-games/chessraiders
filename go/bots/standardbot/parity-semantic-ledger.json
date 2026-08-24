@@ -1254,7 +1254,7 @@
     {
       "id": "SBP-B-DECIDE-11",
       "kind": "branch",
-      "descriptor": "decide decision: proposal.get(\"actor\") not in board[\"charging_units\"] or proposal[\"score\"] \u003e threshold]",
+      "descriptor": "decide decision: proposal.get(\"actor\") not in board[\"charging_units\"] or proposal[\"score\"] \u003e threshold",
       "go": [
         {
           "file": "bot.go",
@@ -1268,7 +1268,7 @@
           "file": "chess-raiders-bot.star",
           "function": "decide",
           "occurrence": 11,
-          "source": "proposal.get(\"actor\") not in board[\"charging_units\"] or proposal[\"score\"] \u003e threshold]"
+          "source": "proposal.get(\"actor\") not in board[\"charging_units\"] or proposal[\"score\"] \u003e threshold"
         }
       ]
     },

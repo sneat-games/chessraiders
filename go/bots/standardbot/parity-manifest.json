@@ -34,7 +34,8 @@
       "artifacts": [
         "testdata/corpus",
         "parity-manifest.json",
-        "parity-semantic-ledger.json"
+        "parity-semantic-ledger.json",
+        "parity-reviewed-audit.json"
       ],
       "coverageStatus": "No external consumer receipt is recorded. Public tests prove Go and Starlark only; current TypeScript or WASM parity coverage is not claimed."
     }

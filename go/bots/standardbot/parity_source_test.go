@@ -20,6 +20,8 @@ import (
 const (
 	semanticLedgerPath   = "parity-semantic-ledger.json"
 	semanticLedgerSchema = "chess-raiders-standard-bot-semantic-parity/v3"
+	reviewedAuditPath    = "parity-reviewed-audit.json"
+	reviewedAuditSchema  = "chess-raiders-standard-bot-reviewed-semantic-audit/v1"
 )
 
 type parityManifest struct {
@@ -80,6 +82,40 @@ type semanticLedger struct {
 	Bindings []semanticBinding `json:"bindings"`
 }
 
+type reviewedSemanticOracle struct {
+	Schema  string                      `json:"schema"`
+	Review  reviewedSemanticAuditReview `json:"review"`
+	Entries []reviewedSemanticEntry     `json:"entries"`
+}
+
+type reviewedSemanticAuditReview struct {
+	Sources                 []string `json:"sources"`
+	Policy                  string   `json:"policy"`
+	ReviewedOriginalPairs   int      `json:"reviewedOriginalPairs"`
+	EquivalentOriginalPairs int      `json:"equivalentOriginalPairs"`
+	CorrectedMisbindings    int      `json:"correctedMisbindings"`
+	BehaviorDivergences     int      `json:"behaviorDivergences"`
+}
+
+type reviewedSemanticEntry struct {
+	ManifestIndex          int                    `json:"manifestIndex"`
+	ID                     string                 `json:"id"`
+	OriginalClassification string                 `json:"originalClassification"`
+	Resolution             string                 `json:"resolution"`
+	SharedMeaning          string                 `json:"sharedMeaning,omitempty"`
+	SplitReason            string                 `json:"splitReason,omitempty"`
+	GoStructuralID         string                 `json:"goStructuralId,omitempty"`
+	StarlarkStructuralID   string                 `json:"starlarkStructuralId,omitempty"`
+	GoMeaning              string                 `json:"goMeaning,omitempty"`
+	StarlarkMeaning        string                 `json:"starlarkMeaning,omitempty"`
+	Expected               reviewedSemanticAnchor `json:"expected"`
+}
+
+type reviewedSemanticAnchor struct {
+	Go       []paritySourceAnchor `json:"go"`
+	Starlark []paritySourceAnchor `json:"starlark"`
+}
+
 type parityKey struct {
 	ID   string
 	Kind string
@@ -124,7 +160,11 @@ func TestEveryStrategyConstructHasCategorizedParityID(t *testing.T) {
 		})
 		return
 	}
-	if err := validateSemanticLedger(manifest.Inventory, readSemanticLedger(t), bindings); err != nil {
+	ledger := readSemanticLedger(t)
+	if err := validateSemanticLedger(manifest.Inventory, ledger, bindings); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateReviewedSemanticAudit(manifest.Inventory, readReviewedSemanticAudit(t), ledger, bindings, goItems, starlarkItems); err != nil {
 		t.Fatal(err)
 	}
 
@@ -390,6 +430,7 @@ func starlarkBranchSource(lines []string, start int) (int, string) {
 			!strings.HasSuffix(line, "(") {
 			source := normalizeSource(strings.Join(parts, " "))
 			source = strings.TrimPrefix(strings.TrimPrefix(source, "if "), "elif ")
+			source = strings.TrimSuffix(source, "]")
 			return end, source
 		}
 		if strings.HasSuffix(line, ":") {
@@ -497,6 +538,19 @@ func readSemanticLedger(t *testing.T) semanticLedger {
 	return ledger
 }
 
+func readReviewedSemanticAudit(t *testing.T) reviewedSemanticOracle {
+	t.Helper()
+	data, err := os.ReadFile(reviewedAuditPath)
+	if err != nil {
+		t.Fatalf("read reviewed semantic audit: %v", err)
+	}
+	var audit reviewedSemanticOracle
+	if err := json.Unmarshal(data, &audit); err != nil {
+		t.Fatalf("decode reviewed semantic audit: %v", err)
+	}
+	return audit
+}
+
 func writeSemanticLedger(t *testing.T, ledger semanticLedger) {
 	t.Helper()
 	data, err := json.MarshalIndent(ledger, "", "  ")
@@ -530,6 +584,161 @@ func validateSemanticLedger(inventory parityInventory, ledger semanticLedger, ac
 		}
 	}
 	return nil
+}
+
+func validateReviewedSemanticAudit(
+	inventory parityInventory,
+	audit reviewedSemanticOracle,
+	ledger semanticLedger,
+	actual []semanticBinding,
+	goItems, starlarkItems []parityItem,
+) error {
+	if audit.Schema != reviewedAuditSchema {
+		return fmt.Errorf("reviewed semantic audit schema = %q", audit.Schema)
+	}
+	wantReview := reviewedSemanticAuditReview{
+		Sources: []string{
+			"provider-semantic-audit-first-half.json",
+			"provider-semantic-audit-second-half.json",
+		},
+		Policy:                  "Each entry freezes human-reviewed semantic meaning and exact source-order anchor identities; this artifact has no regeneration mode.",
+		ReviewedOriginalPairs:   350,
+		EquivalentOriginalPairs: 252,
+		CorrectedMisbindings:    98,
+		BehaviorDivergences:     0,
+	}
+	if !reflect.DeepEqual(audit.Review, wantReview) {
+		return fmt.Errorf("reviewed semantic audit counts = %#v, want %#v", audit.Review, wantReview)
+	}
+	if len(audit.Entries) != audit.Review.ReviewedOriginalPairs {
+		return fmt.Errorf("reviewed semantic entries = %d, want %d", len(audit.Entries), audit.Review.ReviewedOriginalPairs)
+	}
+
+	ledgerByID := make(map[string]semanticBinding, len(ledger.Bindings))
+	actualByID := make(map[string]semanticBinding, len(actual))
+	for _, binding := range ledger.Bindings {
+		ledgerByID[binding.ID] = binding
+	}
+	for _, binding := range actual {
+		actualByID[binding.ID] = binding
+	}
+	pairedIDs := make([]string, 0, len(inventory.Paired))
+	seen := make(map[string]bool, len(audit.Entries))
+	equivalent, corrected, splits := 0, 0, 0
+	for index, entry := range audit.Entries {
+		if entry.ManifestIndex != index {
+			return fmt.Errorf("reviewed semantic entry %s index = %d, want %d", entry.ID, entry.ManifestIndex, index)
+		}
+		if entry.ID == "" || seen[entry.ID] {
+			return fmt.Errorf("reviewed semantic entry %d has empty or duplicate ID %q", index, entry.ID)
+		}
+		seen[entry.ID] = true
+		switch entry.OriginalClassification {
+		case "equivalent":
+			equivalent++
+			if entry.Resolution != "paired-unchanged" {
+				return fmt.Errorf("reviewed semantic entry %s resolution = %q", entry.ID, entry.Resolution)
+			}
+		case "misbound":
+			corrected++
+			if entry.Resolution != "retagged-pair" && entry.Resolution != "structural-split" {
+				return fmt.Errorf("reviewed corrected entry %s resolution = %q", entry.ID, entry.Resolution)
+			}
+		default:
+			return fmt.Errorf("reviewed semantic entry %s classification = %q", entry.ID, entry.OriginalClassification)
+		}
+
+		if entry.Resolution == "structural-split" {
+			splits++
+			if entry.SharedMeaning != "" || entry.SplitReason == "" || entry.GoMeaning == "" || entry.StarlarkMeaning == "" {
+				return fmt.Errorf("reviewed structural split %s lacks independent meanings or reason", entry.ID)
+			}
+			if entry.GoStructuralID == "" || entry.StarlarkStructuralID == "" ||
+				!containsString(inventory.GoStructural, entry.GoStructuralID) ||
+				!containsString(inventory.StarlarkStructural, entry.StarlarkStructuralID) {
+				return fmt.Errorf("reviewed structural split %s is not classified by the manifest", entry.ID)
+			}
+			if len(entry.Expected.Go) != 1 || len(entry.Expected.Starlark) != 1 {
+				return fmt.Errorf("reviewed structural split %s must freeze one anchor per implementation", entry.ID)
+			}
+			if got, ok := sourceAnchorByID(goItems, entry.GoStructuralID); !ok || !reflect.DeepEqual(got, entry.Expected.Go[0]) {
+				return fmt.Errorf("reviewed structural split %s Go anchor differs: got=%#v want=%#v", entry.ID, got, entry.Expected.Go[0])
+			}
+			if got, ok := sourceAnchorByID(starlarkItems, entry.StarlarkStructuralID); !ok || !reflect.DeepEqual(got, entry.Expected.Starlark[0]) {
+				return fmt.Errorf("reviewed structural split %s Starlark anchor differs: got=%#v want=%#v", entry.ID, got, entry.Expected.Starlark[0])
+			}
+			continue
+		}
+
+		pairedIDs = append(pairedIDs, entry.ID)
+		ledgerBinding, ledgerOK := ledgerByID[entry.ID]
+		actualBinding, actualOK := actualByID[entry.ID]
+		if !ledgerOK || !actualOK {
+			return fmt.Errorf("reviewed paired entry %s is absent from ledger or parsed source", entry.ID)
+		}
+		if entry.SharedMeaning == "" || entry.SharedMeaning != ledgerBinding.Descriptor {
+			return fmt.Errorf("reviewed paired entry %s meaning = %q, ledger descriptor = %q", entry.ID, entry.SharedMeaning, ledgerBinding.Descriptor)
+		}
+		if !reflect.DeepEqual(entry.Expected.Go, ledgerBinding.Go) || !reflect.DeepEqual(entry.Expected.Starlark, ledgerBinding.Starlark) {
+			return fmt.Errorf("reviewed paired entry %s ledger anchors differ from independent oracle", entry.ID)
+		}
+		if !reflect.DeepEqual(entry.Expected.Go, actualBinding.Go) || !reflect.DeepEqual(entry.Expected.Starlark, actualBinding.Starlark) {
+			return fmt.Errorf("reviewed paired entry %s parsed source anchors differ from independent oracle", entry.ID)
+		}
+	}
+	if equivalent != audit.Review.EquivalentOriginalPairs || corrected != audit.Review.CorrectedMisbindings || splits != 2 {
+		return fmt.Errorf("reviewed semantic classifications: equivalent=%d corrected=%d splits=%d", equivalent, corrected, splits)
+	}
+	if !reflect.DeepEqual(pairedIDs, inventory.Paired) {
+		return fmt.Errorf("reviewed paired ID order differs from manifest")
+	}
+	return nil
+}
+
+func sourceAnchorByID(items []parityItem, id string) (paritySourceAnchor, bool) {
+	for _, item := range items {
+		if item.ID == id {
+			return item.Anchor, true
+		}
+	}
+	return paritySourceAnchor{}, false
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
+}
+
+func TestReviewedSemanticAuditRejectsWrongRetagWithRegeneratedLedger(t *testing.T) {
+	manifest := readParityManifest(t)
+	goItems := goParityItems(t)
+	starlarkItems := starlarkParityItems(t)
+	first, second := -1, -1
+	for index := range goItems {
+		switch goItems[index].ID {
+		case "SBP-B-SCORE-MOVE-5":
+			first = index
+		case "SBP-B-SCORE-MOVE-58":
+			second = index
+		}
+	}
+	if first < 0 || second < 0 {
+		t.Fatal("mutation anchors not found")
+	}
+	goItems[first].ID, goItems[second].ID = goItems[second].ID, goItems[first].ID
+	regenerated := semanticBindingsFromItems(t, manifest.Inventory, goItems, starlarkItems)
+	ledger := readSemanticLedger(t)
+	ledger.Bindings = regenerated
+	if err := validateSemanticLedger(manifest.Inventory, ledger, regenerated); err != nil {
+		t.Fatalf("self-consistent wrong source and regenerated ledger should evade the generated-ledger gate: %v", err)
+	}
+	if err := validateReviewedSemanticAudit(manifest.Inventory, readReviewedSemanticAudit(t), ledger, regenerated, goItems, starlarkItems); err == nil || !strings.Contains(err.Error(), "SBP-B-SCORE-MOVE-5") {
+		t.Fatalf("independent reviewed audit error = %v", err)
+	}
 }
 
 func TestSemanticLedgerRejectsSelfConsistentDisplacement(t *testing.T) {
