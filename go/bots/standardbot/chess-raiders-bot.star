@@ -2640,7 +2640,7 @@ def pack_placement_boards(bitboards):
             code = 0
             for board_slot in range(12):
                 raw = bitboards[board_slot]
-                if raw < 0: # PARITY-BRANCH: SBP-B-PACK-PLACEMENT-BOARDS-1
+                if raw < 0: # PARITY-BRANCH: SBP-STAR-STRUCT-B-PACK-PLACEMENT-BOARDS-SIGNED-NORMALIZATION
                     raw += BITBOARD_MODULUS
                 if (raw >> square) & 1: # PARITY-BRANCH: SBP-B-PACK-PLACEMENT-BOARDS-2
                     code = board_slot + 1
@@ -2698,7 +2698,7 @@ def leader_guard_matches(observation, memory):
         side_slot = 0 if source_cell["side"] == "white" else 6
         board_slot = side_slot + memory["leaderGuardKind"] - 1
         value = expected_pre[board_slot]
-        if value < 0: # PARITY-BRANCH: SBP-B-LEADER-GUARD-MATCHES-4
+        if value < 0: # PARITY-BRANCH: SBP-STAR-STRUCT-B-LEADER-GUARD-MATCHES-SIGNED-NORMALIZATION
             value += BITBOARD_MODULUS
         value ^= (1 << memory["leaderGuardFrom"]) | (1 << memory["leaderGuardTo"])
         expected_pre[board_slot] = signed_bitboard(value)

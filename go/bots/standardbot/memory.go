@@ -75,44 +75,44 @@ func kingChannelActive(obs *Observation, b *boardContext) bool {
 // PARITY-FUNCTION: SBP-F-NEXT-COMMITTED
 func nextCommitted(obs *Observation, b *boardContext, memory map[string]int64, chosen *proposal) int64 {
 	var intent *Intent
-	if chosen != nil { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-1
+	if chosen != nil { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-6
 		intent = &chosen.intent
 	}
-	if intent != nil && intent.Kind == "move" { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-2
+	if intent != nil && intent.Kind == "move" { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-1
 		mover := b.ownBySquare[intent.From]
 		chargeMs := 0
-		if mover != nil { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-3
+		if mover != nil { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-7
 			chargeMs = obs.Rules.PieceChargeMs[mover.Rank]
 		}
-		if chargeMs > 0 { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-4
+		if chargeMs > 0 { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-2
 			return packCommitted(CommitKindRoute, 0, chosen.score)
 		}
 	}
-	if isKingChannelStart(intent) { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-5
+	if isKingChannelStart(intent) { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-3
 		return packCommitted(CommitKindKing, 0, chosen.score)
 	}
 
 	storedKind, age, score := unpackCommitted(memory["committed"])
-	if len(b.chargingUnits) > 0 && storedKind == CommitKindRoute { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-6
+	if len(b.chargingUnits) > 0 && storedKind == CommitKindRoute { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-4
 		ageNext := age + 1
-		if ageNext > CommitAgeCap { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-7
+		if ageNext > CommitAgeCap { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-8
 			ageNext = CommitAgeCap
 		}
 		return packCommitted(CommitKindRoute, ageNext, score)
 	}
 	kingID := ""
-	if b.kingCell != nil { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-8
+	if b.kingCell != nil { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-9
 		kingID = b.kingCell.UnitID.String()
 	}
 	actorID := ""
-	if chosen != nil && chosen.actor != nil { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-9
-		if uid, ok := chosen.actor.(UnitID); ok { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-10
+	if chosen != nil && chosen.actor != nil { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-10
+		if uid, ok := chosen.actor.(UnitID); ok { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-11
 			actorID = uid.String()
-		} else if str, ok := chosen.actor.(string); ok { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-11
+		} else if str, ok := chosen.actor.(string); ok { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-12
 			actorID = str
 		}
 	}
-	if kingChannelActive(obs, b) && storedKind == CommitKindKing && actorID != kingID { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-12
+	if kingChannelActive(obs, b) && storedKind == CommitKindKing && actorID != kingID { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-5
 		ageNext := age + 1
 		if ageNext > CommitAgeCap { // PARITY-BRANCH: SBP-B-NEXT-COMMITTED-13
 			ageNext = CommitAgeCap
@@ -125,12 +125,12 @@ func nextCommitted(obs *Observation, b *boardContext, memory map[string]int64, c
 // PARITY-FUNCTION: SBP-F-FINISH-DECISION
 func finishDecision(obs *Observation, b *boardContext, memory map[string]int64, chosen *proposal, ranked []Option) (*Intent, map[string]int64, []Option) {
 	var intent *Intent
-	if chosen != nil { // PARITY-BRANCH: SBP-B-FINISH-DECISION-1
+	if chosen != nil { // PARITY-BRANCH: SBP-B-FINISH-DECISION-2
 		intent = &chosen.intent
 	}
 	updatedMemory := buildMemory(obs, memory, intent)
 	committed := nextCommitted(obs, b, memory, chosen)
-	if committed == 0 { // PARITY-BRANCH: SBP-B-FINISH-DECISION-2
+	if committed == 0 { // PARITY-BRANCH: SBP-B-FINISH-DECISION-1
 		delete(updatedMemory, "committed")
 	} else {
 		updatedMemory["committed"] = committed
@@ -228,7 +228,7 @@ func packPlacementBoards(bitboards [12]int64) map[string]int64 {
 	for slotIndex := 0; slotIndex < PlacementBoardSlots; slotIndex++ {
 		baseSquare := slotIndex * PlacementSquaresPerSlot
 		squaresInSlot := PlacementSquaresPerSlot
-		if 64-baseSquare < squaresInSlot { // PARITY-BRANCH: SBP-B-PACK-PLACEMENT-BOARDS-1
+		if 64-baseSquare < squaresInSlot { // PARITY-BRANCH: SBP-GO-STRUCT-B-PACK-PLACEMENT-BOARDS-SLOT-WIDTH
 			squaresInSlot = 64 - baseSquare
 		}
 		var value int64
@@ -255,13 +255,13 @@ func unpackPlacementBoards(memory map[string]int64) [12]int64 {
 	for slotIndex := 0; slotIndex < PlacementBoardSlots; slotIndex++ {
 		baseSquare := slotIndex * PlacementSquaresPerSlot
 		squaresInSlot := PlacementSquaresPerSlot
-		if 64-baseSquare < squaresInSlot { // PARITY-BRANCH: SBP-B-UNPACK-PLACEMENT-BOARDS-1
+		if 64-baseSquare < squaresInSlot { // PARITY-BRANCH: SBP-B-UNPACK-PLACEMENT-BOARDS-2
 			squaresInSlot = 64 - baseSquare
 		}
 		value := memory[fmt.Sprintf("leaderBoard%d", slotIndex)]
 		for local := 0; local < squaresInSlot; local++ {
 			code := (value >> (local * 4)) & 0xF
-			if code != 0 { // PARITY-BRANCH: SBP-B-UNPACK-PLACEMENT-BOARDS-2
+			if code != 0 { // PARITY-BRANCH: SBP-B-UNPACK-PLACEMENT-BOARDS-1
 				bitboards[code-1] |= 1 << (baseSquare + local)
 			}
 		}
@@ -325,7 +325,7 @@ func leaderGuardMatches(obs *Observation, memory map[string]int64) bool {
 	if sourceCell != nil && leaderKind(obs, sourceCell) == memory["leaderGuardKind"] { // PARITY-BRANCH: SBP-B-LEADER-GUARD-MATCHES-3
 		expectedPre := unpackPlacementBoards(memory)
 		sideSlot := 0
-		if sourceCell.Side != "white" { // PARITY-BRANCH: SBP-B-LEADER-GUARD-MATCHES-4
+		if sourceCell.Side != "white" { // PARITY-BRANCH: SBP-GO-STRUCT-B-LEADER-GUARD-MATCHES-COLOUR-SLOT
 			sideSlot = 6
 		}
 		boardSlot := sideSlot + int(memory["leaderGuardKind"]) - 1
@@ -391,14 +391,14 @@ func quietLeaderIntent(obs *Observation, intent *Intent) *Cell {
 	}
 	enemyBySquare := make(map[string]*Cell)
 	for sq, piece := range obs.Pieces {
-		if piece.Side != obs.Side { // PARITY-BRANCH: SBP-B-QUIET-LEADER-INTENT-4
+		if piece.Side != obs.Side { // PARITY-BRANCH: SBP-B-QUIET-LEADER-INTENT-5
 			p := piece
 			p.Square = sq
 			enemyBySquare[sq] = &p
 		}
 	}
 	boardMock := &boardContext{enemyBySquare: enemyBySquare}
-	if !isQuietMove(obs, boardMock, cell, intent.To) { // PARITY-BRANCH: SBP-B-QUIET-LEADER-INTENT-5
+	if !isQuietMove(obs, boardMock, cell, intent.To) { // PARITY-BRANCH: SBP-B-QUIET-LEADER-INTENT-4
 		return nil
 	}
 	return cell
@@ -442,7 +442,7 @@ func buildMemory(obs *Observation, memory map[string]int64, intent *Intent) map[
 	}
 	fromIndex := int64(NoSquareIndex)
 	toIndex := int64(NoSquareIndex)
-	if intent != nil { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-2
+	if intent != nil { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-8
 		fromIndex = int64(squareIndex(intent.From))
 		toIndex = int64(squareIndex(intent.To))
 	}
@@ -453,7 +453,7 @@ func buildMemory(obs *Observation, memory map[string]int64, intent *Intent) map[
 	previousRevision, hasPreviousRevision := memory["revision"]
 	stillFrozen := hasPreviousRevision && previousRevision == obs.Revision
 	cursor := int64(0)
-	if stillFrozen { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-3
+	if stillFrozen { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-2
 		cursor = memory["refusedCursor"]
 	} else {
 		for slot := 0; slot < RefusedSetSize; slot++ {
@@ -466,15 +466,15 @@ func buildMemory(obs *Observation, memory map[string]int64, intent *Intent) map[
 	updatedMemory["revision"] = obs.Revision
 	updatedMemory["lastFrom"] = fromIndex
 	updatedMemory["lastTo"] = toIndex
-	if intent != nil && intent.Kind == "action" { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-4
+	if intent != nil && intent.Kind == "action" { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-3
 		updatedMemory["actions"] = memory["actions"] + 1
-	} else if intent != nil && intent.Kind == "move" { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-5
+	} else if intent != nil && intent.Kind == "move" { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-4
 		updatedMemory["moves"] = memory["moves"] + 1
 		updatedMemory["focusFrom"] = fromIndex + 1
 	}
 
 	leader := quietLeaderIntent(obs, intent)
-	if leader != nil { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-6
+	if leader != nil { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-5
 		updatedMemory["leaderGuardActive"] = 1
 		updatedMemory["leaderGuardFrom"] = fromIndex
 		updatedMemory["leaderGuardTo"] = toIndex
@@ -486,17 +486,17 @@ func buildMemory(obs *Observation, memory map[string]int64, intent *Intent) map[
 	}
 
 	quietOrdinary := quietOrdinaryIntent(obs, intent)
-	if quietOrdinary != nil { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-7
+	if quietOrdinary != nil { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-6
 		updatedMemory["lastQuietTo"] = toIndex
 		for slot := QuietVacatedSquares - 1; slot > 0; slot-- {
 			val, ok := memory[fmt.Sprintf("quietVacated%d", slot-1)]
-			if !ok { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-8
+			if !ok { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-9
 				val = int64(NoSquareIndex)
 			}
 			updatedMemory[fmt.Sprintf("quietVacated%d", slot)] = val
 		}
 		updatedMemory["quietVacated0"] = fromIndex
-	} else if intent != nil && intent.Kind == "move" { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-9
+	} else if intent != nil && intent.Kind == "move" { // PARITY-BRANCH: SBP-B-BUILD-MEMORY-7
 		updatedMemory["lastQuietTo"] = int64(NoSquareIndex)
 		for slot := 0; slot < QuietVacatedSquares; slot++ {
 			updatedMemory[fmt.Sprintf("quietVacated%d", slot)] = int64(NoSquareIndex)
@@ -615,14 +615,14 @@ func moveProposals(obs *Observation, b *boardContext, params *BotParams, memory 
 		})
 	}
 	sort.Slice(rankedUnits, func(i, j int) bool {
-		if rankedUnits[i].priority != rankedUnits[j].priority { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-2
+		if rankedUnits[i].priority != rankedUnits[j].priority { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-8
 			return rankedUnits[i].priority > rankedUnits[j].priority
 		}
 		return squareIndex(rankedUnits[i].cell.Square) < squareIndex(rankedUnits[j].cell.Square)
 	})
 
 	breadth := params.Breadth
-	if breadth <= 0 || breadth > len(rankedUnits) { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-3
+	if breadth <= 0 || breadth > len(rankedUnits) { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-2
 		breadth = len(rankedUnits)
 	}
 
@@ -633,28 +633,28 @@ func moveProposals(obs *Observation, b *boardContext, params *BotParams, memory 
 		destinations := obs.Legal[cell.Square]
 		var candidates []proposal
 		for _, destination := range destinations {
-			if destination == cell.Square { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-4
+			if destination == cell.Square { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-3
 				continue
 			}
-			if cell.Charging != nil && destination == cell.Charging.Square { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-5
+			if cell.Charging != nil && destination == cell.Charging.Square { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-4
 				continue
 			}
-			if !captureChoiceAvailable(obs, b, cell, destination) { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-6
+			if !captureChoiceAvailable(obs, b, cell, destination) { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-5
 				continue
 			}
-			if leaderReverseForbidden(obs, leaderGuard, cell, destination) { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-7
+			if leaderReverseForbidden(obs, leaderGuard, cell, destination) { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-6
 				continue
 			}
 			candidates = append(candidates, scoreMove(obs, b, params, memory, cell, destination))
 		}
 		sort.Slice(candidates, func(i, j int) bool {
-			if candidates[i].score != candidates[j].score { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-8
+			if candidates[i].score != candidates[j].score { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-9
 				return candidates[i].score > candidates[j].score
 			}
 			return candidates[i].key < candidates[j].key
 		})
 		spread := params.CandidateSpread
-		if spread <= 0 || spread > len(candidates) { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-9
+		if spread <= 0 || spread > len(candidates) { // PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-7
 			spread = len(candidates)
 		}
 		proposals = append(proposals, candidates[:spread]...)

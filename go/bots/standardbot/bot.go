@@ -62,41 +62,41 @@ func Decide(obs *Observation, memory map[string]int64, params *BotParams, hostRa
 		var filtered []proposal
 		for _, p := range proposals {
 			actorID := ""
-			if uid, ok := p.actor.(UnitID); ok { // PARITY-BRANCH: SBP-B-DECIDE-10
-				actorID = uid.String()
-			} else if str, ok := p.actor.(string); ok { // PARITY-BRANCH: SBP-B-DECIDE-11
-				actorID = str
-			}
-			if actorID != kingID || p.score > kingThreshold { // PARITY-BRANCH: SBP-B-DECIDE-12
-				filtered = append(filtered, p)
-			}
-		}
-		proposals = filtered
-	}
-
-	if len(b.chargingUnits) > 0 { // PARITY-BRANCH: SBP-B-DECIDE-13
-		threshold := retentionScore(memory, CommitKindRoute)
-		var filtered []proposal
-		for _, p := range proposals {
-			actorID := ""
 			if uid, ok := p.actor.(UnitID); ok { // PARITY-BRANCH: SBP-B-DECIDE-14
 				actorID = uid.String()
 			} else if str, ok := p.actor.(string); ok { // PARITY-BRANCH: SBP-B-DECIDE-15
 				actorID = str
 			}
-			if !b.chargingUnits[actorID] || p.score > threshold { // PARITY-BRANCH: SBP-B-DECIDE-16
+			if actorID != kingID || p.score > kingThreshold { // PARITY-BRANCH: SBP-B-DECIDE-16
 				filtered = append(filtered, p)
 			}
 		}
 		proposals = filtered
 	}
 
-	if len(proposals) == 0 { // PARITY-BRANCH: SBP-B-DECIDE-17
+	if len(b.chargingUnits) > 0 { // PARITY-BRANCH: SBP-B-DECIDE-10
+		threshold := retentionScore(memory, CommitKindRoute)
+		var filtered []proposal
+		for _, p := range proposals {
+			actorID := ""
+			if uid, ok := p.actor.(UnitID); ok { // PARITY-BRANCH: SBP-B-DECIDE-17
+				actorID = uid.String()
+			} else if str, ok := p.actor.(string); ok { // PARITY-BRANCH: SBP-B-DECIDE-18
+				actorID = str
+			}
+			if !b.chargingUnits[actorID] || p.score > threshold { // PARITY-BRANCH: SBP-B-DECIDE-11
+				filtered = append(filtered, p)
+			}
+		}
+		proposals = filtered
+	}
+
+	if len(proposals) == 0 { // PARITY-BRANCH: SBP-B-DECIDE-12
 		return finishDecision(obs, b, memory, nil, nil)
 	}
 
 	sort.Slice(proposals, func(i, j int) bool {
-		if proposals[i].score != proposals[j].score { // PARITY-BRANCH: SBP-B-DECIDE-18
+		if proposals[i].score != proposals[j].score { // PARITY-BRANCH: SBP-B-DECIDE-19
 			return proposals[i].score > proposals[j].score
 		}
 		return proposals[i].key < proposals[j].key
@@ -104,7 +104,7 @@ func Decide(obs *Observation, memory map[string]int64, params *BotParams, hostRa
 
 	ranked := rankOptions(proposals, params, options)
 	bestProposal := proposals[0]
-	if bestProposal.score < params.PassBelow { // PARITY-BRANCH: SBP-B-DECIDE-19
+	if bestProposal.score < params.PassBelow { // PARITY-BRANCH: SBP-B-DECIDE-13
 		return finishDecision(obs, b, memory, nil, ranked)
 	}
 

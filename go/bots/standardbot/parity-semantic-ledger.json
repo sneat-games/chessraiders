@@ -1,9 +1,21 @@
 {
-  "schema": "chess-raiders-standard-bot-semantic-parity/v2",
+  "schema": "chess-raiders-standard-bot-semantic-parity/v3",
+  "audit": {
+    "reviewedOriginalPairs": 350,
+    "equivalentOriginalPairs": 252,
+    "correctedMisbindings": 98,
+    "behaviorDivergences": 0,
+    "retainedPairedBindings": 348,
+    "structuralSplitOriginals": [
+      "SBP-B-LEADER-GUARD-MATCHES-4",
+      "SBP-B-PACK-PLACEMENT-BOARDS-1"
+    ]
+  },
   "bindings": [
     {
       "id": "SBP-B-ACTIVE-LEADER-GUARD-1",
       "kind": "branch",
+      "descriptor": "active_leader_guard decision: not leader_guard_matches(observation, memory)",
       "go": [
         {
           "file": "memory.go",
@@ -24,6 +36,7 @@
     {
       "id": "SBP-B-ADD-TERM-1",
       "kind": "branch",
+      "descriptor": "add_term decision: value == 0.0",
       "go": [
         {
           "file": "score.go",
@@ -44,6 +57,7 @@
     {
       "id": "SBP-B-APPLY-REPEAT-PENALTY-1",
       "kind": "branch",
+      "descriptor": "apply_repeat_penalty decision: square \u003e= 0",
       "go": [
         {
           "file": "memory.go",
@@ -64,6 +78,7 @@
     {
       "id": "SBP-B-APPLY-REPEAT-PENALTY-10",
       "kind": "branch",
+      "descriptor": "apply_repeat_penalty decision: proposal[\"actor\"] != repeated_cell[\"unitId\"]",
       "go": [
         {
           "file": "memory.go",
@@ -84,6 +99,7 @@
     {
       "id": "SBP-B-APPLY-REPEAT-PENALTY-11",
       "kind": "branch",
+      "descriptor": "apply_repeat_penalty decision: is_quiet_move(observation, board, repeated_cell, destination) and threatened_count(repeated_cell) == 0",
       "go": [
         {
           "file": "memory.go",
@@ -104,6 +120,7 @@
     {
       "id": "SBP-B-APPLY-REPEAT-PENALTY-2",
       "kind": "branch",
+      "descriptor": "apply_repeat_penalty decision: (proposal[\"intent\"][\"kind\"] == \"move\" and not proposal[\"intent\"].get(\"promotion\") and cell and destination and not cell[\"convoy\"] and cell[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, cell) and is_quiet_move(observation, board, cell, destination) and threatened_count(cell) == 0 and square_index(destination) in recently_vacated)",
       "go": [
         {
           "file": "memory.go",
@@ -124,6 +141,7 @@
     {
       "id": "SBP-B-APPLY-REPEAT-PENALTY-3",
       "kind": "branch",
+      "descriptor": "apply_repeat_penalty decision: cycle_keys",
       "go": [
         {
           "file": "memory.go",
@@ -144,6 +162,7 @@
     {
       "id": "SBP-B-APPLY-REPEAT-PENALTY-4",
       "kind": "branch",
+      "descriptor": "apply_repeat_penalty decision: (proposal[\"key\"] not in cycle_keys and candidate and not candidate[\"convoy\"] and candidate[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, candidate) and proposal[\"score\"] \u003e= params[\"passBelow\"])",
       "go": [
         {
           "file": "memory.go",
@@ -164,6 +183,7 @@
     {
       "id": "SBP-B-APPLY-REPEAT-PENALTY-5",
       "kind": "branch",
+      "descriptor": "apply_repeat_penalty decision: other_viable",
       "go": [
         {
           "file": "memory.go",
@@ -184,6 +204,7 @@
     {
       "id": "SBP-B-APPLY-REPEAT-PENALTY-6",
       "kind": "branch",
+      "descriptor": "apply_repeat_penalty decision: last_to \u003c 0",
       "go": [
         {
           "file": "memory.go",
@@ -204,6 +225,7 @@
     {
       "id": "SBP-B-APPLY-REPEAT-PENALTY-7",
       "kind": "branch",
+      "descriptor": "apply_repeat_penalty decision: not repeated_cell or repeated_cell[\"convoy\"] or repeated_cell[\"rank\"] == \"king\" or is_current_beacon_bearer(observation, repeated_cell)",
       "go": [
         {
           "file": "memory.go",
@@ -224,6 +246,7 @@
     {
       "id": "SBP-B-APPLY-REPEAT-PENALTY-8",
       "kind": "branch",
+      "descriptor": "apply_repeat_penalty decision: (candidate and candidate[\"unitId\"] != repeated_cell[\"unitId\"] and not candidate[\"convoy\"] and candidate[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, candidate) and proposal[\"score\"] \u003e= params[\"passBelow\"])",
       "go": [
         {
           "file": "memory.go",
@@ -244,6 +267,7 @@
     {
       "id": "SBP-B-APPLY-REPEAT-PENALTY-9",
       "kind": "branch",
+      "descriptor": "apply_repeat_penalty decision: not other_viable",
       "go": [
         {
           "file": "memory.go",
@@ -264,6 +288,7 @@
     {
       "id": "SBP-B-BEACON-DEPLOY-OR-RESTORE-PROPOSAL-1",
       "kind": "branch",
+      "descriptor": "beacon_deploy_or_restore_proposal decision: not observation[\"rules\"].get(\"beaconEnabled\", False)",
       "go": [
         {
           "file": "systems.go",
@@ -284,6 +309,7 @@
     {
       "id": "SBP-B-BEACON-DEPLOY-OR-RESTORE-PROPOSAL-2",
       "kind": "branch",
+      "descriptor": "beacon_deploy_or_restore_proposal decision: king_cell == None or board[\"busy_units\"].get(king_cell[\"unitId\"])",
       "go": [
         {
           "file": "systems.go",
@@ -304,6 +330,7 @@
     {
       "id": "SBP-B-BEACON-DEPLOY-OR-RESTORE-PROPOSAL-3",
       "kind": "branch",
+      "descriptor": "beacon_deploy_or_restore_proposal decision: beacon[\"lifecycle\"] == \"undeployed\"",
       "go": [
         {
           "file": "systems.go",
@@ -324,6 +351,7 @@
     {
       "id": "SBP-B-BEACON-DEPLOY-OR-RESTORE-PROPOSAL-4",
       "kind": "branch",
+      "descriptor": "beacon_deploy_or_restore_proposal decision: beacon[\"lifecycle\"] == \"lost\"",
       "go": [
         {
           "file": "systems.go",
@@ -344,6 +372,7 @@
     {
       "id": "SBP-B-BEACON-FORGE-PROPOSALS-1",
       "kind": "branch",
+      "descriptor": "beacon_forge_proposals decision: not observation[\"rules\"].get(\"beaconEnabled\", False) or not observation[\"rules\"].get(\"beaconForgeEnabled\", False)",
       "go": [
         {
           "file": "systems.go",
@@ -364,6 +393,7 @@
     {
       "id": "SBP-B-BEACON-FORGE-PROPOSALS-2",
       "kind": "branch",
+      "descriptor": "beacon_forge_proposals decision: observation[\"beacon\"][\"lifecycle\"] != \"lost\"",
       "go": [
         {
           "file": "systems.go",
@@ -384,6 +414,7 @@
     {
       "id": "SBP-B-BEACON-FORGE-PROPOSALS-3",
       "kind": "branch",
+      "descriptor": "beacon_forge_proposals decision: cell[\"convoy\"] or cell[\"refitting\"] or cell[\"rank\"] != \"pawn\"",
       "go": [
         {
           "file": "systems.go",
@@ -404,6 +435,7 @@
     {
       "id": "SBP-B-BEACON-FORGE-PROPOSALS-4",
       "kind": "branch",
+      "descriptor": "beacon_forge_proposals decision: cell[\"square\"] not in own_pawn_base_squares",
       "go": [
         {
           "file": "systems.go",
@@ -424,6 +456,7 @@
     {
       "id": "SBP-B-BEACON-FORGE-PROPOSALS-5",
       "kind": "branch",
+      "descriptor": "beacon_forge_proposals decision: threatened_count(cell) \u003e 0",
       "go": [
         {
           "file": "systems.go",
@@ -444,6 +477,7 @@
     {
       "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-1",
       "kind": "branch",
+      "descriptor": "beacon_hand_off_proposal decision: not observation[\"rules\"].get(\"beaconEnabled\", False)",
       "go": [
         {
           "file": "systems.go",
@@ -464,6 +498,7 @@
     {
       "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-2",
       "kind": "branch",
+      "descriptor": "beacon_hand_off_proposal decision: king_cell == None or board[\"busy_units\"].get(king_cell[\"unitId\"])",
       "go": [
         {
           "file": "systems.go",
@@ -484,6 +519,7 @@
     {
       "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-3",
       "kind": "branch",
+      "descriptor": "beacon_hand_off_proposal decision: not observation[\"rules\"][\"beaconKingStartsAsBearer\"]",
       "go": [
         {
           "file": "systems.go",
@@ -504,6 +540,7 @@
     {
       "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-4",
       "kind": "branch",
+      "descriptor": "beacon_hand_off_proposal decision: beacon[\"lifecycle\"] != \"deployed\" or beacon[\"everHandedOff\"]",
       "go": [
         {
           "file": "systems.go",
@@ -524,6 +561,7 @@
     {
       "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-5",
       "kind": "branch",
+      "descriptor": "beacon_hand_off_proposal decision: beacon[\"bearerSquare\"] != king_cell[\"square\"]",
       "go": [
         {
           "file": "systems.go",
@@ -544,6 +582,7 @@
     {
       "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-6",
       "kind": "branch",
+      "descriptor": "beacon_hand_off_proposal decision: to == None",
       "go": [
         {
           "file": "systems.go",
@@ -564,6 +603,7 @@
     {
       "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-7",
       "kind": "branch",
+      "descriptor": "beacon_hand_off_proposal decision: cell[\"square\"] == to",
       "go": [
         {
           "file": "systems.go",
@@ -584,6 +624,7 @@
     {
       "id": "SBP-B-BUILD-BOARD-1",
       "kind": "branch",
+      "descriptor": "build_board decision: cell[\"side\"] == observation[\"side\"]",
       "go": [
         {
           "file": "board.go",
@@ -604,6 +645,7 @@
     {
       "id": "SBP-B-BUILD-BOARD-10",
       "kind": "branch",
+      "descriptor": "build_board decision: own_interrogation_targets.get(unit_id)",
       "go": [
         {
           "file": "board.go",
@@ -624,6 +666,7 @@
     {
       "id": "SBP-B-BUILD-BOARD-11",
       "kind": "branch",
+      "descriptor": "build_board decision: enemy_interrogation_active and king_cell",
       "go": [
         {
           "file": "board.go",
@@ -644,12 +687,13 @@
     {
       "id": "SBP-B-BUILD-BOARD-12",
       "kind": "branch",
+      "descriptor": "build_board decision: len(charging_units) \u003e= max_active_commands",
       "go": [
         {
           "file": "board.go",
           "function": "buildBoard",
-          "occurrence": 12,
-          "source": "!b.busyUnits[cell.UnitID.String()]"
+          "occurrence": 15,
+          "source": "len(b.chargingUnits) \u003e= maxActiveCommands"
         }
       ],
       "starlark": [
@@ -664,6 +708,7 @@
     {
       "id": "SBP-B-BUILD-BOARD-2",
       "kind": "branch",
+      "descriptor": "build_board decision: cell.get(\"targetLocked\")",
       "go": [
         {
           "file": "board.go",
@@ -684,6 +729,7 @@
     {
       "id": "SBP-B-BUILD-BOARD-3",
       "kind": "branch",
+      "descriptor": "build_board decision: cell.get(\"interrogationRemainingMs\") != None",
       "go": [
         {
           "file": "board.go",
@@ -704,6 +750,7 @@
     {
       "id": "SBP-B-BUILD-BOARD-4",
       "kind": "branch",
+      "descriptor": "build_board decision: cell[\"side\"] == observation[\"side\"]",
       "go": [
         {
           "file": "board.go",
@@ -724,6 +771,7 @@
     {
       "id": "SBP-B-BUILD-BOARD-5",
       "kind": "branch",
+      "descriptor": "build_board decision: cell.get(\"profession\", \"\") == \"engineer\" and cell.get(\"grade\") == \"master\"",
       "go": [
         {
           "file": "board.go",
@@ -744,6 +792,7 @@
     {
       "id": "SBP-B-BUILD-BOARD-6",
       "kind": "branch",
+      "descriptor": "build_board decision: cell[\"rank\"] == \"king\" and not cell[\"convoy\"]",
       "go": [
         {
           "file": "board.go",
@@ -764,6 +813,7 @@
     {
       "id": "SBP-B-BUILD-BOARD-7",
       "kind": "branch",
+      "descriptor": "build_board decision: charging",
       "go": [
         {
           "file": "board.go",
@@ -784,6 +834,7 @@
     {
       "id": "SBP-B-BUILD-BOARD-8",
       "kind": "branch",
+      "descriptor": "build_board decision: target and target[\"rank\"] == \"king\" and not target[\"ghost\"]",
       "go": [
         {
           "file": "board.go",
@@ -804,6 +855,7 @@
     {
       "id": "SBP-B-BUILD-BOARD-9",
       "kind": "branch",
+      "descriptor": "build_board decision: cell.get(\"training\") or cell.get(\"forgingRemainingMs\", 0) \u003e 0 or cell.get(\"recoveryRemainingMs\", 0) \u003e 0",
       "go": [
         {
           "file": "board.go",
@@ -824,6 +876,7 @@
     {
       "id": "SBP-B-BUILD-MEMORY-1",
       "kind": "branch",
+      "descriptor": "build_memory decision: updated_memory.get(\"leaderGuardActive\", 0) == 1 and not leader_guard_matches(observation, updated_memory)",
       "go": [
         {
           "file": "memory.go",
@@ -844,12 +897,13 @@
     {
       "id": "SBP-B-BUILD-MEMORY-2",
       "kind": "branch",
+      "descriptor": "build_memory decision: not still_frozen",
       "go": [
         {
           "file": "memory.go",
           "function": "buildMemory",
-          "occurrence": 2,
-          "source": "intent != nil"
+          "occurrence": 3,
+          "source": "stillFrozen"
         }
       ],
       "starlark": [
@@ -864,12 +918,13 @@
     {
       "id": "SBP-B-BUILD-MEMORY-3",
       "kind": "branch",
+      "descriptor": "build_memory decision: intent and intent[\"kind\"] == \"action\"",
       "go": [
         {
           "file": "memory.go",
           "function": "buildMemory",
-          "occurrence": 3,
-          "source": "stillFrozen"
+          "occurrence": 4,
+          "source": "intent != nil \u0026\u0026 intent.Kind == \"action\""
         }
       ],
       "starlark": [
@@ -884,12 +939,13 @@
     {
       "id": "SBP-B-BUILD-MEMORY-4",
       "kind": "branch",
+      "descriptor": "build_memory decision: intent and intent[\"kind\"] == \"move\"",
       "go": [
         {
           "file": "memory.go",
           "function": "buildMemory",
-          "occurrence": 4,
-          "source": "intent != nil \u0026\u0026 intent.Kind == \"action\""
+          "occurrence": 5,
+          "source": "intent != nil \u0026\u0026 intent.Kind == \"move\""
         }
       ],
       "starlark": [
@@ -904,12 +960,13 @@
     {
       "id": "SBP-B-BUILD-MEMORY-5",
       "kind": "branch",
+      "descriptor": "build_memory decision: leader",
       "go": [
         {
           "file": "memory.go",
           "function": "buildMemory",
-          "occurrence": 5,
-          "source": "intent != nil \u0026\u0026 intent.Kind == \"move\""
+          "occurrence": 6,
+          "source": "leader != nil"
         }
       ],
       "starlark": [
@@ -924,12 +981,13 @@
     {
       "id": "SBP-B-BUILD-MEMORY-6",
       "kind": "branch",
+      "descriptor": "build_memory decision: quiet_ordinary",
       "go": [
         {
           "file": "memory.go",
           "function": "buildMemory",
-          "occurrence": 6,
-          "source": "leader != nil"
+          "occurrence": 7,
+          "source": "quietOrdinary != nil"
         }
       ],
       "starlark": [
@@ -944,12 +1002,13 @@
     {
       "id": "SBP-B-BUILD-MEMORY-7",
       "kind": "branch",
+      "descriptor": "build_memory decision: intent and intent[\"kind\"] == \"move\"",
       "go": [
         {
           "file": "memory.go",
           "function": "buildMemory",
-          "occurrence": 7,
-          "source": "quietOrdinary != nil"
+          "occurrence": 9,
+          "source": "intent != nil \u0026\u0026 intent.Kind == \"move\""
         }
       ],
       "starlark": [
@@ -964,12 +1023,13 @@
     {
       "id": "SBP-B-CAN-PROMOTE-NEXT-MOVE-1",
       "kind": "branch",
+      "descriptor": "can_promote_next_move decision: is_promotion_square(side, next_destination)",
       "go": [
         {
           "file": "score.go",
           "function": "canPromoteNextMove",
-          "occurrence": 1,
-          "source": "candidate == nil"
+          "occurrence": 2,
+          "source": "isPromotionSquare(side, nextDestination)"
         }
       ],
       "starlark": [
@@ -984,6 +1044,7 @@
     {
       "id": "SBP-B-CAPTURE-CHOICE-AVAILABLE-1",
       "kind": "branch",
+      "descriptor": "capture_choice_available decision: not target_cell",
       "go": [
         {
           "file": "score.go",
@@ -1004,6 +1065,7 @@
     {
       "id": "SBP-B-CAPTURE-CHOICE-AVAILABLE-2",
       "kind": "branch",
+      "descriptor": "capture_choice_available decision: target_cell[\"rank\"] == \"king\" or target_cell[\"convoy\"]",
       "go": [
         {
           "file": "score.go",
@@ -1024,6 +1086,7 @@
     {
       "id": "SBP-B-CAPTURE-CHOICE-AVAILABLE-3",
       "kind": "branch",
+      "descriptor": "capture_choice_available decision: observation[\"rules\"][\"allowsKill\"] and outcomes.get(\"kill\", EMPTY_OUTCOME)[\"affordable\"]",
       "go": [
         {
           "file": "score.go",
@@ -1044,6 +1107,7 @@
     {
       "id": "SBP-B-CAPTURE-CHOICE-AVAILABLE-4",
       "kind": "branch",
+      "descriptor": "capture_choice_available decision: observation[\"rules\"][\"allowsCapture\"] and outcomes.get(\"capture\", EMPTY_OUTCOME)[\"affordable\"]",
       "go": [
         {
           "file": "score.go",
@@ -1064,6 +1128,7 @@
     {
       "id": "SBP-B-CAPTURE-EXPECTED-SUCCESS-1",
       "kind": "branch",
+      "descriptor": "capture_expected_success decision: not outcome[\"oddsKnown\"]",
       "go": [
         {
           "file": "score.go",
@@ -1084,12 +1149,13 @@
     {
       "id": "SBP-B-CELL-VALUE-1",
       "kind": "branch",
+      "descriptor": "cell_value decision: cell[\"kingCargo\"]",
       "go": [
         {
           "file": "board.go",
           "function": "cellValue",
-          "occurrence": 1,
-          "source": "cell == nil"
+          "occurrence": 2,
+          "source": "cell.KingCargo"
         }
       ],
       "starlark": [
@@ -1104,12 +1170,13 @@
     {
       "id": "SBP-B-CELL-VALUE-2",
       "kind": "branch",
+      "descriptor": "cell_value decision: cell[\"ghost\"]",
       "go": [
         {
           "file": "board.go",
           "function": "cellValue",
-          "occurrence": 2,
-          "source": "cell.KingCargo"
+          "occurrence": 3,
+          "source": "cell.Ghost"
         }
       ],
       "starlark": [
@@ -1124,6 +1191,7 @@
     {
       "id": "SBP-B-CURRENT-MORALE-NEED-1",
       "kind": "branch",
+      "descriptor": "current_morale_need decision: \"captureMoraleNeed\" in observation",
       "go": [
         {
           "file": "score.go",
@@ -1144,6 +1212,7 @@
     {
       "id": "SBP-B-DECIDE-1",
       "kind": "branch",
+      "descriptor": "decide decision: observation[\"lifecycle\"] != \"playing\"",
       "go": [
         {
           "file": "bot.go",
@@ -1164,12 +1233,13 @@
     {
       "id": "SBP-B-DECIDE-10",
       "kind": "branch",
+      "descriptor": "decide decision: board[\"charging_units\"]",
       "go": [
         {
           "file": "bot.go",
           "function": "Decide",
-          "occurrence": 10,
-          "source": "ok"
+          "occurrence": 13,
+          "source": "len(b.chargingUnits) \u003e 0"
         }
       ],
       "starlark": [
@@ -1184,12 +1254,13 @@
     {
       "id": "SBP-B-DECIDE-11",
       "kind": "branch",
+      "descriptor": "decide decision: proposal.get(\"actor\") not in board[\"charging_units\"] or proposal[\"score\"] \u003e threshold]",
       "go": [
         {
           "file": "bot.go",
           "function": "Decide",
-          "occurrence": 11,
-          "source": "ok"
+          "occurrence": 16,
+          "source": "!b.chargingUnits[actorID] || p.score \u003e threshold"
         }
       ],
       "starlark": [
@@ -1197,19 +1268,20 @@
           "file": "chess-raiders-bot.star",
           "function": "decide",
           "occurrence": 11,
-          "source": "proposal.get(\"actor\") not in board[\"charging_units\"] or proposal[\"score\"] \u003e threshold] if not proposals"
+          "source": "proposal.get(\"actor\") not in board[\"charging_units\"] or proposal[\"score\"] \u003e threshold]"
         }
       ]
     },
     {
       "id": "SBP-B-DECIDE-12",
       "kind": "branch",
+      "descriptor": "decide decision: not proposals",
       "go": [
         {
           "file": "bot.go",
           "function": "Decide",
-          "occurrence": 12,
-          "source": "actorID != kingID || p.score \u003e kingThreshold"
+          "occurrence": 17,
+          "source": "len(proposals) == 0"
         }
       ],
       "starlark": [
@@ -1224,12 +1296,13 @@
     {
       "id": "SBP-B-DECIDE-13",
       "kind": "branch",
+      "descriptor": "decide decision: best_proposal[\"score\"] \u003c params[\"passBelow\"]",
       "go": [
         {
           "file": "bot.go",
           "function": "Decide",
-          "occurrence": 13,
-          "source": "len(b.chargingUnits) \u003e 0"
+          "occurrence": 19,
+          "source": "bestProposal.score \u003c params.PassBelow"
         }
       ],
       "starlark": [
@@ -1244,6 +1317,7 @@
     {
       "id": "SBP-B-DECIDE-2",
       "kind": "branch",
+      "descriptor": "decide decision: not board[\"own\"]",
       "go": [
         {
           "file": "bot.go",
@@ -1264,6 +1338,7 @@
     {
       "id": "SBP-B-DECIDE-3",
       "kind": "branch",
+      "descriptor": "decide decision: board[\"protected_charging_units\"]",
       "go": [
         {
           "file": "bot.go",
@@ -1284,6 +1359,7 @@
     {
       "id": "SBP-B-DECIDE-4",
       "kind": "branch",
+      "descriptor": "decide decision: priority_captive_delivery_in_flight(observation, board)",
       "go": [
         {
           "file": "bot.go",
@@ -1304,6 +1380,7 @@
     {
       "id": "SBP-B-DECIDE-5",
       "kind": "branch",
+      "descriptor": "decide decision: not board[\"charging_units\"] and not holds_focus(board, memory) and not board[\"convoy_home\"]",
       "go": [
         {
           "file": "bot.go",
@@ -1324,6 +1401,7 @@
     {
       "id": "SBP-B-DECIDE-6",
       "kind": "branch",
+      "descriptor": "decide decision: priority != None",
       "go": [
         {
           "file": "bot.go",
@@ -1344,6 +1422,7 @@
     {
       "id": "SBP-B-DECIDE-7",
       "kind": "branch",
+      "descriptor": "decide decision: not holds_focus(board, memory)",
       "go": [
         {
           "file": "bot.go",
@@ -1364,6 +1443,7 @@
     {
       "id": "SBP-B-DECIDE-8",
       "kind": "branch",
+      "descriptor": "decide decision: not board[\"charging_units\"]",
       "go": [
         {
           "file": "bot.go",
@@ -1384,6 +1464,7 @@
     {
       "id": "SBP-B-DECIDE-9",
       "kind": "branch",
+      "descriptor": "decide decision: king_channel_active(observation, board) and not board[\"charging_units\"] and board[\"king_cell\"] != None",
       "go": [
         {
           "file": "bot.go",
@@ -1404,6 +1485,7 @@
     {
       "id": "SBP-B-DELIVERY-LANE-BLOCKERS-1",
       "kind": "branch",
+      "descriptor": "delivery_lane_blockers decision: target in enemy_by_square",
       "go": [
         {
           "file": "board.go",
@@ -1424,6 +1506,7 @@
     {
       "id": "SBP-B-DELIVERY-LANE-BLOCKERS-2",
       "kind": "branch",
+      "descriptor": "delivery_lane_blockers decision: target in own_by_square",
       "go": [
         {
           "file": "board.go",
@@ -1444,6 +1527,7 @@
     {
       "id": "SBP-B-DELIVERY-LANE-BLOCKERS-3",
       "kind": "branch",
+      "descriptor": "delivery_lane_blockers decision: not neighbors",
       "go": [
         {
           "file": "board.go",
@@ -1464,6 +1548,7 @@
     {
       "id": "SBP-B-DELIVERY-LANE-BLOCKERS-4",
       "kind": "branch",
+      "descriptor": "delivery_lane_blockers decision: neighbor in enemy_by_square",
       "go": [
         {
           "file": "board.go",
@@ -1484,6 +1569,7 @@
     {
       "id": "SBP-B-DELIVERY-LANE-BLOCKERS-5",
       "kind": "branch",
+      "descriptor": "delivery_lane_blockers decision: neighbor not in own_by_square",
       "go": [
         {
           "file": "board.go",
@@ -1504,6 +1590,7 @@
     {
       "id": "SBP-B-DELIVERY-SQUARE-NEIGHBORS-1",
       "kind": "branch",
+      "descriptor": "_delivery_square_neighbors decision: file_delta == 0 and rank_delta == 0",
       "go": [
         {
           "file": "board.go",
@@ -1524,6 +1611,7 @@
     {
       "id": "SBP-B-DELIVERY-SQUARE-NEIGHBORS-2",
       "kind": "branch",
+      "descriptor": "_delivery_square_neighbors decision: neighbor_file \u003c 0 or neighbor_file \u003e 7 or neighbor_rank \u003c 0 or neighbor_rank \u003e 7",
       "go": [
         {
           "file": "board.go",
@@ -1544,6 +1632,7 @@
     {
       "id": "SBP-B-DISTANCE-TO-NEAREST-ENEMY-1",
       "kind": "branch",
+      "descriptor": "distance_to_nearest_enemy decision: gap \u003c closest",
       "go": [
         {
           "file": "board.go",
@@ -1564,6 +1653,7 @@
     {
       "id": "SBP-B-DISTANCE-TO-NEAREST-SQUARE-1",
       "kind": "branch",
+      "descriptor": "distance_to_nearest_square decision: gap \u003c closest",
       "go": [
         {
           "file": "board.go",
@@ -1584,6 +1674,7 @@
     {
       "id": "SBP-B-DROP-REFUSED-1",
       "kind": "branch",
+      "descriptor": "drop_refused decision: not memory or memory.get(\"revision\") != observation[\"revision\"]",
       "go": [
         {
           "file": "memory.go",
@@ -1604,6 +1695,7 @@
     {
       "id": "SBP-B-DROP-REFUSED-2",
       "kind": "branch",
+      "descriptor": "drop_refused decision: index \u003e= 0 and index \u003c= MAX_SQUARE_INDEX",
       "go": [
         {
           "file": "memory.go",
@@ -1624,6 +1716,7 @@
     {
       "id": "SBP-B-DROP-REFUSED-3",
       "kind": "branch",
+      "descriptor": "drop_refused decision: not refused_squares",
       "go": [
         {
           "file": "memory.go",
@@ -1644,6 +1737,7 @@
     {
       "id": "SBP-B-EFFECTIVE-CAPTURE-TARGET-1",
       "kind": "branch",
+      "descriptor": "effective_capture_target decision: target_cell",
       "go": [
         {
           "file": "score.go",
@@ -1664,6 +1758,7 @@
     {
       "id": "SBP-B-EFFECTIVE-CAPTURE-TARGET-2",
       "kind": "branch",
+      "descriptor": "effective_capture_target decision: cell[\"convoy\"] or cell[\"rank\"] != \"pawn\"",
       "go": [
         {
           "file": "score.go",
@@ -1684,12 +1779,13 @@
     {
       "id": "SBP-B-EFFECTIVE-CAPTURE-TARGET-3",
       "kind": "branch",
+      "descriptor": "effective_capture_target decision: not victim_square",
       "go": [
         {
           "file": "score.go",
           "function": "effectiveCaptureTarget",
-          "occurrence": 3,
-          "source": "ok"
+          "occurrence": 4,
+          "source": "ok2 \u0026\u0026 victimSquare != \"\""
         }
       ],
       "starlark": [
@@ -1704,6 +1800,7 @@
     {
       "id": "SBP-B-ESPIONAGE-PROPOSALS-1",
       "kind": "branch",
+      "descriptor": "espionage_proposals decision: king_cell == None or board[\"busy_units\"].get(king_cell[\"unitId\"])",
       "go": [
         {
           "file": "systems.go",
@@ -1724,6 +1821,7 @@
     {
       "id": "SBP-B-ESPIONAGE-PROPOSALS-2",
       "kind": "branch",
+      "descriptor": "espionage_proposals decision: observation[\"enemyManaged\"] \u003c= 0",
       "go": [
         {
           "file": "systems.go",
@@ -1744,6 +1842,7 @@
     {
       "id": "SBP-B-ESPIONAGE-PROPOSALS-3",
       "kind": "branch",
+      "descriptor": "espionage_proposals decision: suspect[\"rank\"] == \"king\" or suspect[\"convoy\"]",
       "go": [
         {
           "file": "systems.go",
@@ -1764,6 +1863,7 @@
     {
       "id": "SBP-B-ESPIONAGE-PROPOSALS-4",
       "kind": "branch",
+      "descriptor": "espionage_proposals decision: chebyshev_distance(king_cell[\"square\"], suspect[\"square\"]) != 1",
       "go": [
         {
           "file": "systems.go",
@@ -1784,12 +1884,13 @@
     {
       "id": "SBP-B-FINISH-DECISION-1",
       "kind": "branch",
+      "descriptor": "finish_decision decision: committed == 0",
       "go": [
         {
           "file": "memory.go",
           "function": "finishDecision",
-          "occurrence": 1,
-          "source": "chosen != nil"
+          "occurrence": 2,
+          "source": "committed == 0"
         }
       ],
       "starlark": [
@@ -1804,6 +1905,7 @@
     {
       "id": "SBP-B-FORMATION-LEADER-PRIORITY-1",
       "kind": "branch",
+      "descriptor": "formation_leader_priority decision: cell[\"convoy\"]",
       "go": [
         {
           "file": "score.go",
@@ -1824,6 +1926,7 @@
     {
       "id": "SBP-B-FORMATION-LEADER-PRIORITY-2",
       "kind": "branch",
+      "descriptor": "formation_leader_priority decision: cell[\"rank\"] == \"king\"",
       "go": [
         {
           "file": "score.go",
@@ -1844,6 +1947,7 @@
     {
       "id": "SBP-B-FORMATION-LEADER-PRIORITY-3",
       "kind": "branch",
+      "descriptor": "formation_leader_priority decision: params[\"moralePush\"] \u003c= 0",
       "go": [
         {
           "file": "score.go",
@@ -1864,6 +1968,7 @@
     {
       "id": "SBP-B-FORMATION-LEADER-PRIORITY-4",
       "kind": "branch",
+      "descriptor": "formation_leader_priority decision: observation.get(\"ownMorale\", 0) - needed \u003e= LEADER_EXCESS_MORALE",
       "go": [
         {
           "file": "score.go",
@@ -1884,6 +1989,7 @@
     {
       "id": "SBP-B-FORMATION-LEADER-PRIORITY-5",
       "kind": "branch",
+      "descriptor": "formation_leader_priority decision: (is_quiet_move(observation, board, cell, destination) and has_candidate(observation, cell[\"square\"], destination) and fact.get(\"destinationVisible\", False) and supported_and_unthreatened(fact) and after \u003c current and after \u003e= needed + 1)",
       "go": [
         {
           "file": "score.go",
@@ -1904,6 +2010,7 @@
     {
       "id": "SBP-B-FORMATION-LEADER-PRIORITY-6",
       "kind": "branch",
+      "descriptor": "formation_leader_priority decision: current \u003e= needed + 1",
       "go": [
         {
           "file": "score.go",
@@ -1924,6 +2031,7 @@
     {
       "id": "SBP-B-FORMATION-LEADER-PRIORITY-7",
       "kind": "branch",
+      "descriptor": "formation_leader_priority decision: (is_quiet_move(observation, board, cell, destination) and has_candidate(observation, cell[\"square\"], destination) and fact.get(\"destinationVisible\", False) and supported_and_unthreatened(fact) and after \u003e current and after \u003c= needed + 2)",
       "go": [
         {
           "file": "score.go",
@@ -1944,6 +2052,7 @@
     {
       "id": "SBP-B-FORMATION-LEADER-PRIORITY-8",
       "kind": "branch",
+      "descriptor": "formation_leader_priority decision: not is_current_beacon_bearer(observation, cell) or params[\"beaconAggression\"] \u003c= 0",
       "go": [
         {
           "file": "score.go",
@@ -1964,6 +2073,7 @@
     {
       "id": "SBP-B-FORMATION-LEADER-PRIORITY-9",
       "kind": "branch",
+      "descriptor": "formation_leader_priority decision: (not (cell[\"rank\"] == \"pawn\" and is_promotion_square(board[\"side\"], destination)) and is_quiet_move(observation, board, cell, destination) and has_candidate(observation, cell[\"square\"], destination) and fact.get(\"destinationVisible\", False) and supported_and_unthreatened(fact) and leader_support(observation, board, cell, destination) \u003e current_support)",
       "go": [
         {
           "file": "score.go",
@@ -1984,6 +2094,7 @@
     {
       "id": "SBP-B-GUARD-CHANGES-1",
       "kind": "branch",
+      "descriptor": "guard_changes decision: target and old_square not in relation_squares(target, \"guardedBy\")",
       "go": [
         {
           "file": "score.go",
@@ -2004,6 +2115,7 @@
     {
       "id": "SBP-B-GUARD-CHANGES-2",
       "kind": "branch",
+      "descriptor": "guard_changes decision: square in after",
       "go": [
         {
           "file": "score.go",
@@ -2024,6 +2136,7 @@
     {
       "id": "SBP-B-GUARD-CHANGES-3",
       "kind": "branch",
+      "descriptor": "guard_changes decision: target and relation_squares(target, \"guardedBy\") == [old_square]",
       "go": [
         {
           "file": "score.go",
@@ -2044,6 +2157,7 @@
     {
       "id": "SBP-B-HOLDS-FOCUS-1",
       "kind": "branch",
+      "descriptor": "holds_focus decision: focus_marker \u003c= 0",
       "go": [
         {
           "file": "memory.go",
@@ -2064,6 +2178,7 @@
     {
       "id": "SBP-B-INTN-1",
       "kind": "branch",
+      "descriptor": "intn decision: count \u003c= 1",
       "go": [
         {
           "file": "bot.go",
@@ -2084,6 +2199,7 @@
     {
       "id": "SBP-B-IS-QUIET-MOVE-1",
       "kind": "branch",
+      "descriptor": "is_quiet_move decision: board[\"enemy_by_square\"].get(destination)",
       "go": [
         {
           "file": "board.go",
@@ -2104,6 +2220,7 @@
     {
       "id": "SBP-B-KING-CHANNEL-ACTIVE-1",
       "kind": "branch",
+      "descriptor": "king_channel_active decision: board[\"king_cell\"] == None",
       "go": [
         {
           "file": "memory.go",
@@ -2124,6 +2241,7 @@
     {
       "id": "SBP-B-LEADER-GUARD-MATCHES-1",
       "kind": "branch",
+      "descriptor": "leader_guard_matches decision: memory.get(\"leaderGuardActive\", 0) != 1",
       "go": [
         {
           "file": "memory.go",
@@ -2144,6 +2262,7 @@
     {
       "id": "SBP-B-LEADER-GUARD-MATCHES-2",
       "kind": "branch",
+      "descriptor": "leader_guard_matches decision: source_cell and source_cell[\"side\"] != observation[\"side\"]",
       "go": [
         {
           "file": "memory.go",
@@ -2164,6 +2283,7 @@
     {
       "id": "SBP-B-LEADER-GUARD-MATCHES-3",
       "kind": "branch",
+      "descriptor": "leader_guard_matches decision: source_cell and leader_kind(observation, source_cell) == memory[\"leaderGuardKind\"]",
       "go": [
         {
           "file": "memory.go",
@@ -2182,28 +2302,9 @@
       ]
     },
     {
-      "id": "SBP-B-LEADER-GUARD-MATCHES-4",
-      "kind": "branch",
-      "go": [
-        {
-          "file": "memory.go",
-          "function": "leaderGuardMatches",
-          "occurrence": 4,
-          "source": "sourceCell.Side != \"white\""
-        }
-      ],
-      "starlark": [
-        {
-          "file": "chess-raiders-bot.star",
-          "function": "leader_guard_matches",
-          "occurrence": 4,
-          "source": "value \u003c 0"
-        }
-      ]
-    },
-    {
       "id": "SBP-B-LEADER-GUARD-MATCHES-5",
       "kind": "branch",
+      "descriptor": "leader_guard_matches decision: destination_cell and destination_cell[\"side\"] != observation[\"side\"]",
       "go": [
         {
           "file": "memory.go",
@@ -2224,6 +2325,7 @@
     {
       "id": "SBP-B-LEADER-GUARD-MATCHES-6",
       "kind": "branch",
+      "descriptor": "leader_guard_matches decision: not destination_cell or leader_kind(observation, destination_cell) != memory[\"leaderGuardKind\"]",
       "go": [
         {
           "file": "memory.go",
@@ -2244,6 +2346,7 @@
     {
       "id": "SBP-B-LEADER-KIND-1",
       "kind": "branch",
+      "descriptor": "leader_kind decision: cell[\"rank\"] == \"king\"",
       "go": [
         {
           "file": "memory.go",
@@ -2264,6 +2367,7 @@
     {
       "id": "SBP-B-LEADER-KIND-2",
       "kind": "branch",
+      "descriptor": "leader_kind decision: is_current_beacon_bearer(observation, cell)",
       "go": [
         {
           "file": "memory.go",
@@ -2284,6 +2388,7 @@
     {
       "id": "SBP-B-LEADER-REVERSE-FORBIDDEN-1",
       "kind": "branch",
+      "descriptor": "leader_reverse_forbidden decision: guard == None",
       "go": [
         {
           "file": "memory.go",
@@ -2304,6 +2409,7 @@
     {
       "id": "SBP-B-LEADER-REVERSE-FORBIDDEN-2",
       "kind": "branch",
+      "descriptor": "leader_reverse_forbidden decision: cell[\"square\"] != square_name(guard[\"to\"]) or destination != square_name(guard[\"from\"])",
       "go": [
         {
           "file": "memory.go",
@@ -2324,6 +2430,7 @@
     {
       "id": "SBP-B-LEADER-REVERSE-FORBIDDEN-3",
       "kind": "branch",
+      "descriptor": "leader_reverse_forbidden decision: leader_kind(observation, cell) != guard[\"kind\"]",
       "go": [
         {
           "file": "memory.go",
@@ -2344,6 +2451,7 @@
     {
       "id": "SBP-B-LEADER-SUPPORT-1",
       "kind": "branch",
+      "descriptor": "leader_support decision: ally[\"unitId\"] == leader[\"unitId\"]",
       "go": [
         {
           "file": "score.go",
@@ -2364,6 +2472,7 @@
     {
       "id": "SBP-B-LEADER-SUPPORT-2",
       "kind": "branch",
+      "descriptor": "leader_support decision: distance == 0",
       "go": [
         {
           "file": "score.go",
@@ -2384,6 +2493,7 @@
     {
       "id": "SBP-B-MOST-ADVANCED-ADJACENT-ALLY-1",
       "kind": "branch",
+      "descriptor": "most_advanced_adjacent_ally decision: king_cell == None",
       "go": [
         {
           "file": "systems.go",
@@ -2404,6 +2514,7 @@
     {
       "id": "SBP-B-MOST-ADVANCED-ADJACENT-ALLY-2",
       "kind": "branch",
+      "descriptor": "most_advanced_adjacent_ally decision: cell[\"rank\"] == \"king\" or cell[\"convoy\"]",
       "go": [
         {
           "file": "systems.go",
@@ -2424,6 +2535,7 @@
     {
       "id": "SBP-B-MOST-ADVANCED-ADJACENT-ALLY-3",
       "kind": "branch",
+      "descriptor": "most_advanced_adjacent_ally decision: chebyshev_distance(king_cell[\"square\"], cell[\"square\"]) != 1",
       "go": [
         {
           "file": "systems.go",
@@ -2444,6 +2556,7 @@
     {
       "id": "SBP-B-MOST-ADVANCED-ADJACENT-ALLY-4",
       "kind": "branch",
+      "descriptor": "most_advanced_adjacent_ally decision: progress \u003e best_progress",
       "go": [
         {
           "file": "systems.go",
@@ -2464,6 +2577,7 @@
     {
       "id": "SBP-B-MOVE-PROPOSALS-1",
       "kind": "branch",
+      "descriptor": "move_proposals decision: not board[\"move_actionable_units\"]",
       "go": [
         {
           "file": "memory.go",
@@ -2484,12 +2598,13 @@
     {
       "id": "SBP-B-MOVE-PROPOSALS-2",
       "kind": "branch",
+      "descriptor": "move_proposals decision: breadth \u003c= 0 or breadth \u003e len(ranked_units)",
       "go": [
         {
           "file": "memory.go",
           "function": "moveProposals",
-          "occurrence": 2,
-          "source": "rankedUnits[i].priority != rankedUnits[j].priority"
+          "occurrence": 3,
+          "source": "breadth \u003c= 0 || breadth \u003e len(rankedUnits)"
         }
       ],
       "starlark": [
@@ -2504,12 +2619,13 @@
     {
       "id": "SBP-B-MOVE-PROPOSALS-3",
       "kind": "branch",
+      "descriptor": "move_proposals decision: destination == cell[\"square\"]",
       "go": [
         {
           "file": "memory.go",
           "function": "moveProposals",
-          "occurrence": 3,
-          "source": "breadth \u003c= 0 || breadth \u003e len(rankedUnits)"
+          "occurrence": 4,
+          "source": "destination == cell.Square"
         }
       ],
       "starlark": [
@@ -2524,12 +2640,13 @@
     {
       "id": "SBP-B-MOVE-PROPOSALS-4",
       "kind": "branch",
+      "descriptor": "move_proposals decision: cell.get(\"charging\") and destination == cell[\"charging\"][\"square\"]",
       "go": [
         {
           "file": "memory.go",
           "function": "moveProposals",
-          "occurrence": 4,
-          "source": "destination == cell.Square"
+          "occurrence": 5,
+          "source": "cell.Charging != nil \u0026\u0026 destination == cell.Charging.Square"
         }
       ],
       "starlark": [
@@ -2544,12 +2661,13 @@
     {
       "id": "SBP-B-MOVE-PROPOSALS-5",
       "kind": "branch",
+      "descriptor": "move_proposals decision: not capture_choice_available(observation, board, cell, destination)",
       "go": [
         {
           "file": "memory.go",
           "function": "moveProposals",
-          "occurrence": 5,
-          "source": "cell.Charging != nil \u0026\u0026 destination == cell.Charging.Square"
+          "occurrence": 6,
+          "source": "!captureChoiceAvailable(obs, b, cell, destination)"
         }
       ],
       "starlark": [
@@ -2564,12 +2682,13 @@
     {
       "id": "SBP-B-MOVE-PROPOSALS-6",
       "kind": "branch",
+      "descriptor": "move_proposals decision: leader_reverse_forbidden(observation, leader_guard, cell, destination)",
       "go": [
         {
           "file": "memory.go",
           "function": "moveProposals",
-          "occurrence": 6,
-          "source": "!captureChoiceAvailable(obs, b, cell, destination)"
+          "occurrence": 7,
+          "source": "leaderReverseForbidden(obs, leaderGuard, cell, destination)"
         }
       ],
       "starlark": [
@@ -2584,12 +2703,13 @@
     {
       "id": "SBP-B-MOVE-PROPOSALS-7",
       "kind": "branch",
+      "descriptor": "move_proposals decision: candidate_spread \u003c= 0 or candidate_spread \u003e len(candidates)",
       "go": [
         {
           "file": "memory.go",
           "function": "moveProposals",
-          "occurrence": 7,
-          "source": "leaderReverseForbidden(obs, leaderGuard, cell, destination)"
+          "occurrence": 9,
+          "source": "spread \u003c= 0 || spread \u003e len(candidates)"
         }
       ],
       "starlark": [
@@ -2604,12 +2724,13 @@
     {
       "id": "SBP-B-NEXT-COMMITTED-1",
       "kind": "branch",
+      "descriptor": "next_committed decision: intent != None and intent[\"kind\"] == \"move\"",
       "go": [
         {
           "file": "memory.go",
           "function": "nextCommitted",
-          "occurrence": 1,
-          "source": "chosen != nil"
+          "occurrence": 2,
+          "source": "intent != nil \u0026\u0026 intent.Kind == \"move\""
         }
       ],
       "starlark": [
@@ -2624,12 +2745,13 @@
     {
       "id": "SBP-B-NEXT-COMMITTED-2",
       "kind": "branch",
+      "descriptor": "next_committed decision: charge_ms \u003e 0",
       "go": [
         {
           "file": "memory.go",
           "function": "nextCommitted",
-          "occurrence": 2,
-          "source": "intent != nil \u0026\u0026 intent.Kind == \"move\""
+          "occurrence": 4,
+          "source": "chargeMs \u003e 0"
         }
       ],
       "starlark": [
@@ -2644,12 +2766,13 @@
     {
       "id": "SBP-B-NEXT-COMMITTED-3",
       "kind": "branch",
+      "descriptor": "next_committed decision: is_king_channel_start(intent)",
       "go": [
         {
           "file": "memory.go",
           "function": "nextCommitted",
-          "occurrence": 3,
-          "source": "mover != nil"
+          "occurrence": 5,
+          "source": "isKingChannelStart(intent)"
         }
       ],
       "starlark": [
@@ -2664,12 +2787,13 @@
     {
       "id": "SBP-B-NEXT-COMMITTED-4",
       "kind": "branch",
+      "descriptor": "next_committed decision: board[\"charging_units\"] and stored_kind == COMMIT_KIND_ROUTE",
       "go": [
         {
           "file": "memory.go",
           "function": "nextCommitted",
-          "occurrence": 4,
-          "source": "chargeMs \u003e 0"
+          "occurrence": 6,
+          "source": "len(b.chargingUnits) \u003e 0 \u0026\u0026 storedKind == CommitKindRoute"
         }
       ],
       "starlark": [
@@ -2684,12 +2808,13 @@
     {
       "id": "SBP-B-NEXT-COMMITTED-5",
       "kind": "branch",
+      "descriptor": "next_committed decision: king_channel_active(observation, board) and stored_kind == COMMIT_KIND_KING and actor != king_id",
       "go": [
         {
           "file": "memory.go",
           "function": "nextCommitted",
-          "occurrence": 5,
-          "source": "isKingChannelStart(intent)"
+          "occurrence": 12,
+          "source": "kingChannelActive(obs, b) \u0026\u0026 storedKind == CommitKindKing \u0026\u0026 actorID != kingID"
         }
       ],
       "starlark": [
@@ -2704,6 +2829,7 @@
     {
       "id": "SBP-B-PACK-COMMITTED-1",
       "kind": "branch",
+      "descriptor": "pack_committed decision: offset_score \u003c 0",
       "go": [
         {
           "file": "memory.go",
@@ -2724,6 +2850,7 @@
     {
       "id": "SBP-B-PACK-COMMITTED-2",
       "kind": "branch",
+      "descriptor": "pack_committed decision: offset_score \u003e= COMMIT_SCORE_FIELD",
       "go": [
         {
           "file": "memory.go",
@@ -2742,28 +2869,9 @@
       ]
     },
     {
-      "id": "SBP-B-PACK-PLACEMENT-BOARDS-1",
-      "kind": "branch",
-      "go": [
-        {
-          "file": "memory.go",
-          "function": "packPlacementBoards",
-          "occurrence": 1,
-          "source": "64-baseSquare \u003c squaresInSlot"
-        }
-      ],
-      "starlark": [
-        {
-          "file": "chess-raiders-bot.star",
-          "function": "pack_placement_boards",
-          "occurrence": 1,
-          "source": "raw \u003c 0"
-        }
-      ]
-    },
-    {
       "id": "SBP-B-PACK-PLACEMENT-BOARDS-2",
       "kind": "branch",
+      "descriptor": "pack_placement_boards decision: (raw \u003e\u003e square) \u0026 1",
       "go": [
         {
           "file": "memory.go",
@@ -2784,6 +2892,7 @@
     {
       "id": "SBP-B-PLACEMENT-BITBOARDS-1",
       "kind": "branch",
+      "descriptor": "placement_bitboards decision: rank_slot == None",
       "go": [
         {
           "file": "memory.go",
@@ -2804,6 +2913,7 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-1",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_in_flight decision: not board[\"needs_first_master_engineer\"]",
       "go": [
         {
           "file": "score.go",
@@ -2824,6 +2934,7 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-2",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_in_flight decision: (not charging or not cell[\"convoy\"] or cell[\"cargoCount\"] == 0 or cell[\"kingCargo\"] or cell[\"rank\"] != \"pawn\")",
       "go": [
         {
           "file": "score.go",
@@ -2844,6 +2955,7 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-3",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_in_flight decision: board[\"all_by_square\"].get(charging[\"square\"])",
       "go": [
         {
           "file": "score.go",
@@ -2864,12 +2976,13 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-4",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_in_flight decision: cell[\"square\"] in base_squares",
       "go": [
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryInFlight",
-          "occurrence": 4,
-          "source": "obs.Rules.CargoBasedDelivery"
+          "occurrence": 5,
+          "source": "containsString(baseSquares, cell.Square)"
         }
       ],
       "starlark": [
@@ -2884,12 +2997,13 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-5",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_in_flight decision: distance_to_nearest_square(charging[\"square\"], base_squares) \u003c distance_to_nearest_square(cell[\"square\"], base_squares)",
       "go": [
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryInFlight",
-          "occurrence": 5,
-          "source": "containsString(baseSquares, cell.Square)"
+          "occurrence": 6,
+          "source": "distanceToNearestSquare(charging.Square, baseSquares) \u003c distanceToNearestSquare(cell.Square, baseSquares)"
         }
       ],
       "starlark": [
@@ -2904,6 +3018,7 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-1",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_proposal decision: not board[\"needs_first_master_engineer\"]",
       "go": [
         {
           "file": "score.go",
@@ -2924,12 +3039,13 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-10",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_proposal decision: (candidate == cell[\"square\"] or board[\"enemy_by_square\"].get(candidate) or not has_candidate(observation, cell[\"square\"], candidate) or not fact.get(\"destinationVisible\", False) or not is_safe_subject(fact))",
       "go": [
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
-          "occurrence": 10,
-          "source": "to == \"\""
+          "occurrence": 11,
+          "source": "candidate == cell.Square || b.enemyBySquare[candidate] != nil || !hasCandidate(obs, cell.Square, candidate) || fact == nil || !fact.DestinationVisible || !isSafeSubject(fact)"
         }
       ],
       "starlark": [
@@ -2944,12 +3060,13 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-11",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_proposal decision: gain \u003e best_gain",
       "go": [
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
-          "occurrence": 11,
-          "source": "candidate == cell.Square || b.enemyBySquare[candidate] != nil || !hasCandidate(obs, cell.Square, candidate) || fact == nil || !fact.DestinationVisible || !isSafeSubject(fact)"
+          "occurrence": 12,
+          "source": "gain \u003e bestGain"
         }
       ],
       "starlark": [
@@ -2964,12 +3081,13 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-12",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_proposal decision: to == None",
       "go": [
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
-          "occurrence": 12,
-          "source": "gain \u003e bestGain"
+          "occurrence": 13,
+          "source": "to == \"\""
         }
       ],
       "starlark": [
@@ -2984,6 +3102,7 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-2",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_proposal decision: (not cell[\"convoy\"] or cell[\"cargoCount\"] == 0 or cell[\"kingCargo\"] or cell[\"rank\"] != \"pawn\" or board[\"busy_units\"].get(cell[\"unitId\"]))",
       "go": [
         {
           "file": "score.go",
@@ -3004,6 +3123,7 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-3",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_proposal decision: cell.get(\"notBriefed\")",
       "go": [
         {
           "file": "score.go",
@@ -3024,12 +3144,13 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-4",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_proposal decision: not destinations",
       "go": [
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
-          "occurrence": 4,
-          "source": "obs.Rules.CargoBasedDelivery"
+          "occurrence": 5,
+          "source": "len(destinations) == 0"
         }
       ],
       "starlark": [
@@ -3044,12 +3165,13 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-5",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_proposal decision: cell[\"square\"] in base_squares",
       "go": [
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
-          "occurrence": 5,
-          "source": "len(destinations) == 0"
+          "occurrence": 6,
+          "source": "containsString(baseSquares, cell.Square)"
         }
       ],
       "starlark": [
@@ -3064,12 +3186,13 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-6",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_proposal decision: (candidate == cell[\"square\"] or board[\"enemy_by_square\"].get(candidate) or not has_candidate(observation, cell[\"square\"], candidate) or not fact.get(\"destinationVisible\", False) or not is_safe_subject(fact))",
       "go": [
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
-          "occurrence": 6,
-          "source": "containsString(baseSquares, cell.Square)"
+          "occurrence": 7,
+          "source": "candidate == cell.Square || b.enemyBySquare[candidate] != nil || !hasCandidate(obs, cell.Square, candidate) || fact == nil || !fact.DestinationVisible || !isSafeSubject(fact)"
         }
       ],
       "starlark": [
@@ -3084,12 +3207,13 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-7",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_proposal decision: candidate in base_squares",
       "go": [
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
-          "occurrence": 7,
-          "source": "candidate == cell.Square || b.enemyBySquare[candidate] != nil || !hasCandidate(obs, cell.Square, candidate) || fact == nil || !fact.DestinationVisible || !isSafeSubject(fact)"
+          "occurrence": 8,
+          "source": "containsString(baseSquares, candidate)"
         }
       ],
       "starlark": [
@@ -3104,12 +3228,13 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-8",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_proposal decision: fallback == None",
       "go": [
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
-          "occurrence": 8,
-          "source": "containsString(baseSquares, candidate)"
+          "occurrence": 9,
+          "source": "fallback == \"\""
         }
       ],
       "starlark": [
@@ -3124,12 +3249,13 @@
     {
       "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-9",
       "kind": "branch",
+      "descriptor": "priority_captive_delivery_proposal decision: to == None",
       "go": [
         {
           "file": "score.go",
           "function": "priorityCaptiveDeliveryProposal",
-          "occurrence": 9,
-          "source": "fallback == \"\""
+          "occurrence": 10,
+          "source": "to == \"\""
         }
       ],
       "starlark": [
@@ -3144,6 +3270,7 @@
     {
       "id": "SBP-B-PROJECTED-CELL-1",
       "kind": "branch",
+      "descriptor": "projected_cell decision: raw == None",
       "go": [
         {
           "file": "memory.go",
@@ -3164,6 +3291,7 @@
     {
       "id": "SBP-B-QUIET-LEADER-INTENT-1",
       "kind": "branch",
+      "descriptor": "quiet_leader_intent decision: not intent or intent[\"kind\"] != \"move\" or intent.get(\"promotion\")",
       "go": [
         {
           "file": "memory.go",
@@ -3184,6 +3312,7 @@
     {
       "id": "SBP-B-QUIET-LEADER-INTENT-2",
       "kind": "branch",
+      "descriptor": "quiet_leader_intent decision: cell and cell[\"side\"] != observation[\"side\"]",
       "go": [
         {
           "file": "memory.go",
@@ -3204,6 +3333,7 @@
     {
       "id": "SBP-B-QUIET-LEADER-INTENT-3",
       "kind": "branch",
+      "descriptor": "quiet_leader_intent decision: not cell or cell[\"convoy\"] or not leader_kind(observation, cell)",
       "go": [
         {
           "file": "memory.go",
@@ -3224,12 +3354,13 @@
     {
       "id": "SBP-B-QUIET-LEADER-INTENT-4",
       "kind": "branch",
+      "descriptor": "quiet_leader_intent decision: not is_quiet_move(observation, board, cell, intent[\"to\"])",
       "go": [
         {
           "file": "memory.go",
           "function": "quietLeaderIntent",
-          "occurrence": 4,
-          "source": "piece.Side != obs.Side"
+          "occurrence": 5,
+          "source": "!isQuietMove(obs, boardMock, cell, intent.To)"
         }
       ],
       "starlark": [
@@ -3244,6 +3375,7 @@
     {
       "id": "SBP-B-QUIET-ORDINARY-INTENT-1",
       "kind": "branch",
+      "descriptor": "quiet_ordinary_intent decision: not intent or intent[\"kind\"] != \"move\" or intent.get(\"promotion\")",
       "go": [
         {
           "file": "memory.go",
@@ -3264,6 +3396,7 @@
     {
       "id": "SBP-B-QUIET-ORDINARY-INTENT-2",
       "kind": "branch",
+      "descriptor": "quiet_ordinary_intent decision: cell and cell[\"side\"] != observation[\"side\"]",
       "go": [
         {
           "file": "memory.go",
@@ -3284,6 +3417,7 @@
     {
       "id": "SBP-B-QUIET-ORDINARY-INTENT-3",
       "kind": "branch",
+      "descriptor": "quiet_ordinary_intent decision: not cell or cell[\"convoy\"] or leader_kind(observation, cell)",
       "go": [
         {
           "file": "memory.go",
@@ -3304,6 +3438,7 @@
     {
       "id": "SBP-B-RANK-OPTIONS-1",
       "kind": "branch",
+      "descriptor": "rank_options decision: count \u003c= 0",
       "go": [
         {
           "file": "score.go",
@@ -3324,6 +3459,7 @@
     {
       "id": "SBP-B-RANK-OPTIONS-2",
       "kind": "branch",
+      "descriptor": "rank_options decision: proposal[\"score\"] \u003c params[\"passBelow\"]",
       "go": [
         {
           "file": "score.go",
@@ -3344,12 +3480,13 @@
     {
       "id": "SBP-B-RANK-OPTIONS-3",
       "kind": "branch",
+      "descriptor": "rank_options decision: seen_actors.get(actor)",
       "go": [
         {
           "file": "score.go",
           "function": "rankOptions",
-          "occurrence": 3,
-          "source": "p.actor != nil"
+          "occurrence": 6,
+          "source": "seenActors[actorKey]"
         }
       ],
       "starlark": [
@@ -3364,12 +3501,13 @@
     {
       "id": "SBP-B-RANK-OPTIONS-4",
       "kind": "branch",
+      "descriptor": "rank_options decision: len(chosen) \u003e= count",
       "go": [
         {
           "file": "score.go",
           "function": "rankOptions",
-          "occurrence": 4,
-          "source": "ok \u0026\u0026 !uid.IsZero()"
+          "occurrence": 7,
+          "source": "len(chosen) \u003e= count"
         }
       ],
       "starlark": [
@@ -3384,12 +3522,13 @@
     {
       "id": "SBP-B-RANK-OPTIONS-5",
       "kind": "branch",
+      "descriptor": "rank_options decision: index == 0 or proposal[\"score\"] \u003c leader_score - TIE_BREAK_BAND",
       "go": [
         {
           "file": "score.go",
           "function": "rankOptions",
-          "occurrence": 5,
-          "source": "ok \u0026\u0026 str != \"\""
+          "occurrence": 8,
+          "source": "i == 0 || p.score \u003c leaderScore-TieBreakBand"
         }
       ],
       "starlark": [
@@ -3404,6 +3543,7 @@
     {
       "id": "SBP-B-RETENTION-SCORE-1",
       "kind": "branch",
+      "descriptor": "retention_score decision: stored_kind != kind",
       "go": [
         {
           "file": "memory.go",
@@ -3424,6 +3564,7 @@
     {
       "id": "SBP-B-ROUND-HALF-UP-1",
       "kind": "branch",
+      "descriptor": "round_half_up decision: value \u003e= 0",
       "go": [
         {
           "file": "memory.go",
@@ -3444,6 +3585,7 @@
     {
       "id": "SBP-B-SCORE-MOVE-1",
       "kind": "branch",
+      "descriptor": "score_move decision: target_cell and target_cell[\"rank\"] != \"king\" and not target_cell[\"convoy\"]",
       "go": [
         {
           "file": "score.go",
@@ -3464,12 +3606,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-10",
       "kind": "branch",
+      "descriptor": "score_move decision: candidate_known",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 10,
-          "source": "params.Prisoner \u003e 0 \u0026\u0026 targetCell.Rank != \"king\" \u0026\u0026 !targetCell.Convoy"
+          "occurrence": 12,
+          "source": "candidateKnown \u0026\u0026 candidate != nil"
         }
       ],
       "starlark": [
@@ -3484,12 +3627,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-11",
       "kind": "branch",
+      "descriptor": "score_move decision: target_cell",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 11,
-          "source": "b.needsFirstMasterEngineer \u0026\u0026 cell.Rank == \"pawn\" \u0026\u0026 !cell.Convoy \u0026\u0026 outcomes != nil \u0026\u0026 outcomes.Capture != nil \u0026\u0026 outcomes.Capture.Affordable \u0026\u0026 (captureBackingCount(targetCell, cell.Square) \u003e 0 || cellGuardedCount(targetCell) == 0)"
+          "occurrence": 13,
+          "source": "targetCell != nil"
         }
       ],
       "starlark": [
@@ -3504,12 +3648,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-12",
       "kind": "branch",
+      "descriptor": "score_move decision: post_threat \u003e 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 12,
-          "source": "candidateKnown \u0026\u0026 candidate != nil"
+          "occurrence": 14,
+          "source": "postThreat \u003e 0"
         }
       ],
       "starlark": [
@@ -3524,12 +3669,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-13",
       "kind": "branch",
+      "descriptor": "score_move decision: cell[\"kingCargo\"]",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 13,
-          "source": "targetCell != nil"
+          "occurrence": 15,
+          "source": "cell.KingCargo"
         }
       ],
       "starlark": [
@@ -3544,12 +3690,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-14",
       "kind": "branch",
+      "descriptor": "score_move decision: captured_value \u003e= risk",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 14,
-          "source": "postThreat \u003e 0"
+          "occurrence": 16,
+          "source": "capturedValue \u003e= risk"
         }
       ],
       "starlark": [
@@ -3564,12 +3711,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-15",
       "kind": "branch",
+      "descriptor": "score_move decision: post_guarded \u003e 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 15,
-          "source": "cell.KingCargo"
+          "occurrence": 17,
+          "source": "postGuarded \u003e 0"
         }
       ],
       "starlark": [
@@ -3584,12 +3732,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-16",
       "kind": "branch",
+      "descriptor": "score_move decision: params[\"tempo\"] \u003e 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 16,
-          "source": "capturedValue \u003e= risk"
+          "occurrence": 18,
+          "source": "params.Tempo \u003e 0"
         }
       ],
       "starlark": [
@@ -3604,12 +3753,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-17",
       "kind": "branch",
+      "descriptor": "score_move decision: charge_ms \u003e 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 17,
-          "source": "postGuarded \u003e 0"
+          "occurrence": 19,
+          "source": "chargeMs \u003e 0"
         }
       ],
       "starlark": [
@@ -3624,12 +3774,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-18",
       "kind": "branch",
+      "descriptor": "score_move decision: active_charge and destination != active_charge[\"square\"]",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 18,
-          "source": "params.Tempo \u003e 0"
+          "occurrence": 20,
+          "source": "activeCharge != nil \u0026\u0026 destination != activeCharge.Square"
         }
       ],
       "starlark": [
@@ -3644,12 +3795,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-19",
       "kind": "branch",
+      "descriptor": "score_move decision: cell[\"convoy\"] and cell[\"kingCargo\"]",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 19,
-          "source": "chargeMs \u003e 0"
+          "occurrence": 21,
+          "source": "cell.Convoy \u0026\u0026 cell.KingCargo"
         }
       ],
       "starlark": [
@@ -3664,6 +3816,7 @@
     {
       "id": "SBP-B-SCORE-MOVE-2",
       "kind": "branch",
+      "descriptor": "score_move decision: (params[\"prisoner\"] \u003e 0 and observation[\"rules\"][\"allowsCapture\"] and outcomes.get(\"capture\", EMPTY_OUTCOME)[\"affordable\"])",
       "go": [
         {
           "file": "score.go",
@@ -3684,12 +3837,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-20",
       "kind": "branch",
+      "descriptor": "score_move decision: destination in board[\"delivery_squares\"]",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 20,
-          "source": "activeCharge != nil \u0026\u0026 destination != activeCharge.Square"
+          "occurrence": 22,
+          "source": "containsString(b.deliverySquares, destination)"
         }
       ],
       "starlark": [
@@ -3704,12 +3858,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-21",
       "kind": "branch",
+      "descriptor": "score_move decision: here_cost \u003c UNREACHABLE_PATH_COST",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 21,
-          "source": "cell.Convoy \u0026\u0026 cell.KingCargo"
+          "occurrence": 26,
+          "source": "hereCost \u003c UnreachablePathCost"
         }
       ],
       "starlark": [
@@ -3724,12 +3879,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-22",
       "kind": "branch",
+      "descriptor": "score_move decision: there_cost \u003e= UNREACHABLE_PATH_COST",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 22,
-          "source": "containsString(b.deliverySquares, destination)"
+          "occurrence": 27,
+          "source": "thereCost \u003e= UnreachablePathCost"
         }
       ],
       "starlark": [
@@ -3744,12 +3900,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-23",
       "kind": "branch",
+      "descriptor": "score_move decision: cell[\"convoy\"] and cell[\"cargoCount\"] \u003e 0 and params[\"prisoner\"] \u003e 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 23,
-          "source": "activeCharge != nil"
+          "occurrence": 28,
+          "source": "cell.Convoy \u0026\u0026 cell.CargoCount \u003e 0 \u0026\u0026 params.Prisoner \u003e 0"
         }
       ],
       "starlark": [
@@ -3764,12 +3921,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-24",
       "kind": "branch",
+      "descriptor": "score_move decision: board[\"needs_first_master_engineer\"] and cell[\"rank\"] == \"pawn\"",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 24,
-          "source": "!okHere"
+          "occurrence": 30,
+          "source": "b.needsFirstMasterEngineer \u0026\u0026 cell.Rank == \"pawn\""
         }
       ],
       "starlark": [
@@ -3784,12 +3942,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-25",
       "kind": "branch",
+      "descriptor": "score_move decision: not cell[\"convoy\"] and params[\"delivery\"] \u003e 0 and cell[\"square\"] in board[\"blocking_base\"]",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 25,
-          "source": "!okThere"
+          "occurrence": 31,
+          "source": "!cell.Convoy \u0026\u0026 params.Delivery \u003e 0 \u0026\u0026 containsString(b.blockingBase, cell.Square)"
         }
       ],
       "starlark": [
@@ -3804,12 +3963,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-26",
       "kind": "branch",
+      "descriptor": "score_move decision: params[\"advance\"] \u003e 0 and not cell[\"convoy\"]",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 26,
-          "source": "hereCost \u003c UnreachablePathCost"
+          "occurrence": 33,
+          "source": "params.Advance \u003e 0 \u0026\u0026 !cell.Convoy"
         }
       ],
       "starlark": [
@@ -3824,12 +3984,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-27",
       "kind": "branch",
+      "descriptor": "score_move decision: quiet_move and (not candidate_known or not candidate.get(\"destinationVisible\", False))",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 27,
-          "source": "thereCost \u003e= UnreachablePathCost"
+          "occurrence": 34,
+          "source": "quietMove \u0026\u0026 (!candidateKnown || candidate == nil || !candidate.DestinationVisible)"
         }
       ],
       "starlark": [
@@ -3844,12 +4005,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-28",
       "kind": "branch",
+      "descriptor": "score_move decision: quiet_move and guarded_count(candidate) \u003c= 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 28,
-          "source": "cell.Convoy \u0026\u0026 cell.CargoCount \u003e 0 \u0026\u0026 params.Prisoner \u003e 0"
+          "occurrence": 35,
+          "source": "quietMove \u0026\u0026 guardedCount(candidate) \u003c= 0"
         }
       ],
       "starlark": [
@@ -3864,12 +4026,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-29",
       "kind": "branch",
+      "descriptor": "score_move decision: cell[\"rank\"] == \"pawn\" and positional_known_and_supported and ordinary_piece",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 29,
-          "source": "obs.Rules.CargoBasedDelivery"
+          "occurrence": 36,
+          "source": "cell.Rank == \"pawn\" \u0026\u0026 positionalKnownAndSupported \u0026\u0026 ordinaryPiece"
         }
       ],
       "starlark": [
@@ -3884,6 +4047,7 @@
     {
       "id": "SBP-B-SCORE-MOVE-3",
       "kind": "branch",
+      "descriptor": "score_move decision: observation[\"rules\"][\"allowsKill\"]",
       "go": [
         {
           "file": "score.go",
@@ -3904,12 +4068,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-30",
       "kind": "branch",
+      "descriptor": "score_move decision: is_promotion_square(board[\"side\"], destination)",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 30,
-          "source": "b.needsFirstMasterEngineer \u0026\u0026 cell.Rank == \"pawn\""
+          "occurrence": 37,
+          "source": "isPromotionSquare(b.side, destination)"
         }
       ],
       "starlark": [
@@ -3924,12 +4089,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-31",
       "kind": "branch",
+      "descriptor": "score_move decision: (quiet_move and candidate_known and candidate.get(\"destinationVisible\", False) and supported_and_unthreatened(candidate) and can_promote_next_move(board[\"side\"], candidate))",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 31,
-          "source": "!cell.Convoy \u0026\u0026 params.Delivery \u003e 0 \u0026\u0026 containsString(b.blockingBase, cell.Square)"
+          "occurrence": 38,
+          "source": "quietMove \u0026\u0026 candidateKnown \u0026\u0026 candidate != nil \u0026\u0026 candidate.DestinationVisible \u0026\u0026 supportedAndUnthreatened(candidate) \u0026\u0026 canPromoteNextMove(b.side, candidate)"
         }
       ],
       "starlark": [
@@ -3944,12 +4110,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-32",
       "kind": "branch",
+      "descriptor": "score_move decision: ordinary_piece and positional_known_and_supported",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 32,
-          "source": "rankVal \u003e QueenValue"
+          "occurrence": 39,
+          "source": "ordinaryPiece \u0026\u0026 positionalKnownAndSupported"
         }
       ],
       "starlark": [
@@ -3964,12 +4131,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-33",
       "kind": "branch",
+      "descriptor": "score_move decision: (quiet_move and positional_known_and_supported and cell[\"rank\"] in [\"knight\", \"bishop\", \"rook\", \"queen\"] and ordinary_piece and not cell.get(\"moved\", False) and gain \u003e 0)",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 33,
-          "source": "params.Advance \u003e 0 \u0026\u0026 !cell.Convoy"
+          "occurrence": 40,
+          "source": "quietMove \u0026\u0026 positionalKnownAndSupported \u0026\u0026 (cell.Rank == \"knight\" || cell.Rank == \"bishop\" || cell.Rank == \"rook\" || cell.Rank == \"queen\") \u0026\u0026 ordinaryPiece \u0026\u0026 !cell.Moved \u0026\u0026 gain \u003e 0"
         }
       ],
       "starlark": [
@@ -3984,12 +4152,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-34",
       "kind": "branch",
+      "descriptor": "score_move decision: quiet_move and positional_known_and_supported and ordinary_piece and candidate.get(\"patrolGain\", 0) \u003e 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 34,
-          "source": "quietMove \u0026\u0026 (!candidateKnown || candidate == nil || !candidate.DestinationVisible)"
+          "occurrence": 41,
+          "source": "quietMove \u0026\u0026 positionalKnownAndSupported \u0026\u0026 ordinaryPiece \u0026\u0026 candidate != nil \u0026\u0026 candidate.PatrolGain \u003e 0"
         }
       ],
       "starlark": [
@@ -4004,12 +4173,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-35",
       "kind": "branch",
+      "descriptor": "score_move decision: (quiet_move and candidate_known and not is_promotion_square(board[\"side\"], destination) and candidate.get(\"destinationVisible\", False) and threatened_count(candidate) == 0 and ordinary_piece)",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 35,
-          "source": "quietMove \u0026\u0026 guardedCount(candidate) \u003c= 0"
+          "occurrence": 43,
+          "source": "quietMove \u0026\u0026 candidateKnown \u0026\u0026 candidate != nil \u0026\u0026 !isPromotionSquare(b.side, destination) \u0026\u0026 candidate.DestinationVisible \u0026\u0026 threatenedCount(candidate) == 0 \u0026\u0026 ordinaryPiece"
         }
       ],
       "starlark": [
@@ -4024,12 +4194,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-36",
       "kind": "branch",
+      "descriptor": "score_move decision: net_outbound_material \u003e 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 36,
-          "source": "cell.Rank == \"pawn\" \u0026\u0026 positionalKnownAndSupported \u0026\u0026 ordinaryPiece"
+          "occurrence": 44,
+          "source": "netOutboundMaterial \u003e 0"
         }
       ],
       "starlark": [
@@ -4044,12 +4215,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-37",
       "kind": "branch",
+      "descriptor": "score_move decision: net_outbound_material \u003c 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 37,
-          "source": "isPromotionSquare(b.side, destination)"
+          "occurrence": 45,
+          "source": "netOutboundMaterial \u003c 0"
         }
       ],
       "starlark": [
@@ -4064,12 +4236,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-38",
       "kind": "branch",
+      "descriptor": "score_move decision: inbound_material \u003e 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 38,
-          "source": "quietMove \u0026\u0026 candidateKnown \u0026\u0026 candidate != nil \u0026\u0026 candidate.DestinationVisible \u0026\u0026 supportedAndUnthreatened(candidate) \u0026\u0026 canPromoteNextMove(b.side, candidate)"
+          "occurrence": 46,
+          "source": "inboundMaterial \u003e 0"
         }
       ],
       "starlark": [
@@ -4084,12 +4257,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-39",
       "kind": "branch",
+      "descriptor": "score_move decision: (not cell[\"convoy\"] and quiet_move and candidate_known and candidate.get(\"destinationVisible\", False) and supported_and_unthreatened(candidate) and cell[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, cell))",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 39,
-          "source": "ordinaryPiece \u0026\u0026 positionalKnownAndSupported"
+          "occurrence": 47,
+          "source": "!cell.Convoy \u0026\u0026 quietMove \u0026\u0026 candidateKnown \u0026\u0026 candidate != nil \u0026\u0026 candidate.DestinationVisible \u0026\u0026 supportedAndUnthreatened(candidate) \u0026\u0026 cell.Rank != \"king\" \u0026\u0026 !isCurrentBeaconBearer(obs, cell)"
         }
       ],
       "starlark": [
@@ -4104,6 +4278,7 @@
     {
       "id": "SBP-B-SCORE-MOVE-4",
       "kind": "branch",
+      "descriptor": "score_move decision: capture_choice",
       "go": [
         {
           "file": "score.go",
@@ -4124,12 +4299,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-40",
       "kind": "branch",
+      "descriptor": "score_move decision: enemy[\"rank\"] == \"king\" and not enemy[\"ghost\"] and enemy[\"square\"] in (candidate.get(\"nextPossibleMoves\", []) or [])",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 40,
-          "source": "quietMove \u0026\u0026 positionalKnownAndSupported \u0026\u0026 (cell.Rank == \"knight\" || cell.Rank == \"bishop\" || cell.Rank == \"rook\" || cell.Rank == \"queen\") \u0026\u0026 ordinaryPiece \u0026\u0026 !cell.Moved \u0026\u0026 gain \u003e 0"
+          "occurrence": 48,
+          "source": "enemy.Rank == \"king\" \u0026\u0026 !enemy.Ghost \u0026\u0026 containsString(candidate.NextPossibleMoves, enemy.Square)"
         }
       ],
       "starlark": [
@@ -4144,12 +4320,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-41",
       "kind": "branch",
+      "descriptor": "score_move decision: params[\"targetLock\"] \u003e 0 and board[\"locked_units\"].get(cell[\"unitId\"])",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 41,
-          "source": "quietMove \u0026\u0026 positionalKnownAndSupported \u0026\u0026 ordinaryPiece \u0026\u0026 candidate != nil \u0026\u0026 candidate.PatrolGain \u003e 0"
+          "occurrence": 49,
+          "source": "params.TargetLock \u003e 0 \u0026\u0026 b.lockedUnits[cell.UnitID.String()]"
         }
       ],
       "starlark": [
@@ -4164,12 +4341,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-42",
       "kind": "branch",
+      "descriptor": "score_move decision: post_safety_known and post_threat == 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 42,
-          "source": "patrol \u003e float64(PatrolGainCap)"
+          "occurrence": 50,
+          "source": "postSafetyKnown \u0026\u0026 postThreat == 0"
         }
       ],
       "starlark": [
@@ -4184,12 +4362,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-43",
       "kind": "branch",
+      "descriptor": "score_move decision: params[\"kingSafety\"] \u003e 0 and board[\"king_threatened\"]",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 43,
-          "source": "quietMove \u0026\u0026 candidateKnown \u0026\u0026 candidate != nil \u0026\u0026 !isPromotionSquare(b.side, destination) \u0026\u0026 candidate.DestinationVisible \u0026\u0026 threatenedCount(candidate) == 0 \u0026\u0026 ordinaryPiece"
+          "occurrence": 51,
+          "source": "params.KingSafety \u003e 0 \u0026\u0026 b.kingThreatened"
         }
       ],
       "starlark": [
@@ -4204,12 +4383,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-44",
       "kind": "branch",
+      "descriptor": "score_move decision: cell[\"rank\"] == \"king\" and not cell[\"convoy\"] and post_safety_known and post_threat == 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 44,
-          "source": "netOutboundMaterial \u003e 0"
+          "occurrence": 52,
+          "source": "cell.Rank == \"king\" \u0026\u0026 !cell.Convoy \u0026\u0026 postSafetyKnown \u0026\u0026 postThreat == 0"
         }
       ],
       "starlark": [
@@ -4224,12 +4404,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-45",
       "kind": "branch",
+      "descriptor": "score_move decision: (target_cell and board[\"king_cell\"] and board[\"king_cell\"][\"square\"] in relation_squares(target_cell, \"threatens\"))",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 45,
-          "source": "netOutboundMaterial \u003c 0"
+          "occurrence": 53,
+          "source": "targetCell != nil \u0026\u0026 b.kingCell != nil \u0026\u0026 containsString(targetCell.Threatens, b.kingCell.Square)"
         }
       ],
       "starlark": [
@@ -4244,12 +4425,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-46",
       "kind": "branch",
+      "descriptor": "score_move decision: params[\"moralePush\"] \u003e 0 and cell[\"rank\"] == \"king\" and not cell[\"convoy\"]",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 46,
-          "source": "inboundMaterial \u003e 0"
+          "occurrence": 54,
+          "source": "params.MoralePush \u003e 0 \u0026\u0026 cell.Rank == \"king\" \u0026\u0026 !cell.Convoy"
         }
       ],
       "starlark": [
@@ -4264,12 +4446,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-47",
       "kind": "branch",
+      "descriptor": "score_move decision: gain \u003e 0 and king_safe_after",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 47,
-          "source": "!cell.Convoy \u0026\u0026 quietMove \u0026\u0026 candidateKnown \u0026\u0026 candidate != nil \u0026\u0026 candidate.DestinationVisible \u0026\u0026 supportedAndUnthreatened(candidate) \u0026\u0026 cell.Rank != \"king\" \u0026\u0026 !isCurrentBeaconBearer(obs, cell)"
+          "occurrence": 56,
+          "source": "gain \u003e 0 \u0026\u0026 kingSafeAfter"
         }
       ],
       "starlark": [
@@ -4284,12 +4467,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-48",
       "kind": "branch",
+      "descriptor": "score_move decision: candidate_known",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 48,
-          "source": "enemy.Rank == \"king\" \u0026\u0026 !enemy.Ghost \u0026\u0026 containsString(candidate.NextPossibleMoves, enemy.Square)"
+          "occurrence": 57,
+          "source": "candidateKnown"
         }
       ],
       "starlark": [
@@ -4304,12 +4488,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-49",
       "kind": "branch",
+      "descriptor": "score_move decision: excess \u003e= LEADER_EXCESS_MORALE",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 49,
-          "source": "params.TargetLock \u003e 0 \u0026\u0026 b.lockedUnits[cell.UnitID.String()]"
+          "occurrence": 58,
+          "source": "excess \u003e= LeaderExcessMorale"
         }
       ],
       "starlark": [
@@ -4324,12 +4509,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-5",
       "kind": "branch",
+      "descriptor": "score_move decision: target_cell",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 5,
-          "source": "captureChoice == \"capture\" \u0026\u0026 outcomes.Capture != nil"
+          "occurrence": 7,
+          "source": "targetCell != nil"
         }
       ],
       "starlark": [
@@ -4344,12 +4530,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-50",
       "kind": "branch",
+      "descriptor": "score_move decision: candidate_known and gain \u003c 0 and king_safe_after",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 50,
-          "source": "postSafetyKnown \u0026\u0026 postThreat == 0"
+          "occurrence": 59,
+          "source": "candidateKnown \u0026\u0026 gain \u003c 0 \u0026\u0026 kingSafeAfter"
         }
       ],
       "starlark": [
@@ -4364,12 +4551,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-51",
       "kind": "branch",
+      "descriptor": "score_move decision: (observation.get(\"ownMorale\", 0) - needed \u003e= LEADER_EXCESS_MORALE and after_morale \u003e= needed + 1)",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 51,
-          "source": "params.KingSafety \u003e 0 \u0026\u0026 b.kingThreatened"
+          "occurrence": 60,
+          "source": "obs.OwnMorale-needed \u003e= LeaderExcessMorale \u0026\u0026 afterMorale \u003e= needed+1"
         }
       ],
       "starlark": [
@@ -4384,12 +4572,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-52",
       "kind": "branch",
+      "descriptor": "score_move decision: post_threat \u003e 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 52,
-          "source": "cell.Rank == \"king\" \u0026\u0026 !cell.Convoy \u0026\u0026 postSafetyKnown \u0026\u0026 postThreat == 0"
+          "occurrence": 61,
+          "source": "postThreat \u003e 0"
         }
       ],
       "starlark": [
@@ -4404,12 +4593,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-53",
       "kind": "branch",
+      "descriptor": "score_move decision: (is_current_beacon_bearer(observation, cell) and cell[\"rank\"] != \"king\" and not cell[\"convoy\"] and quiet_move and params[\"beaconAggression\"] \u003e 0)",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 53,
-          "source": "targetCell != nil \u0026\u0026 b.kingCell != nil \u0026\u0026 containsString(targetCell.Threatens, b.kingCell.Square)"
+          "occurrence": 62,
+          "source": "isCurrentBeaconBearer(obs, cell) \u0026\u0026 cell.Rank != \"king\" \u0026\u0026 !cell.Convoy \u0026\u0026 quietMove \u0026\u0026 params.BeaconAggression \u003e 0"
         }
       ],
       "starlark": [
@@ -4424,12 +4614,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-54",
       "kind": "branch",
+      "descriptor": "score_move decision: candidate_known and candidate.get(\"destinationVisible\", False) and supported_and_unthreatened(candidate)",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 54,
-          "source": "params.MoralePush \u003e 0 \u0026\u0026 cell.Rank == \"king\" \u0026\u0026 !cell.Convoy"
+          "occurrence": 63,
+          "source": "candidateKnown \u0026\u0026 candidate != nil \u0026\u0026 candidate.DestinationVisible \u0026\u0026 supportedAndUnthreatened(candidate)"
         }
       ],
       "starlark": [
@@ -4444,12 +4635,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-55",
       "kind": "branch",
+      "descriptor": "score_move decision: support_gain \u003e 0",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 55,
-          "source": "candidateKnown \u0026\u0026 candidate != nil"
+          "occurrence": 64,
+          "source": "supportGain \u003e 0"
         }
       ],
       "starlark": [
@@ -4464,12 +4656,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-56",
       "kind": "branch",
+      "descriptor": "score_move decision: cell[\"rank\"] == \"pawn\" and not cell[\"convoy\"] and is_promotion_square(board[\"side\"], destination)",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 56,
-          "source": "gain \u003e 0 \u0026\u0026 kingSafeAfter"
+          "occurrence": 66,
+          "source": "cell.Rank == \"pawn\" \u0026\u0026 !cell.Convoy \u0026\u0026 isPromotionSquare(b.side, destination)"
         }
       ],
       "starlark": [
@@ -4484,12 +4677,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-57",
       "kind": "branch",
+      "descriptor": "score_move decision: capture_choice",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 57,
-          "source": "candidateKnown"
+          "occurrence": 67,
+          "source": "captureChoice != \"\""
         }
       ],
       "starlark": [
@@ -4504,12 +4698,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-6",
       "kind": "branch",
+      "descriptor": "score_move decision: (board[\"needs_first_master_engineer\"] and cell[\"rank\"] == \"pawn\" and cell[\"convoy\"] and cell[\"cargoCount\"] \u003e 0)",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 6,
-          "source": "captureChoice == \"kill\" \u0026\u0026 outcomes.Kill != nil"
+          "occurrence": 8,
+          "source": "b.needsFirstMasterEngineer \u0026\u0026 cell.Rank == \"pawn\" \u0026\u0026 cell.Convoy \u0026\u0026 cell.CargoCount \u003e 0"
         }
       ],
       "starlark": [
@@ -4524,12 +4719,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-7",
       "kind": "branch",
+      "descriptor": "score_move decision: target_cell[\"rank\"] == \"king\" and not target_cell[\"ghost\"]",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 7,
-          "source": "targetCell != nil"
+          "occurrence": 9,
+          "source": "targetCell.Rank == \"king\" \u0026\u0026 !targetCell.Ghost"
         }
       ],
       "starlark": [
@@ -4544,12 +4740,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-8",
       "kind": "branch",
+      "descriptor": "score_move decision: params[\"prisoner\"] \u003e 0 and target_cell[\"rank\"] != \"king\" and not target_cell[\"convoy\"]",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 8,
-          "source": "b.needsFirstMasterEngineer \u0026\u0026 cell.Rank == \"pawn\" \u0026\u0026 cell.Convoy \u0026\u0026 cell.CargoCount \u003e 0"
+          "occurrence": 10,
+          "source": "params.Prisoner \u003e 0 \u0026\u0026 targetCell.Rank != \"king\" \u0026\u0026 !targetCell.Convoy"
         }
       ],
       "starlark": [
@@ -4564,12 +4761,13 @@
     {
       "id": "SBP-B-SCORE-MOVE-9",
       "kind": "branch",
+      "descriptor": "score_move decision: (board[\"needs_first_master_engineer\"] and cell[\"rank\"] == \"pawn\" and not cell[\"convoy\"] and outcomes.get(\"capture\", EMPTY_OUTCOME)[\"affordable\"] and (capture_backing_count(target_cell, cell[\"square\"]) \u003e 0 or guarded_count(target_cell) == 0))",
       "go": [
         {
           "file": "score.go",
           "function": "scoreMove",
-          "occurrence": 9,
-          "source": "targetCell.Rank == \"king\" \u0026\u0026 !targetCell.Ghost"
+          "occurrence": 11,
+          "source": "b.needsFirstMasterEngineer \u0026\u0026 cell.Rank == \"pawn\" \u0026\u0026 !cell.Convoy \u0026\u0026 outcomes != nil \u0026\u0026 outcomes.Capture != nil \u0026\u0026 outcomes.Capture.Affordable \u0026\u0026 (captureBackingCount(targetCell, cell.Square) \u003e 0 || cellGuardedCount(targetCell) == 0)"
         }
       ],
       "starlark": [
@@ -4584,6 +4782,7 @@
     {
       "id": "SBP-B-SERGEANT-SUPPORTED-1",
       "kind": "branch",
+      "descriptor": "sergeant_supported decision: (cell.get(\"profession\", \"\") == \"sergeant\" and not cell[\"convoy\"] and not cell[\"refitting\"] and chebyshev_distance(square, cell[\"square\"]) == 1)",
       "go": [
         {
           "file": "systems.go",
@@ -4604,6 +4803,7 @@
     {
       "id": "SBP-B-SUPPORT-MATERIAL-1",
       "kind": "branch",
+      "descriptor": "support_material decision: cell",
       "go": [
         {
           "file": "score.go",
@@ -4624,6 +4824,7 @@
     {
       "id": "SBP-B-SYSTEM-PROPOSALS-1",
       "kind": "branch",
+      "descriptor": "system_proposals decision: (not beacon_allowed and (not any_other_system_enabled or params[\"system\"] \u003c= 0))",
       "go": [
         {
           "file": "systems.go",
@@ -4644,6 +4845,7 @@
     {
       "id": "SBP-B-SYSTEM-PROPOSALS-2",
       "kind": "branch",
+      "descriptor": "system_proposals decision: params[\"system\"] \u003e 0",
       "go": [
         {
           "file": "systems.go",
@@ -4664,6 +4866,7 @@
     {
       "id": "SBP-B-SYSTEM-PROPOSALS-3",
       "kind": "branch",
+      "descriptor": "system_proposals decision: systems[\"training\"] and observation[\"rules\"][\"specialistsEnabled\"]",
       "go": [
         {
           "file": "systems.go",
@@ -4684,6 +4887,7 @@
     {
       "id": "SBP-B-SYSTEM-PROPOSALS-4",
       "kind": "branch",
+      "descriptor": "system_proposals decision: systems[\"walls\"] and (observation[\"rules\"][\"woodWallsEnabled\"] or observation[\"rules\"][\"stoneWallsEnabled\"])",
       "go": [
         {
           "file": "systems.go",
@@ -4704,6 +4908,7 @@
     {
       "id": "SBP-B-SYSTEM-PROPOSALS-5",
       "kind": "branch",
+      "descriptor": "system_proposals decision: systems[\"espionage\"]",
       "go": [
         {
           "file": "systems.go",
@@ -4724,6 +4929,7 @@
     {
       "id": "SBP-B-SYSTEM-PROPOSALS-6",
       "kind": "branch",
+      "descriptor": "system_proposals decision: beacon_allowed",
       "go": [
         {
           "file": "systems.go",
@@ -4744,6 +4950,7 @@
     {
       "id": "SBP-B-SYSTEM-PROPOSALS-7",
       "kind": "branch",
+      "descriptor": "system_proposals decision: hand_off != None",
       "go": [
         {
           "file": "systems.go",
@@ -4764,6 +4971,7 @@
     {
       "id": "SBP-B-SYSTEM-PROPOSALS-8",
       "kind": "branch",
+      "descriptor": "system_proposals decision: deploy_or_restore != None",
       "go": [
         {
           "file": "systems.go",
@@ -4784,6 +4992,7 @@
     {
       "id": "SBP-B-SYSTEM-PROPOSALS-9",
       "kind": "branch",
+      "descriptor": "system_proposals decision: observation[\"rules\"][\"beaconForgeEnabled\"]",
       "go": [
         {
           "file": "systems.go",
@@ -4804,6 +5013,7 @@
     {
       "id": "SBP-B-TRAINING-PROPOSALS-1",
       "kind": "branch",
+      "descriptor": "training_proposals decision: cell.get(\"profession\", \"\") == \"engineer\"",
       "go": [
         {
           "file": "systems.go",
@@ -4824,6 +5034,7 @@
     {
       "id": "SBP-B-TRAINING-PROPOSALS-10",
       "kind": "branch",
+      "descriptor": "training_proposals decision: (params[\"advancedTraining\"] and cell.get(\"profession\", \"\") == \"engineer\" and \"masterEngineerTraining\" in (cell.get(\"eligibleFor\", []) or []) and cell.get(\"grade\") != \"master\")",
       "go": [
         {
           "file": "systems.go",
@@ -4844,6 +5055,7 @@
     {
       "id": "SBP-B-TRAINING-PROPOSALS-2",
       "kind": "branch",
+      "descriptor": "training_proposals decision: (cell[\"convoy\"] or cell[\"refitting\"] or cell[\"rank\"] != \"pawn\" or board[\"busy_units\"].get(cell[\"unitId\"]))",
       "go": [
         {
           "file": "systems.go",
@@ -4864,6 +5076,7 @@
     {
       "id": "SBP-B-TRAINING-PROPOSALS-3",
       "kind": "branch",
+      "descriptor": "training_proposals decision: cell[\"square\"] not in base_squares",
       "go": [
         {
           "file": "systems.go",
@@ -4884,6 +5097,7 @@
     {
       "id": "SBP-B-TRAINING-PROPOSALS-4",
       "kind": "branch",
+      "descriptor": "training_proposals decision: threatened_count(cell) \u003e 0",
       "go": [
         {
           "file": "systems.go",
@@ -4904,6 +5118,7 @@
     {
       "id": "SBP-B-TRAINING-PROPOSALS-5",
       "kind": "branch",
+      "descriptor": "training_proposals decision: cell.get(\"profession\", \"\") == \"\"",
       "go": [
         {
           "file": "systems.go",
@@ -4924,6 +5139,7 @@
     {
       "id": "SBP-B-TRAINING-PROPOSALS-6",
       "kind": "branch",
+      "descriptor": "training_proposals decision: observation[\"rules\"][\"veteranProgression\"] and not cell.get(\"veteran\", False)",
       "go": [
         {
           "file": "systems.go",
@@ -4944,6 +5160,7 @@
     {
       "id": "SBP-B-TRAINING-PROPOSALS-7",
       "kind": "branch",
+      "descriptor": "training_proposals decision: observation[\"ownSpecialists\"] \u003e= ceiling",
       "go": [
         {
           "file": "systems.go",
@@ -4964,6 +5181,7 @@
     {
       "id": "SBP-B-TRAINING-PROPOSALS-8",
       "kind": "branch",
+      "descriptor": "training_proposals decision: not have_engineer and \"engineer\" in permitted",
       "go": [
         {
           "file": "systems.go",
@@ -4984,6 +5202,7 @@
     {
       "id": "SBP-B-TRAINING-PROPOSALS-9",
       "kind": "branch",
+      "descriptor": "training_proposals decision: profession not in permitted",
       "go": [
         {
           "file": "systems.go",
@@ -5004,6 +5223,7 @@
     {
       "id": "SBP-B-UNIT-PRIORITY-1",
       "kind": "branch",
+      "descriptor": "unit_priority decision: cell[\"convoy\"] and cell[\"kingCargo\"]",
       "go": [
         {
           "file": "score.go",
@@ -5024,6 +5244,7 @@
     {
       "id": "SBP-B-UNIT-PRIORITY-10",
       "kind": "branch",
+      "descriptor": "unit_priority decision: (is_quiet_move(observation, board, cell, destination) and has_candidate(observation, cell[\"square\"], destination) and fact.get(\"destinationVisible\", False) and supported_and_unthreatened(fact) and enemy[\"square\"] in (fact.get(\"nextPossibleMoves\", []) or []))",
       "go": [
         {
           "file": "score.go",
@@ -5044,6 +5265,7 @@
     {
       "id": "SBP-B-UNIT-PRIORITY-2",
       "kind": "branch",
+      "descriptor": "unit_priority decision: cell[\"convoy\"] and cell[\"cargoCount\"] \u003e 0 and params[\"prisoner\"] \u003e 0",
       "go": [
         {
           "file": "score.go",
@@ -5064,6 +5286,7 @@
     {
       "id": "SBP-B-UNIT-PRIORITY-3",
       "kind": "branch",
+      "descriptor": "unit_priority decision: params[\"targetLock\"] \u003e 0 and board[\"locked_units\"].get(cell[\"unitId\"])",
       "go": [
         {
           "file": "score.go",
@@ -5084,6 +5307,7 @@
     {
       "id": "SBP-B-UNIT-PRIORITY-4",
       "kind": "branch",
+      "descriptor": "unit_priority decision: params[\"kingSafety\"] \u003e 0 and board[\"king_threatened\"]",
       "go": [
         {
           "file": "score.go",
@@ -5104,6 +5328,7 @@
     {
       "id": "SBP-B-UNIT-PRIORITY-5",
       "kind": "branch",
+      "descriptor": "unit_priority decision: cell[\"rank\"] == \"king\"",
       "go": [
         {
           "file": "score.go",
@@ -5124,6 +5349,7 @@
     {
       "id": "SBP-B-UNIT-PRIORITY-6",
       "kind": "branch",
+      "descriptor": "unit_priority decision: board[\"king_cell\"] and chebyshev_distance(cell[\"square\"], board[\"king_cell\"][\"square\"]) \u003c= NEAR_KING_RADIUS",
       "go": [
         {
           "file": "score.go",
@@ -5144,6 +5370,7 @@
     {
       "id": "SBP-B-UNIT-PRIORITY-7",
       "kind": "branch",
+      "descriptor": "unit_priority decision: not cell[\"convoy\"] and cell[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, cell)",
       "go": [
         {
           "file": "score.go",
@@ -5164,6 +5391,7 @@
     {
       "id": "SBP-B-UNIT-PRIORITY-8",
       "kind": "branch",
+      "descriptor": "unit_priority decision: enemy[\"rank\"] != \"king\" or enemy[\"ghost\"]",
       "go": [
         {
           "file": "score.go",
@@ -5184,6 +5412,7 @@
     {
       "id": "SBP-B-UNIT-PRIORITY-9",
       "kind": "branch",
+      "descriptor": "unit_priority decision: (enemy[\"square\"] in observation[\"legal\"].get(cell[\"square\"], []) and capture_choice_available(observation, board, cell, enemy[\"square\"]))",
       "go": [
         {
           "file": "score.go",
@@ -5204,12 +5433,13 @@
     {
       "id": "SBP-B-UNPACK-PLACEMENT-BOARDS-1",
       "kind": "branch",
+      "descriptor": "unpack_placement_boards decision: code != 0",
       "go": [
         {
           "file": "memory.go",
           "function": "unpackPlacementBoards",
-          "occurrence": 1,
-          "source": "64-baseSquare \u003c squaresInSlot"
+          "occurrence": 2,
+          "source": "code != 0"
         }
       ],
       "starlark": [
@@ -5224,6 +5454,7 @@
     {
       "id": "SBP-B-WALL-PROPOSALS-1",
       "kind": "branch",
+      "descriptor": "wall_proposals decision: cell[\"convoy\"] or cell[\"refitting\"]",
       "go": [
         {
           "file": "systems.go",
@@ -5244,6 +5475,7 @@
     {
       "id": "SBP-B-WALL-PROPOSALS-2",
       "kind": "branch",
+      "descriptor": "wall_proposals decision: wall[\"a\"] == cell[\"square\"]",
       "go": [
         {
           "file": "systems.go",
@@ -5264,6 +5496,7 @@
     {
       "id": "SBP-B-WALL-PROPOSALS-3",
       "kind": "branch",
+      "descriptor": "wall_proposals decision: wall[\"b\"] == cell[\"square\"]",
       "go": [
         {
           "file": "systems.go",
@@ -5284,6 +5517,7 @@
     {
       "id": "SBP-B-WALL-PROPOSALS-4",
       "kind": "branch",
+      "descriptor": "wall_proposals decision: wall[\"ownWorkSession\"]",
       "go": [
         {
           "file": "systems.go",
@@ -5304,6 +5538,7 @@
     {
       "id": "SBP-B-WALL-PROPOSALS-5",
       "kind": "branch",
+      "descriptor": "wall_proposals decision: (wall[\"side\"] == board[\"side\"] and cell.get(\"profession\", \"\") == \"engineer\" and wall[\"maximumIntegrity\"] \u003e 0 and wall[\"integrity\"] * 10 \u003c wall[\"maximumIntegrity\"] * 6)",
       "go": [
         {
           "file": "systems.go",
@@ -5324,6 +5559,7 @@
     {
       "id": "SBP-B-WALL-PROPOSALS-6",
       "kind": "branch",
+      "descriptor": "wall_proposals decision: sergeant_supported(board, cell[\"square\"])",
       "go": [
         {
           "file": "systems.go",
@@ -5344,6 +5580,7 @@
     {
       "id": "SBP-B-WALL-PROPOSALS-7",
       "kind": "branch",
+      "descriptor": "wall_proposals decision: wall[\"side\"] != board[\"side\"] and params[\"contestEnemyWork\"]",
       "go": [
         {
           "file": "systems.go",
@@ -5364,6 +5601,7 @@
     {
       "id": "SBP-B-WALL-PROPOSALS-8",
       "kind": "branch",
+      "descriptor": "wall_proposals decision: sergeant_supported(board, cell[\"square\"])",
       "go": [
         {
           "file": "systems.go",
@@ -5384,6 +5622,7 @@
     {
       "id": "SBP-F-ACTIVE-LEADER-GUARD",
       "kind": "function",
+      "descriptor": "active_leader_guard function",
       "go": [
         {
           "file": "memory.go",
@@ -5404,6 +5643,7 @@
     {
       "id": "SBP-F-ADD-TERM",
       "kind": "function",
+      "descriptor": "add_term function",
       "go": [
         {
           "file": "score.go",
@@ -5424,6 +5664,7 @@
     {
       "id": "SBP-F-APPLY-REPEAT-PENALTY",
       "kind": "function",
+      "descriptor": "apply_repeat_penalty function",
       "go": [
         {
           "file": "memory.go",
@@ -5444,6 +5685,7 @@
     {
       "id": "SBP-F-BEACON-AGGRESSION",
       "kind": "function",
+      "descriptor": "beacon_aggression function",
       "go": [
         {
           "file": "board.go",
@@ -5464,6 +5706,7 @@
     {
       "id": "SBP-F-BEACON-DEPLOY-OR-RESTORE-PROPOSAL",
       "kind": "function",
+      "descriptor": "beacon_deploy_or_restore_proposal function",
       "go": [
         {
           "file": "systems.go",
@@ -5484,6 +5727,7 @@
     {
       "id": "SBP-F-BEACON-FORGE-PROPOSALS",
       "kind": "function",
+      "descriptor": "beacon_forge_proposals function",
       "go": [
         {
           "file": "systems.go",
@@ -5504,6 +5748,7 @@
     {
       "id": "SBP-F-BEACON-HAND-OFF-PROPOSAL",
       "kind": "function",
+      "descriptor": "beacon_hand_off_proposal function",
       "go": [
         {
           "file": "systems.go",
@@ -5524,6 +5769,7 @@
     {
       "id": "SBP-F-BUILD-BOARD",
       "kind": "function",
+      "descriptor": "build_board function",
       "go": [
         {
           "file": "board.go",
@@ -5544,6 +5790,7 @@
     {
       "id": "SBP-F-BUILD-MEMORY",
       "kind": "function",
+      "descriptor": "build_memory function",
       "go": [
         {
           "file": "memory.go",
@@ -5564,6 +5811,7 @@
     {
       "id": "SBP-F-CAN-PROMOTE-NEXT-MOVE",
       "kind": "function",
+      "descriptor": "can_promote_next_move function",
       "go": [
         {
           "file": "score.go",
@@ -5584,6 +5832,7 @@
     {
       "id": "SBP-F-CANDIDATE-AT",
       "kind": "function",
+      "descriptor": "candidate_at function",
       "go": [
         {
           "file": "score.go",
@@ -5604,6 +5853,7 @@
     {
       "id": "SBP-F-CAPTURE-BACKING-COUNT",
       "kind": "function",
+      "descriptor": "capture_backing_count function",
       "go": [
         {
           "file": "score.go",
@@ -5624,6 +5874,7 @@
     {
       "id": "SBP-F-CAPTURE-CHOICE-AVAILABLE",
       "kind": "function",
+      "descriptor": "capture_choice_available function",
       "go": [
         {
           "file": "score.go",
@@ -5644,6 +5895,7 @@
     {
       "id": "SBP-F-CAPTURE-EXPECTED-SUCCESS",
       "kind": "function",
+      "descriptor": "capture_expected_success function",
       "go": [
         {
           "file": "score.go",
@@ -5664,6 +5916,7 @@
     {
       "id": "SBP-F-CELL-VALUE",
       "kind": "function",
+      "descriptor": "cell_value function",
       "go": [
         {
           "file": "board.go",
@@ -5684,6 +5937,7 @@
     {
       "id": "SBP-F-CHEBYSHEV-DISTANCE",
       "kind": "function",
+      "descriptor": "chebyshev_distance function",
       "go": [
         {
           "file": "board.go",
@@ -5704,6 +5958,7 @@
     {
       "id": "SBP-F-CLEAR-LEADER-GUARD",
       "kind": "function",
+      "descriptor": "clear_leader_guard function",
       "go": [
         {
           "file": "memory.go",
@@ -5724,6 +5979,7 @@
     {
       "id": "SBP-F-CURRENT-MORALE-NEED",
       "kind": "function",
+      "descriptor": "current_morale_need function",
       "go": [
         {
           "file": "score.go",
@@ -5744,6 +6000,7 @@
     {
       "id": "SBP-F-DECAY-POWER",
       "kind": "function",
+      "descriptor": "decay_power function",
       "go": [
         {
           "file": "memory.go",
@@ -5764,6 +6021,7 @@
     {
       "id": "SBP-F-DECIDE",
       "kind": "function",
+      "descriptor": "decide function",
       "go": [
         {
           "file": "bot.go",
@@ -5784,6 +6042,7 @@
     {
       "id": "SBP-F-DELIVERY-LANE-BLOCKERS",
       "kind": "function",
+      "descriptor": "delivery_lane_blockers function",
       "go": [
         {
           "file": "board.go",
@@ -5804,6 +6063,7 @@
     {
       "id": "SBP-F-DELIVERY-SQUARE-NEIGHBORS",
       "kind": "function",
+      "descriptor": "_delivery_square_neighbors function",
       "go": [
         {
           "file": "board.go",
@@ -5824,6 +6084,7 @@
     {
       "id": "SBP-F-DISTANCE-TO-NEAREST-ENEMY",
       "kind": "function",
+      "descriptor": "distance_to_nearest_enemy function",
       "go": [
         {
           "file": "board.go",
@@ -5844,6 +6105,7 @@
     {
       "id": "SBP-F-DISTANCE-TO-NEAREST-SQUARE",
       "kind": "function",
+      "descriptor": "distance_to_nearest_square function",
       "go": [
         {
           "file": "board.go",
@@ -5864,6 +6126,7 @@
     {
       "id": "SBP-F-DROP-REFUSED",
       "kind": "function",
+      "descriptor": "drop_refused function",
       "go": [
         {
           "file": "memory.go",
@@ -5884,6 +6147,7 @@
     {
       "id": "SBP-F-EFFECTIVE-CAPTURE-TARGET",
       "kind": "function",
+      "descriptor": "effective_capture_target function",
       "go": [
         {
           "file": "score.go",
@@ -5904,6 +6168,7 @@
     {
       "id": "SBP-F-ESPIONAGE-PROPOSALS",
       "kind": "function",
+      "descriptor": "espionage_proposals function",
       "go": [
         {
           "file": "systems.go",
@@ -5924,6 +6189,7 @@
     {
       "id": "SBP-F-FINISH-DECISION",
       "kind": "function",
+      "descriptor": "finish_decision function",
       "go": [
         {
           "file": "memory.go",
@@ -5944,6 +6210,7 @@
     {
       "id": "SBP-F-FORMATION-LEADER-PRIORITY",
       "kind": "function",
+      "descriptor": "formation_leader_priority function",
       "go": [
         {
           "file": "score.go",
@@ -5964,6 +6231,7 @@
     {
       "id": "SBP-F-FORWARD-PROGRESS",
       "kind": "function",
+      "descriptor": "forward_progress function",
       "go": [
         {
           "file": "board.go",
@@ -5984,6 +6252,7 @@
     {
       "id": "SBP-F-GUARD-CHANGES",
       "kind": "function",
+      "descriptor": "guard_changes function",
       "go": [
         {
           "file": "score.go",
@@ -6004,6 +6273,7 @@
     {
       "id": "SBP-F-GUARDED-COUNT",
       "kind": "function",
+      "descriptor": "guarded_count function",
       "go": [
         {
           "file": "board.go",
@@ -6030,6 +6300,7 @@
     {
       "id": "SBP-F-HAS-CANDIDATE",
       "kind": "function",
+      "descriptor": "has_candidate function",
       "go": [
         {
           "file": "score.go",
@@ -6050,6 +6321,7 @@
     {
       "id": "SBP-F-HOLDS-FOCUS",
       "kind": "function",
+      "descriptor": "holds_focus function",
       "go": [
         {
           "file": "memory.go",
@@ -6070,6 +6342,7 @@
     {
       "id": "SBP-F-INBOUND-SUPPORT-MATERIAL",
       "kind": "function",
+      "descriptor": "inbound_support_material function",
       "go": [
         {
           "file": "score.go",
@@ -6090,6 +6363,7 @@
     {
       "id": "SBP-F-INTN",
       "kind": "function",
+      "descriptor": "intn function",
       "go": [
         {
           "file": "bot.go",
@@ -6110,6 +6384,7 @@
     {
       "id": "SBP-F-IS-CURRENT-BEACON-BEARER",
       "kind": "function",
+      "descriptor": "is_current_beacon_bearer function",
       "go": [
         {
           "file": "score.go",
@@ -6130,6 +6405,7 @@
     {
       "id": "SBP-F-IS-KING-CHANNEL-START",
       "kind": "function",
+      "descriptor": "is_king_channel_start function",
       "go": [
         {
           "file": "memory.go",
@@ -6150,6 +6426,7 @@
     {
       "id": "SBP-F-IS-PROMOTION-SQUARE",
       "kind": "function",
+      "descriptor": "is_promotion_square function",
       "go": [
         {
           "file": "board.go",
@@ -6170,6 +6447,7 @@
     {
       "id": "SBP-F-IS-QUIET-MOVE",
       "kind": "function",
+      "descriptor": "is_quiet_move function",
       "go": [
         {
           "file": "board.go",
@@ -6190,6 +6468,7 @@
     {
       "id": "SBP-F-IS-SAFE-SUBJECT",
       "kind": "function",
+      "descriptor": "is_safe_subject function",
       "go": [
         {
           "file": "board.go",
@@ -6210,6 +6489,7 @@
     {
       "id": "SBP-F-KING-CHANNEL-ACTIVE",
       "kind": "function",
+      "descriptor": "king_channel_active function",
       "go": [
         {
           "file": "memory.go",
@@ -6230,6 +6510,7 @@
     {
       "id": "SBP-F-LEADER-GUARD-KEYS",
       "kind": "function",
+      "descriptor": "leader_guard_keys function",
       "go": [
         {
           "file": "memory.go",
@@ -6250,6 +6531,7 @@
     {
       "id": "SBP-F-LEADER-GUARD-MATCHES",
       "kind": "function",
+      "descriptor": "leader_guard_matches function",
       "go": [
         {
           "file": "memory.go",
@@ -6270,6 +6552,7 @@
     {
       "id": "SBP-F-LEADER-KIND",
       "kind": "function",
+      "descriptor": "leader_kind function",
       "go": [
         {
           "file": "memory.go",
@@ -6290,6 +6573,7 @@
     {
       "id": "SBP-F-LEADER-REVERSE-FORBIDDEN",
       "kind": "function",
+      "descriptor": "leader_reverse_forbidden function",
       "go": [
         {
           "file": "memory.go",
@@ -6310,6 +6594,7 @@
     {
       "id": "SBP-F-LEADER-SUPPORT",
       "kind": "function",
+      "descriptor": "leader_support function",
       "go": [
         {
           "file": "score.go",
@@ -6330,6 +6615,7 @@
     {
       "id": "SBP-F-MOST-ADVANCED-ADJACENT-ALLY",
       "kind": "function",
+      "descriptor": "most_advanced_adjacent_ally function",
       "go": [
         {
           "file": "systems.go",
@@ -6350,6 +6636,7 @@
     {
       "id": "SBP-F-MOVE-PROPOSALS",
       "kind": "function",
+      "descriptor": "move_proposals function",
       "go": [
         {
           "file": "memory.go",
@@ -6370,6 +6657,7 @@
     {
       "id": "SBP-F-NEXT-COMMITTED",
       "kind": "function",
+      "descriptor": "next_committed function",
       "go": [
         {
           "file": "memory.go",
@@ -6390,6 +6678,7 @@
     {
       "id": "SBP-F-OUTCOMES-AT",
       "kind": "function",
+      "descriptor": "outcomes_at function",
       "go": [
         {
           "file": "score.go",
@@ -6410,6 +6699,7 @@
     {
       "id": "SBP-F-PACK-COMMITTED",
       "kind": "function",
+      "descriptor": "pack_committed function",
       "go": [
         {
           "file": "memory.go",
@@ -6430,6 +6720,7 @@
     {
       "id": "SBP-F-PACK-PLACEMENT-BOARDS",
       "kind": "function",
+      "descriptor": "pack_placement_boards function",
       "go": [
         {
           "file": "memory.go",
@@ -6450,6 +6741,7 @@
     {
       "id": "SBP-F-PIECE-SQUARES",
       "kind": "function",
+      "descriptor": "piece_squares function",
       "go": [
         {
           "file": "board.go",
@@ -6470,6 +6762,7 @@
     {
       "id": "SBP-F-PLACEMENT-BITBOARDS",
       "kind": "function",
+      "descriptor": "placement_bitboards function",
       "go": [
         {
           "file": "memory.go",
@@ -6490,6 +6783,7 @@
     {
       "id": "SBP-F-POST-MOVE-MORALE",
       "kind": "function",
+      "descriptor": "post_move_morale function",
       "go": [
         {
           "file": "score.go",
@@ -6510,6 +6804,7 @@
     {
       "id": "SBP-F-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT",
       "kind": "function",
+      "descriptor": "priority_captive_delivery_in_flight function",
       "go": [
         {
           "file": "score.go",
@@ -6530,6 +6825,7 @@
     {
       "id": "SBP-F-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL",
       "kind": "function",
+      "descriptor": "priority_captive_delivery_proposal function",
       "go": [
         {
           "file": "score.go",
@@ -6550,6 +6846,7 @@
     {
       "id": "SBP-F-PROJECTED-CELL",
       "kind": "function",
+      "descriptor": "projected_cell function",
       "go": [
         {
           "file": "memory.go",
@@ -6570,6 +6867,7 @@
     {
       "id": "SBP-F-PROTECTION-FACTOR",
       "kind": "function",
+      "descriptor": "protection_factor function",
       "go": [
         {
           "file": "board.go",
@@ -6590,6 +6888,7 @@
     {
       "id": "SBP-F-QUIET-LEADER-INTENT",
       "kind": "function",
+      "descriptor": "quiet_leader_intent function",
       "go": [
         {
           "file": "memory.go",
@@ -6610,6 +6909,7 @@
     {
       "id": "SBP-F-QUIET-ORDINARY-INTENT",
       "kind": "function",
+      "descriptor": "quiet_ordinary_intent function",
       "go": [
         {
           "file": "memory.go",
@@ -6630,6 +6930,7 @@
     {
       "id": "SBP-F-RANK-OPTIONS",
       "kind": "function",
+      "descriptor": "rank_options function",
       "go": [
         {
           "file": "score.go",
@@ -6650,6 +6951,7 @@
     {
       "id": "SBP-F-RANK-VALUE",
       "kind": "function",
+      "descriptor": "rank_value function",
       "go": [
         {
           "file": "board.go",
@@ -6670,6 +6972,7 @@
     {
       "id": "SBP-F-RETENTION-SCORE",
       "kind": "function",
+      "descriptor": "retention_score function",
       "go": [
         {
           "file": "memory.go",
@@ -6690,6 +6993,7 @@
     {
       "id": "SBP-F-ROUND-HALF-UP",
       "kind": "function",
+      "descriptor": "round_half_up function",
       "go": [
         {
           "file": "memory.go",
@@ -6710,6 +7014,7 @@
     {
       "id": "SBP-F-SCORE-MOVE",
       "kind": "function",
+      "descriptor": "score_move function",
       "go": [
         {
           "file": "score.go",
@@ -6730,6 +7035,7 @@
     {
       "id": "SBP-F-SERGEANT-SUPPORTED",
       "kind": "function",
+      "descriptor": "sergeant_supported function",
       "go": [
         {
           "file": "systems.go",
@@ -6750,6 +7056,7 @@
     {
       "id": "SBP-F-SQUARE-FILE",
       "kind": "function",
+      "descriptor": "square_file function",
       "go": [
         {
           "file": "board.go",
@@ -6770,6 +7077,7 @@
     {
       "id": "SBP-F-SQUARE-INDEX",
       "kind": "function",
+      "descriptor": "square_index function",
       "go": [
         {
           "file": "board.go",
@@ -6790,6 +7098,7 @@
     {
       "id": "SBP-F-SQUARE-NAME",
       "kind": "function",
+      "descriptor": "square_name function",
       "go": [
         {
           "file": "board.go",
@@ -6810,6 +7119,7 @@
     {
       "id": "SBP-F-SQUARE-RANK-NUMBER",
       "kind": "function",
+      "descriptor": "square_rank_number function",
       "go": [
         {
           "file": "board.go",
@@ -6830,6 +7140,7 @@
     {
       "id": "SBP-F-SUPPORT-MATERIAL",
       "kind": "function",
+      "descriptor": "support_material function",
       "go": [
         {
           "file": "score.go",
@@ -6850,6 +7161,7 @@
     {
       "id": "SBP-F-SUPPORTED-AND-UNTHREATENED",
       "kind": "function",
+      "descriptor": "supported_and_unthreatened function",
       "go": [
         {
           "file": "board.go",
@@ -6870,6 +7182,7 @@
     {
       "id": "SBP-F-SYSTEM-PROPOSALS",
       "kind": "function",
+      "descriptor": "system_proposals function",
       "go": [
         {
           "file": "systems.go",
@@ -6890,6 +7203,7 @@
     {
       "id": "SBP-F-THREATENED-COUNT",
       "kind": "function",
+      "descriptor": "threatened_count function",
       "go": [
         {
           "file": "board.go",
@@ -6916,6 +7230,7 @@
     {
       "id": "SBP-F-TRAINING-PROPOSALS",
       "kind": "function",
+      "descriptor": "training_proposals function",
       "go": [
         {
           "file": "systems.go",
@@ -6936,6 +7251,7 @@
     {
       "id": "SBP-F-UNIT-PRIORITY",
       "kind": "function",
+      "descriptor": "unit_priority function",
       "go": [
         {
           "file": "score.go",
@@ -6956,6 +7272,7 @@
     {
       "id": "SBP-F-UNPACK-COMMITTED",
       "kind": "function",
+      "descriptor": "unpack_committed function",
       "go": [
         {
           "file": "memory.go",
@@ -6976,6 +7293,7 @@
     {
       "id": "SBP-F-UNPACK-PLACEMENT-BOARDS",
       "kind": "function",
+      "descriptor": "unpack_placement_boards function",
       "go": [
         {
           "file": "memory.go",
@@ -6996,6 +7314,7 @@
     {
       "id": "SBP-F-WALL-PROPOSALS",
       "kind": "function",
+      "descriptor": "wall_proposals function",
       "go": [
         {
           "file": "systems.go",

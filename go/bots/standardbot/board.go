@@ -94,14 +94,14 @@ func rankValue(rank string) float64 {
 
 // PARITY-FUNCTION: SBP-F-CELL-VALUE
 func cellValue(cell *Cell) float64 {
-	if cell == nil { // PARITY-BRANCH: SBP-B-CELL-VALUE-1
+	if cell == nil { // PARITY-BRANCH: SBP-B-CELL-VALUE-3
 		return 0.0
 	}
 	value := rankValue(cell.Rank)
-	if cell.KingCargo { // PARITY-BRANCH: SBP-B-CELL-VALUE-2
+	if cell.KingCargo { // PARITY-BRANCH: SBP-B-CELL-VALUE-1
 		value += KingCargoValue
 	}
-	if cell.Ghost { // PARITY-BRANCH: SBP-B-CELL-VALUE-3
+	if cell.Ghost { // PARITY-BRANCH: SBP-B-CELL-VALUE-2
 		value *= GhostDiscount
 	}
 	return value
@@ -375,25 +375,25 @@ func buildBoard(obs *Observation) *boardContext {
 	}
 
 	for _, cell := range b.own {
-		if !b.busyUnits[cell.UnitID.String()] { // PARITY-BRANCH: SBP-B-BUILD-BOARD-12
+		if !b.busyUnits[cell.UnitID.String()] { // PARITY-BRANCH: SBP-B-BUILD-BOARD-13
 			b.actionableUnits = append(b.actionableUnits, cell)
 		}
 	}
 
 	maxActiveCommands := obs.Rules.MaxActiveCommands
-	if maxActiveCommands <= 0 { // PARITY-BRANCH: SBP-B-BUILD-BOARD-13
+	if maxActiveCommands <= 0 { // PARITY-BRANCH: SBP-B-BUILD-BOARD-14
 		maxActiveCommands = UnlimitedActiveCommands
 	}
 
 	var replaceableNow []*Cell
 	for _, cell := range b.own {
 		uid := cell.UnitID.String()
-		if replaceableChargingUnits[uid] && !nonrouteBusyUnits[uid] { // PARITY-BRANCH: SBP-B-BUILD-BOARD-14
+		if replaceableChargingUnits[uid] && !nonrouteBusyUnits[uid] { // PARITY-BRANCH: SBP-B-BUILD-BOARD-15
 			replaceableNow = append(replaceableNow, cell)
 		}
 	}
 
-	if len(b.chargingUnits) >= maxActiveCommands { // PARITY-BRANCH: SBP-B-BUILD-BOARD-15
+	if len(b.chargingUnits) >= maxActiveCommands { // PARITY-BRANCH: SBP-B-BUILD-BOARD-12
 		b.moveActionableUnits = replaceableNow
 	} else {
 		b.moveActionableUnits = append(append([]*Cell(nil), b.actionableUnits...), replaceableNow...)

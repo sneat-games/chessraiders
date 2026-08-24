@@ -33,7 +33,8 @@
       ],
       "artifacts": [
         "testdata/corpus",
-        "parity-manifest.json"
+        "parity-manifest.json",
+        "parity-semantic-ledger.json"
       ],
       "coverageStatus": "No external consumer receipt is recorded. Public tests prove Go and Starlark only; current TypeScript or WASM parity coverage is not claimed."
     }
@@ -165,7 +166,6 @@
       "SBP-B-LEADER-GUARD-MATCHES-1",
       "SBP-B-LEADER-GUARD-MATCHES-2",
       "SBP-B-LEADER-GUARD-MATCHES-3",
-      "SBP-B-LEADER-GUARD-MATCHES-4",
       "SBP-B-LEADER-GUARD-MATCHES-5",
       "SBP-B-LEADER-GUARD-MATCHES-6",
       "SBP-B-LEADER-KIND-1",
@@ -193,7 +193,6 @@
       "SBP-B-NEXT-COMMITTED-5",
       "SBP-B-PACK-COMMITTED-1",
       "SBP-B-PACK-COMMITTED-2",
-      "SBP-B-PACK-PLACEMENT-BOARDS-1",
       "SBP-B-PACK-PLACEMENT-BOARDS-2",
       "SBP-B-PLACEMENT-BITBOARDS-1",
       "SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-1",
@@ -503,6 +502,8 @@
       "SBP-GO-STRUCT-B-DECIDE-JSON-7",
       "SBP-GO-STRUCT-B-DECIDE-JSON-8",
       "SBP-GO-STRUCT-B-DECIDE-JSON-9",
+      "SBP-GO-STRUCT-B-LEADER-GUARD-MATCHES-COLOUR-SLOT",
+      "SBP-GO-STRUCT-B-PACK-PLACEMENT-BOARDS-SLOT-WIDTH",
       "SBP-GO-STRUCT-F-CONTAINS-STRING",
       "SBP-GO-STRUCT-F-DECIDE-JSON",
       "SBP-GO-STRUCT-F-RANK-BIT-SLOT"
@@ -512,6 +513,8 @@
       "SBP-STAR-STRUCT-B-HAS-OTHER-ORDINARY-CHOICE-1",
       "SBP-STAR-STRUCT-B-HAS-OTHER-ORDINARY-CHOICE-2",
       "SBP-STAR-STRUCT-B-HAS-OTHER-ORDINARY-CHOICE-3",
+      "SBP-STAR-STRUCT-B-LEADER-GUARD-MATCHES-SIGNED-NORMALIZATION",
+      "SBP-STAR-STRUCT-B-PACK-PLACEMENT-BOARDS-SIGNED-NORMALIZATION",
       "SBP-STAR-STRUCT-F-HAS-OTHER-ORDINARY-CHOICE",
       "SBP-STAR-STRUCT-F-MEMORY-LAST-TO-IS",
       "SBP-STAR-STRUCT-F-PROPOSAL-SCORE-KEY",

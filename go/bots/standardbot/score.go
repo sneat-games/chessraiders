@@ -83,8 +83,8 @@ func effectiveCaptureTarget(obs *Observation, b *boardContext, cell *Cell, desti
 	if cell.Convoy || cell.Rank != "pawn" { // PARITY-BRANCH: SBP-B-EFFECTIVE-CAPTURE-TARGET-2
 		return nil
 	}
-	if bySrc, ok := obs.EnPassant[cell.Square]; ok { // PARITY-BRANCH: SBP-B-EFFECTIVE-CAPTURE-TARGET-3
-		if victimSquare, ok2 := bySrc[destination]; ok2 && victimSquare != "" { // PARITY-BRANCH: SBP-B-EFFECTIVE-CAPTURE-TARGET-4
+	if bySrc, ok := obs.EnPassant[cell.Square]; ok { // PARITY-BRANCH: SBP-B-EFFECTIVE-CAPTURE-TARGET-4
+		if victimSquare, ok2 := bySrc[destination]; ok2 && victimSquare != "" { // PARITY-BRANCH: SBP-B-EFFECTIVE-CAPTURE-TARGET-3
 			return b.enemyBySquare[victimSquare]
 		}
 	}
@@ -171,11 +171,11 @@ func isCurrentBeaconBearer(obs *Observation, cell *Cell) bool {
 
 // PARITY-FUNCTION: SBP-F-CAN-PROMOTE-NEXT-MOVE
 func canPromoteNextMove(side string, candidate *CandidateFact) bool {
-	if candidate == nil { // PARITY-BRANCH: SBP-B-CAN-PROMOTE-NEXT-MOVE-1
+	if candidate == nil { // PARITY-BRANCH: SBP-B-CAN-PROMOTE-NEXT-MOVE-2
 		return false
 	}
 	for _, nextDestination := range candidate.NextPossibleMoves {
-		if isPromotionSquare(side, nextDestination) { // PARITY-BRANCH: SBP-B-CAN-PROMOTE-NEXT-MOVE-2
+		if isPromotionSquare(side, nextDestination) { // PARITY-BRANCH: SBP-B-CAN-PROMOTE-NEXT-MOVE-1
 			return true
 		}
 	}
@@ -371,31 +371,31 @@ func scoreMove(obs *Observation, b *boardContext, params *BotParams, memory map[
 			captureChoice = "kill"
 		}
 		if captureChoice != "" && outcomes != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-4
-			if captureChoice == "capture" && outcomes.Capture != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-5
+			if captureChoice == "capture" && outcomes.Capture != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-58
 				successChance = captureExpectedSuccess(outcomes.Capture)
-			} else if captureChoice == "kill" && outcomes.Kill != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-6
+			} else if captureChoice == "kill" && outcomes.Kill != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-59
 				successChance = captureExpectedSuccess(outcomes.Kill)
 			}
 		}
 	}
 
 	// Material
-	if targetCell != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-7
+	if targetCell != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-5
 		capturedValue = cellValue(targetCell)
 		materialGain := capturedValue * successChance * params.Material
-		if b.needsFirstMasterEngineer && cell.Rank == "pawn" && cell.Convoy && cell.CargoCount > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-8
+		if b.needsFirstMasterEngineer && cell.Rank == "pawn" && cell.Convoy && cell.CargoCount > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-6
 			materialGain /= float64(cell.CargoCount + 1)
 		}
 		score += addTerm(&terms, "material", materialGain, "capture")
-		if targetCell.Rank == "king" && !targetCell.Ghost { // PARITY-BRANCH: SBP-B-SCORE-MOVE-9
+		if targetCell.Rank == "king" && !targetCell.Ghost { // PARITY-BRANCH: SBP-B-SCORE-MOVE-7
 			score += addTerm(&terms, "kingHunt", params.Advance, "visible")
 		}
-		if params.Prisoner > 0 && targetCell.Rank != "king" && !targetCell.Convoy { // PARITY-BRANCH: SBP-B-SCORE-MOVE-10
+		if params.Prisoner > 0 && targetCell.Rank != "king" && !targetCell.Convoy { // PARITY-BRANCH: SBP-B-SCORE-MOVE-8
 			score += addTerm(&terms, "prisoner", CaptureAliveBonus*params.Prisoner*successChance, "alive")
 			outcomes := outcomesAt(obs, cell.Square, destination)
 			if b.needsFirstMasterEngineer && cell.Rank == "pawn" && !cell.Convoy &&
 				outcomes != nil && outcomes.Capture != nil && outcomes.Capture.Affordable &&
-				(captureBackingCount(targetCell, cell.Square) > 0 || cellGuardedCount(targetCell) == 0) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-11
+				(captureBackingCount(targetCell, cell.Square) > 0 || cellGuardedCount(targetCell) == 0) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-9
 				score += addTerm(&terms, "prisoner", ValueVeteranBootstrap*params.Prisoner, "bootstrap")
 			}
 		}
@@ -403,61 +403,61 @@ func scoreMove(obs *Observation, b *boardContext, params *BotParams, memory map[
 
 	// Safety
 	var postThreat, postGuarded int
-	if candidateKnown && candidate != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-12
+	if candidateKnown && candidate != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-10
 		postThreat = threatenedCount(candidate)
 		postGuarded = guardedCount(candidate)
-	} else if targetCell != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-13
+	} else if targetCell != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-11
 		postThreat = cellGuardedCount(targetCell)
 		postGuarded = captureBackingCount(targetCell, cell.Square)
 	}
 	postSafetyKnown := candidateKnown || targetCell != nil
 
-	if postThreat > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-14
+	if postThreat > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-12
 		risk := rankValue(cell.Rank)
-		if cell.KingCargo { // PARITY-BRANCH: SBP-B-SCORE-MOVE-15
+		if cell.KingCargo { // PARITY-BRANCH: SBP-B-SCORE-MOVE-13
 			risk += KingCargoEscortRisk
 		}
-		if capturedValue >= risk { // PARITY-BRANCH: SBP-B-SCORE-MOVE-16
+		if capturedValue >= risk { // PARITY-BRANCH: SBP-B-SCORE-MOVE-14
 			risk *= SafeTradeDiscount
-		} else if postGuarded > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-17
+		} else if postGuarded > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-15
 			risk *= RecaptureDiscount
 		}
 		score += addTerm(&terms, "safety", -risk*params.Safety, "risk")
 	}
 
 	// Tempo
-	if params.Tempo > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-18
+	if params.Tempo > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-16
 		chargeMs := obs.Rules.PieceChargeMs[cell.Rank]
-		if chargeMs > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-19
+		if chargeMs > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-17
 			score += addTerm(&terms, "tempo", -(float64(chargeMs)/MillisecondsPerSecond)*params.Tempo, "charge")
 		}
 	}
 	activeCharge := cell.Charging
-	if activeCharge != nil && destination != activeCharge.Square { // PARITY-BRANCH: SBP-B-SCORE-MOVE-20
+	if activeCharge != nil && destination != activeCharge.Square { // PARITY-BRANCH: SBP-B-SCORE-MOVE-18
 		remainingSeconds := float64(activeCharge.RemainingMs) / MillisecondsPerSecond
 		urgency := RouteReplaceUrgencyValue / (1.0 + remainingSeconds)
 		score += addTerm(&terms, "tempo", -urgency, "replaceCharge")
 	}
 
 	// Win condition / Delivery
-	if cell.Convoy && cell.KingCargo { // PARITY-BRANCH: SBP-B-SCORE-MOVE-21
-		if containsString(b.deliverySquares, destination) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-22
+	if cell.Convoy && cell.KingCargo { // PARITY-BRANCH: SBP-B-SCORE-MOVE-19
+		if containsString(b.deliverySquares, destination) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-20
 			score += addTerm(&terms, "delivery", DeliveryBonus, "wins")
 		} else {
 			progressFrom := cell.Square
-			if activeCharge != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-23
+			if activeCharge != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-60
 				progressFrom = activeCharge.Square
 			}
 			hereCost, okHere := b.convoyHome[progressFrom]
-			if !okHere { // PARITY-BRANCH: SBP-B-SCORE-MOVE-24
+			if !okHere { // PARITY-BRANCH: SBP-B-SCORE-MOVE-61
 				hereCost = UnreachablePathCost
 			}
 			thereCost, okThere := b.convoyHome[destination]
-			if !okThere { // PARITY-BRANCH: SBP-B-SCORE-MOVE-25
+			if !okThere { // PARITY-BRANCH: SBP-B-SCORE-MOVE-62
 				thereCost = UnreachablePathCost
 			}
-			if hereCost < UnreachablePathCost { // PARITY-BRANCH: SBP-B-SCORE-MOVE-26
-				if thereCost >= UnreachablePathCost { // PARITY-BRANCH: SBP-B-SCORE-MOVE-27
+			if hereCost < UnreachablePathCost { // PARITY-BRANCH: SBP-B-SCORE-MOVE-21
+				if thereCost >= UnreachablePathCost { // PARITY-BRANCH: SBP-B-SCORE-MOVE-22
 					score += addTerm(&terms, "delivery", -DeliveryStepValue*params.Delivery, "offRoute")
 				} else {
 					score += addTerm(&terms, "delivery", float64(hereCost-thereCost)*DeliveryStepValue*params.Delivery, "closer")
@@ -467,73 +467,73 @@ func scoreMove(obs *Observation, b *boardContext, params *BotParams, memory map[
 				score += addTerm(&terms, "delivery", float64(progress)*DeliveryStepValue*params.Delivery, "drift")
 			}
 		}
-	} else if cell.Convoy && cell.CargoCount > 0 && params.Prisoner > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-28
+	} else if cell.Convoy && cell.CargoCount > 0 && params.Prisoner > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-23
 		prisonerRank := cell.Rank
-		if obs.Rules.CargoBasedDelivery { // PARITY-BRANCH: SBP-B-SCORE-MOVE-29
+		if obs.Rules.CargoBasedDelivery { // PARITY-BRANCH: SBP-B-SCORE-MOVE-63
 			prisonerRank = "pawn"
 		}
 		baseSquares := obs.Rules.BaseSquares[prisonerRank]
 		progress := distanceToNearestSquare(cell.Square, baseSquares) - distanceToNearestSquare(destination, baseSquares)
 		homeward := float64(progress) * PrisonerStepValue * params.Prisoner
-		if b.needsFirstMasterEngineer && cell.Rank == "pawn" { // PARITY-BRANCH: SBP-B-SCORE-MOVE-30
+		if b.needsFirstMasterEngineer && cell.Rank == "pawn" { // PARITY-BRANCH: SBP-B-SCORE-MOVE-24
 			homeward *= float64(cell.CargoCount)
 		}
 		score += addTerm(&terms, "prisoner", homeward, "escort")
 	}
 
 	// Delivery blocker cleanup
-	if !cell.Convoy && params.Delivery > 0 && containsString(b.blockingBase, cell.Square) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-31
+	if !cell.Convoy && params.Delivery > 0 && containsString(b.blockingBase, cell.Square) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-25
 		rankVal := rankValue(cell.Rank)
-		if rankVal > QueenValue { // PARITY-BRANCH: SBP-B-SCORE-MOVE-32
+		if rankVal > QueenValue { // PARITY-BRANCH: SBP-B-SCORE-MOVE-64
 			rankVal = QueenValue
 		}
 		score += addTerm(&terms, "delivery", (UnblockBaseValue-rankVal*UnblockValueSpread)*params.Delivery, "unblock")
 	}
 
 	// Positional pressure
-	if params.Advance > 0 && !cell.Convoy { // PARITY-BRANCH: SBP-B-SCORE-MOVE-33
+	if params.Advance > 0 && !cell.Convoy { // PARITY-BRANCH: SBP-B-SCORE-MOVE-26
 		gain := float64(forwardProgress(b.side, destination) - forwardProgress(b.side, cell.Square))
 		positionalKnownAndSupported := !quietMove || (candidateKnown && candidate != nil && candidate.DestinationVisible && guardedCount(candidate) > 0)
-		if quietMove && (!candidateKnown || candidate == nil || !candidate.DestinationVisible) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-34
+		if quietMove && (!candidateKnown || candidate == nil || !candidate.DestinationVisible) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-27
 			score += addTerm(&terms, "safety", -UnknownQuietPenalty*params.Safety, "unknownQuiet")
-		} else if quietMove && guardedCount(candidate) <= 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-35
+		} else if quietMove && guardedCount(candidate) <= 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-28
 			score += addTerm(&terms, "safety", -UnsupportedQuietPenalty*params.Safety, "unsupportedQuiet")
 		}
 		ordinaryPiece := cell.Rank != "king" && !isCurrentBeaconBearer(obs, cell)
-		if cell.Rank == "pawn" && positionalKnownAndSupported && ordinaryPiece { // PARITY-BRANCH: SBP-B-SCORE-MOVE-36
+		if cell.Rank == "pawn" && positionalKnownAndSupported && ordinaryPiece { // PARITY-BRANCH: SBP-B-SCORE-MOVE-29
 			score += addTerm(&terms, "advance", gain*AdvancePawnMultiplier*params.Advance, "pawn")
-			if isPromotionSquare(b.side, destination) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-37
+			if isPromotionSquare(b.side, destination) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-30
 				score += addTerm(&terms, "advance", PromotionBonus*params.Advance, "promotion")
 			} else if quietMove && candidateKnown && candidate != nil && candidate.DestinationVisible &&
-				supportedAndUnthreatened(candidate) && canPromoteNextMove(b.side, candidate) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-38
+				supportedAndUnthreatened(candidate) && canPromoteNextMove(b.side, candidate) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-31
 				score += addTerm(&terms, "advance", PromotionNextBonus*params.Advance*protectionFactor(candidate), "promotionNext")
 			}
-		} else if ordinaryPiece && positionalKnownAndSupported { // PARITY-BRANCH: SBP-B-SCORE-MOVE-39
+		} else if ordinaryPiece && positionalKnownAndSupported { // PARITY-BRANCH: SBP-B-SCORE-MOVE-32
 			score += addTerm(&terms, "advance", gain*params.Advance, "piece")
 		}
 		if quietMove && positionalKnownAndSupported &&
 			(cell.Rank == "knight" || cell.Rank == "bishop" || cell.Rank == "rook" || cell.Rank == "queen") &&
-			ordinaryPiece && !cell.Moved && gain > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-40
+			ordinaryPiece && !cell.Moved && gain > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-33
 			score += addTerm(&terms, "develop", DevelopFirstForwardValue*params.Advance*protectionFactor(candidate), "firstForward")
 		}
-		if quietMove && positionalKnownAndSupported && ordinaryPiece && candidate != nil && candidate.PatrolGain > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-41
+		if quietMove && positionalKnownAndSupported && ordinaryPiece && candidate != nil && candidate.PatrolGain > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-34
 			patrol := float64(candidate.PatrolGain)
-			if patrol > float64(PatrolGainCap) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-42
+			if patrol > float64(PatrolGainCap) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-65
 				patrol = float64(PatrolGainCap)
 			}
 			score += addTerm(&terms, "coverage", patrol*PatrolGainValue*params.Advance*protectionFactor(candidate), "patrol")
 		}
 		if quietMove && candidateKnown && candidate != nil && !isPromotionSquare(b.side, destination) &&
-			candidate.DestinationVisible && threatenedCount(candidate) == 0 && ordinaryPiece { // PARITY-BRANCH: SBP-B-SCORE-MOVE-43
+			candidate.DestinationVisible && threatenedCount(candidate) == 0 && ordinaryPiece { // PARITY-BRANCH: SBP-B-SCORE-MOVE-35
 			newlyGuarded, soleGuardLost := guardChanges(b, cell, candidate)
 			netOutboundMaterial := supportMaterial(b, newlyGuarded) - supportMaterial(b, soleGuardLost)
-			if netOutboundMaterial > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-44
+			if netOutboundMaterial > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-36
 				score += addTerm(&terms, "coverage", netOutboundMaterial*GuardsValue*params.Advance, "guards")
-			} else if netOutboundMaterial < 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-45
+			} else if netOutboundMaterial < 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-37
 				score += addTerm(&terms, "safety", netOutboundMaterial*SoleGuardLostValue*params.Safety, "soleGuardLost")
 			}
 			inboundMaterial := inboundSupportMaterial(cell, candidate)
-			if inboundMaterial > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-46
+			if inboundMaterial > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-38
 				score += addTerm(&terms, "safety", inboundMaterial*GuardedByValue*params.Safety, "guardedBy")
 			}
 		}
@@ -542,9 +542,9 @@ func scoreMove(obs *Observation, b *boardContext, params *BotParams, memory map[
 	// King hunt
 	if !cell.Convoy && quietMove && candidateKnown && candidate != nil &&
 		candidate.DestinationVisible && supportedAndUnthreatened(candidate) &&
-		cell.Rank != "king" && !isCurrentBeaconBearer(obs, cell) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-47
+		cell.Rank != "king" && !isCurrentBeaconBearer(obs, cell) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-39
 		for _, enemy := range b.enemy {
-			if enemy.Rank == "king" && !enemy.Ghost && containsString(candidate.NextPossibleMoves, enemy.Square) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-48
+			if enemy.Rank == "king" && !enemy.Ghost && containsString(candidate.NextPossibleMoves, enemy.Square) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-40
 				score += addTerm(&terms, "kingHunt", KingVisibleAttackBonus, "visible")
 				break
 			}
@@ -552,63 +552,63 @@ func scoreMove(obs *Observation, b *boardContext, params *BotParams, memory map[
 	}
 
 	// Target lock dodge
-	if params.TargetLock > 0 && b.lockedUnits[cell.UnitID.String()] { // PARITY-BRANCH: SBP-B-SCORE-MOVE-49
+	if params.TargetLock > 0 && b.lockedUnits[cell.UnitID.String()] { // PARITY-BRANCH: SBP-B-SCORE-MOVE-41
 		score += addTerm(&terms, "targetLock", TargetLockDodgeValue*params.TargetLock, "dodge")
-		if postSafetyKnown && postThreat == 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-50
+		if postSafetyKnown && postThreat == 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-42
 			score += addTerm(&terms, "targetLock", TargetLockSafeValue*params.TargetLock, "safeDodge")
 		}
 	}
 
 	// King safety
-	if params.KingSafety > 0 && b.kingThreatened { // PARITY-BRANCH: SBP-B-SCORE-MOVE-51
-		if cell.Rank == "king" && !cell.Convoy && postSafetyKnown && postThreat == 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-52
+	if params.KingSafety > 0 && b.kingThreatened { // PARITY-BRANCH: SBP-B-SCORE-MOVE-43
+		if cell.Rank == "king" && !cell.Convoy && postSafetyKnown && postThreat == 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-44
 			score += addTerm(&terms, "kingSafety", params.KingSafety, "escape")
 		}
-		if targetCell != nil && b.kingCell != nil && containsString(targetCell.Threatens, b.kingCell.Square) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-53
+		if targetCell != nil && b.kingCell != nil && containsString(targetCell.Threatens, b.kingCell.Square) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-45
 			score += addTerm(&terms, "kingSafety", params.KingSafety*KingGuardBonus, "guard")
 		}
 	}
 
 	// Morale push
-	if params.MoralePush > 0 && cell.Rank == "king" && !cell.Convoy { // PARITY-BRANCH: SBP-B-SCORE-MOVE-54
+	if params.MoralePush > 0 && cell.Rank == "king" && !cell.Convoy { // PARITY-BRANCH: SBP-B-SCORE-MOVE-46
 		gain := float64(forwardProgress(b.side, destination) - forwardProgress(b.side, cell.Square))
 		kingSafeAfter := false
-		if candidateKnown && candidate != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-55
+		if candidateKnown && candidate != nil { // PARITY-BRANCH: SBP-B-SCORE-MOVE-66
 			kingSafeAfter = candidate.DestinationVisible && supportedAndUnthreatened(candidate)
 		} else {
 			kingSafeAfter = targetCell != nil && postThreat == 0
 		}
-		if gain > 0 && kingSafeAfter { // PARITY-BRANCH: SBP-B-SCORE-MOVE-56
-			if candidateKnown { // PARITY-BRANCH: SBP-B-SCORE-MOVE-57
+		if gain > 0 && kingSafeAfter { // PARITY-BRANCH: SBP-B-SCORE-MOVE-47
+			if candidateKnown { // PARITY-BRANCH: SBP-B-SCORE-MOVE-48
 				afterMorale := postMoveMorale(obs, b, cell.Square, destination)
 				excess := afterMorale - currentMoraleNeed(obs)
 				guardStrength := leaderSupport(obs, b, cell, destination)
-				if excess >= LeaderExcessMorale { // PARITY-BRANCH: SBP-B-SCORE-MOVE-58
+				if excess >= LeaderExcessMorale { // PARITY-BRANCH: SBP-B-SCORE-MOVE-49
 					score += addTerm(&terms, "moralePush", -gain*MoralePushValue*params.MoralePush, "excessAdvance")
 				} else {
 					score += addTerm(&terms, "moralePush", gain*MoralePushValue*params.MoralePush*guardStrength, "guardedAdvance")
 				}
 			}
-		} else if candidateKnown && gain < 0 && kingSafeAfter { // PARITY-BRANCH: SBP-B-SCORE-MOVE-59
+		} else if candidateKnown && gain < 0 && kingSafeAfter { // PARITY-BRANCH: SBP-B-SCORE-MOVE-50
 			afterMorale := postMoveMorale(obs, b, cell.Square, destination)
 			needed := currentMoraleNeed(obs)
-			if obs.OwnMorale-needed >= LeaderExcessMorale && afterMorale >= needed+1 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-60
+			if obs.OwnMorale-needed >= LeaderExcessMorale && afterMorale >= needed+1 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-51
 				score += addTerm(&terms, "moralePush", -gain*MoralePushValue*params.MoralePush*LeaderRetreatValue, "excessRetreat")
 			}
 		}
-		if postThreat > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-61
+		if postThreat > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-52
 			score += addTerm(&terms, "safety", -KingValue*params.Safety, "kingIntoStrike")
 		}
 	}
 
 	// Beacon bearer leadership
-	if isCurrentBeaconBearer(obs, cell) && cell.Rank != "king" && !cell.Convoy && quietMove && params.BeaconAggression > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-62
+	if isCurrentBeaconBearer(obs, cell) && cell.Rank != "king" && !cell.Convoy && quietMove && params.BeaconAggression > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-53
 		gain := forwardProgress(b.side, destination) - forwardProgress(b.side, cell.Square)
-		if candidateKnown && candidate != nil && candidate.DestinationVisible && supportedAndUnthreatened(candidate) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-63
+		if candidateKnown && candidate != nil && candidate.DestinationVisible && supportedAndUnthreatened(candidate) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-54
 			supportGain := leaderSupport(obs, b, cell, destination) - leaderSupport(obs, b, cell, cell.Square)
-			if supportGain > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-64
+			if supportGain > 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-55
 				detail := "guardedAdvance"
-				if gain <= 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-65
+				if gain <= 0 { // PARITY-BRANCH: SBP-B-SCORE-MOVE-67
 					detail = "regroup"
 				}
 				score += addTerm(&terms, "beaconAggression", supportGain*params.BeaconAggression*protectionFactor(candidate), detail)
@@ -621,10 +621,10 @@ func scoreMove(obs *Observation, b *boardContext, params *BotParams, memory map[
 		From: cell.Square,
 		To:   destination,
 	}
-	if cell.Rank == "pawn" && !cell.Convoy && isPromotionSquare(b.side, destination) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-66
+	if cell.Rank == "pawn" && !cell.Convoy && isPromotionSquare(b.side, destination) { // PARITY-BRANCH: SBP-B-SCORE-MOVE-56
 		intent.Promotion = "queen"
 	}
-	if captureChoice != "" { // PARITY-BRANCH: SBP-B-SCORE-MOVE-67
+	if captureChoice != "" { // PARITY-BRANCH: SBP-B-SCORE-MOVE-57
 		intent.Choice = captureChoice
 	}
 
@@ -650,34 +650,34 @@ func priorityCaptiveDeliveryProposal(obs *Observation, b *boardContext, params *
 			continue
 		}
 		prisonerRank := cell.Rank
-		if obs.Rules.CargoBasedDelivery { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-4
+		if obs.Rules.CargoBasedDelivery { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-13
 			prisonerRank = "pawn"
 		}
 		destinations := obs.Legal[cell.Square]
-		if len(destinations) == 0 { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-5
+		if len(destinations) == 0 { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-4
 			continue
 		}
 		baseSquares := obs.Rules.BaseSquares[prisonerRank]
 		to := ""
 
-		if containsString(baseSquares, cell.Square) { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-6
+		if containsString(baseSquares, cell.Square) { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-5
 			fallback := ""
 			for _, candidate := range destinations {
 				fact := candidateAt(obs, cell.Square, candidate)
 				if candidate == cell.Square || b.enemyBySquare[candidate] != nil ||
 					!hasCandidate(obs, cell.Square, candidate) || fact == nil ||
-					!fact.DestinationVisible || !isSafeSubject(fact) { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-7
+					!fact.DestinationVisible || !isSafeSubject(fact) { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-6
 					continue
 				}
-				if containsString(baseSquares, candidate) { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-8
+				if containsString(baseSquares, candidate) { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-7
 					to = candidate
 					break
 				}
-				if fallback == "" { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-9
+				if fallback == "" { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-8
 					fallback = candidate
 				}
 			}
-			if to == "" { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-10
+			if to == "" { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-9
 				to = fallback
 			}
 		} else {
@@ -687,18 +687,18 @@ func priorityCaptiveDeliveryProposal(obs *Observation, b *boardContext, params *
 				fact := candidateAt(obs, cell.Square, candidate)
 				if candidate == cell.Square || b.enemyBySquare[candidate] != nil ||
 					!hasCandidate(obs, cell.Square, candidate) || fact == nil ||
-					!fact.DestinationVisible || !isSafeSubject(fact) { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-11
+					!fact.DestinationVisible || !isSafeSubject(fact) { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-10
 					continue
 				}
 				gain := here - distanceToNearestSquare(candidate, baseSquares)
-				if gain > bestGain { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-12
+				if gain > bestGain { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-11
 					bestGain = gain
 					to = candidate
 				}
 			}
 		}
 
-		if to == "" { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-13
+		if to == "" { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-12
 			continue
 		}
 		return &proposal{
@@ -726,14 +726,14 @@ func priorityCaptiveDeliveryInFlight(obs *Observation, b *boardContext) bool {
 			continue
 		}
 		prisonerRank := cell.Rank
-		if obs.Rules.CargoBasedDelivery { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-4
+		if obs.Rules.CargoBasedDelivery { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-6
 			prisonerRank = "pawn"
 		}
 		baseSquares := obs.Rules.BaseSquares[prisonerRank]
-		if containsString(baseSquares, cell.Square) { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-5
+		if containsString(baseSquares, cell.Square) { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-4
 			return true
 		}
-		if distanceToNearestSquare(charging.Square, baseSquares) < distanceToNearestSquare(cell.Square, baseSquares) { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-6
+		if distanceToNearestSquare(charging.Square, baseSquares) < distanceToNearestSquare(cell.Square, baseSquares) { // PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-5
 			return true
 		}
 	}
@@ -752,19 +752,19 @@ func rankOptions(proposals []proposal, params *BotParams, count int) []Option {
 			break
 		}
 		actorKey := p.key
-		if p.actor != nil { // PARITY-BRANCH: SBP-B-RANK-OPTIONS-3
-			if uid, ok := p.actor.(UnitID); ok && !uid.IsZero() { // PARITY-BRANCH: SBP-B-RANK-OPTIONS-4
+		if p.actor != nil { // PARITY-BRANCH: SBP-B-RANK-OPTIONS-6
+			if uid, ok := p.actor.(UnitID); ok && !uid.IsZero() { // PARITY-BRANCH: SBP-B-RANK-OPTIONS-7
 				actorKey = uid.String()
-			} else if str, ok := p.actor.(string); ok && str != "" { // PARITY-BRANCH: SBP-B-RANK-OPTIONS-5
+			} else if str, ok := p.actor.(string); ok && str != "" { // PARITY-BRANCH: SBP-B-RANK-OPTIONS-8
 				actorKey = str
 			}
 		}
-		if seenActors[actorKey] { // PARITY-BRANCH: SBP-B-RANK-OPTIONS-6
+		if seenActors[actorKey] { // PARITY-BRANCH: SBP-B-RANK-OPTIONS-3
 			continue
 		}
 		seenActors[actorKey] = true
 		chosen = append(chosen, p)
-		if len(chosen) >= count { // PARITY-BRANCH: SBP-B-RANK-OPTIONS-7
+		if len(chosen) >= count { // PARITY-BRANCH: SBP-B-RANK-OPTIONS-4
 			break
 		}
 	}
@@ -773,7 +773,7 @@ func rankOptions(proposals []proposal, params *BotParams, count int) []Option {
 	rank := 0
 	leaderScore := 0.0
 	for i, p := range chosen {
-		if i == 0 || p.score < leaderScore-TieBreakBand { // PARITY-BRANCH: SBP-B-RANK-OPTIONS-8
+		if i == 0 || p.score < leaderScore-TieBreakBand { // PARITY-BRANCH: SBP-B-RANK-OPTIONS-5
 			rank = i + 1
 			leaderScore = p.score
 		}
