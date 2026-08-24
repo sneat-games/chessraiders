@@ -81,6 +81,40 @@ func TestReplayCaseDetectsAWrongRecordedIntent(t *testing.T) {
 	t.Logf("confirmed detection: %v", err)
 }
 
+// TestSharedCorpusRunnerDetectsADivergentNativeImplementation proves the new
+// shared runner compares more than the historical intent oracle. It starts
+// from a real Starlark/native-Go tuple and corrupts only the native memory,
+// modelling the class of port drift that the former separate replayers could
+// not observe.
+func TestSharedCorpusRunnerDetectsADivergentNativeImplementation(t *testing.T) {
+	path, c := sampleCase(t)
+	program, err := runtime.Compile(standardbot.Script)
+	if err != nil {
+		t.Fatalf("runtime.Compile: %v", err)
+	}
+	starlark, err := replayCaseStarlarkOutputs(program, path, c)
+	if err != nil {
+		t.Fatalf("Starlark sample run: %v", err)
+	}
+	goNative, err := replayCaseGoOutputs(path, c)
+	if err != nil {
+		t.Fatalf("native Go sample run: %v", err)
+	}
+	if err := compareDecisionOutputs(path, c, starlark, goNative); err != nil {
+		t.Fatalf("unmodified implementations disagree before perturbation: %v", err)
+	}
+
+	goNative.memory = json.RawMessage(`{"deliberatelyDivergent":1}`)
+	err = compareDecisionOutputs(path, c, starlark, goNative)
+	if err == nil {
+		t.Fatal("shared corpus runner accepted deliberately divergent native-Go memory")
+	}
+	if !strings.Contains(err.Error(), "native Go memory differs from Starlark") {
+		t.Errorf("shared runner error does not name the divergent return channel: %v", err)
+	}
+	t.Logf("confirmed native-Go divergence detection: %v", err)
+}
+
 // TestReplayCaseDetectsAPerturbedParameterRow perturbs `parameters` rather
 // than the recorded intent directly — proving the detector also catches a
 // disagreement that arises from decide() itself scoring differently, not

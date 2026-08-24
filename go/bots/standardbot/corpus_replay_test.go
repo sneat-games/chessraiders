@@ -138,10 +138,11 @@ type corpusCase struct {
 	Intent        json.RawMessage `json:"intent"`
 }
 
-// TestCorpusReplayAgreesWithThePublishedScript is the replayer itself: every
-// case under testdata/corpus, run through THIS checkout's own
-// runtime.Compile(standardbot.Script), reported against its own recorded
-// intent.
+// TestCorpusReplayAgreesWithThePublishedScript is the shared conformance
+// replayer. Every case executes the original Starlark bot and the native Go
+// bot with byte-identical inputs. The historical intent remains the immutable
+// oracle; the two live implementations must additionally agree on intent,
+// persisted memory, and ranked adviser options.
 //
 // An empty or missing corpus is a HARD FAILURE here, not a skip and not a
 // silent pass on zero cases — testdata/corpus/README.md documents 53
@@ -182,7 +183,7 @@ func TestCorpusReplayAgreesWithThePublishedScript(t *testing.T) {
 			t.Error(err)
 			continue
 		}
-		if err := replayCase(program, path, c); err != nil {
+		if err := replayCaseBoth(program, path, c); err != nil {
 			t.Error(err)
 			continue
 		}
@@ -194,7 +195,7 @@ func TestCorpusReplayAgreesWithThePublishedScript(t *testing.T) {
 			"case(s) differ and on what field", agree, len(entries), modulePath, recordedCorpusScriptVersion)
 		return
 	}
-	t.Logf("%d/%d recorded decisions agree with a replay against %s@%s", agree, len(entries), modulePath, recordedCorpusScriptVersion)
+	t.Logf("%d/%d corpus cases agree across Starlark and native Go against %s@%s", agree, len(entries), modulePath, recordedCorpusScriptVersion)
 }
 
 func TestGoStandardBotReplayAgreesWithThePublishedCorpus(t *testing.T) {
@@ -384,9 +385,23 @@ func checkCorpusMetadata(path string, c corpusCase, expectedModule string) error
 // or an intent mismatch are three DIFFERENT things a caller needs to
 // distinguish, not one generic "case N failed".
 func replayCaseGo(path string, c corpusCase) error {
+	got, err := replayCaseGoOutputs(path, c)
+	if err != nil {
+		return err
+	}
+	return compareRecordedIntent(path, c, got.intent)
+}
+
+type decisionOutputs struct {
+	intent  json.RawMessage
+	memory  json.RawMessage
+	options json.RawMessage
+}
+
+func replayCaseGoOutputs(path string, c corpusCase) (decisionOutputs, error) {
 	draw, err := strconv.ParseInt(c.RandomDraw, 10, 64)
 	if err != nil {
-		return fmt.Errorf("%s (%s case %d): randomDraw %q does not parse as a decimal int64: %w",
+		return decisionOutputs{}, fmt.Errorf("%s (%s case %d): randomDraw %q does not parse as a decimal int64: %w",
 			path, c.Test, c.Case, c.RandomDraw, err)
 	}
 	memory := c.Memory
@@ -394,39 +409,49 @@ func replayCaseGo(path string, c corpusCase) error {
 		memory = json.RawMessage("{}")
 	}
 
-	intentBytes, _, _, err := standardbot.DecideJSON(c.Observation, memory, c.Parameters, draw, c.Options)
+	intentBytes, memoryBytes, optionsBytes, err := standardbot.DecideJSON(c.Observation, memory, c.Parameters, draw, c.Options)
 	if err != nil {
-		return fmt.Errorf("%s (%s case %d): DecideJSON returned an error: %w", path, c.Test, c.Case, err)
+		return decisionOutputs{}, fmt.Errorf("%s (%s case %d): DecideJSON returned an error: %w", path, c.Test, c.Case, err)
 	}
-
-	got, err := canonicalJSON(intentBytes)
-	if err != nil {
-		return fmt.Errorf("%s (%s case %d): decode replayed intent %s: %w", path, c.Test, c.Case, intentBytes, err)
-	}
-	want, err := canonicalJSON(c.Intent)
-	if err != nil {
-		return fmt.Errorf("%s (%s case %d): decode recorded intent %s: %w", path, c.Test, c.Case, c.Intent, err)
-	}
-	if !reflect.DeepEqual(got, want) {
-		return fmt.Errorf("%s (%s case %d): intent differs — replayed %s, recorded %s",
-			path, c.Test, c.Case, trimJSON(intentBytes), trimJSON(c.Intent))
-	}
-	return nil
+	return decisionOutputs{intent: intentBytes, memory: memoryBytes, options: optionsBytes}, nil
 }
 
 func replayCase(program *runtime.Program, path string, c corpusCase) error {
+	got, err := replayCaseStarlarkOutputs(program, path, c)
+	if err != nil {
+		return err
+	}
+	return compareRecordedIntent(path, c, got.intent)
+}
+
+func replayCaseBoth(program *runtime.Program, path string, c corpusCase) error {
+	starlark, err := replayCaseStarlarkOutputs(program, path, c)
+	if err != nil {
+		return err
+	}
+	goNative, err := replayCaseGoOutputs(path, c)
+	if err != nil {
+		return err
+	}
+	if err := compareRecordedIntent(path, c, starlark.intent); err != nil {
+		return err
+	}
+	return compareDecisionOutputs(path, c, starlark, goNative)
+}
+
+func replayCaseStarlarkOutputs(program *runtime.Program, path string, c corpusCase) (decisionOutputs, error) {
 	draw, err := strconv.ParseInt(c.RandomDraw, 10, 64)
 	if err != nil {
-		return fmt.Errorf("%s (%s case %d): randomDraw %q does not parse as a decimal int64: %w",
+		return decisionOutputs{}, fmt.Errorf("%s (%s case %d): randomDraw %q does not parse as a decimal int64: %w",
 			path, c.Test, c.Case, c.RandomDraw, err)
 	}
 	drawJSON, err := json.Marshal(draw)
 	if err != nil {
-		return fmt.Errorf("%s (%s case %d): encode randomDraw: %w", path, c.Test, c.Case, err)
+		return decisionOutputs{}, fmt.Errorf("%s (%s case %d): encode randomDraw: %w", path, c.Test, c.Case, err)
 	}
 	optionsJSON, err := json.Marshal(c.Options)
 	if err != nil {
-		return fmt.Errorf("%s (%s case %d): encode options: %w", path, c.Test, c.Case, err)
+		return decisionOutputs{}, fmt.Errorf("%s (%s case %d): encode options: %w", path, c.Test, c.Case, err)
 	}
 	memory := c.Memory
 	if len(memory) == 0 {
@@ -436,18 +461,21 @@ func replayCase(program *runtime.Program, path string, c corpusCase) error {
 	result, err := program.Call("decide",
 		string(c.Observation), string(memory), string(c.Parameters), string(drawJSON), string(optionsJSON))
 	if err != nil {
-		return fmt.Errorf("%s (%s case %d): decide() returned an error: %w", path, c.Test, c.Case, err)
+		return decisionOutputs{}, fmt.Errorf("%s (%s case %d): decide() returned an error: %w", path, c.Test, c.Case, err)
 	}
 
 	var tuple [3]json.RawMessage
 	if err := json.Unmarshal([]byte(result), &tuple); err != nil {
-		return fmt.Errorf("%s (%s case %d): decide()'s own result %s does not decode as a 3-tuple: %w",
+		return decisionOutputs{}, fmt.Errorf("%s (%s case %d): decide()'s own result %s does not decode as a 3-tuple: %w",
 			path, c.Test, c.Case, result, err)
 	}
+	return decisionOutputs{intent: tuple[0], memory: tuple[1], options: tuple[2]}, nil
+}
 
-	got, err := canonicalJSON(tuple[0])
+func compareRecordedIntent(path string, c corpusCase, actual json.RawMessage) error {
+	got, err := canonicalJSON(actual)
 	if err != nil {
-		return fmt.Errorf("%s (%s case %d): decode replayed intent %s: %w", path, c.Test, c.Case, tuple[0], err)
+		return fmt.Errorf("%s (%s case %d): decode replayed intent %s: %w", path, c.Test, c.Case, actual, err)
 	}
 	want, err := canonicalJSON(c.Intent)
 	if err != nil {
@@ -455,7 +483,33 @@ func replayCase(program *runtime.Program, path string, c corpusCase) error {
 	}
 	if !reflect.DeepEqual(got, want) {
 		return fmt.Errorf("%s (%s case %d): intent differs — replayed %s, recorded %s",
-			path, c.Test, c.Case, trimJSON(tuple[0]), trimJSON(c.Intent))
+			path, c.Test, c.Case, trimJSON(actual), trimJSON(c.Intent))
+	}
+	return nil
+}
+
+func compareDecisionOutputs(path string, c corpusCase, starlark, goNative decisionOutputs) error {
+	for _, field := range []struct {
+		name  string
+		left  json.RawMessage
+		right json.RawMessage
+	}{
+		{name: "intent", left: starlark.intent, right: goNative.intent},
+		{name: "memory", left: starlark.memory, right: goNative.memory},
+		{name: "ranked options", left: starlark.options, right: goNative.options},
+	} {
+		left, err := canonicalJSON(field.left)
+		if err != nil {
+			return fmt.Errorf("%s (%s case %d): decode Starlark %s %s: %w", path, c.Test, c.Case, field.name, field.left, err)
+		}
+		right, err := canonicalJSON(field.right)
+		if err != nil {
+			return fmt.Errorf("%s (%s case %d): decode native Go %s %s: %w", path, c.Test, c.Case, field.name, field.right, err)
+		}
+		if !reflect.DeepEqual(left, right) {
+			return fmt.Errorf("%s (%s case %d): native Go %s differs from Starlark — Go %s, Starlark %s",
+				path, c.Test, c.Case, field.name, trimJSON(field.right), trimJSON(field.left))
+		}
 	}
 	return nil
 }

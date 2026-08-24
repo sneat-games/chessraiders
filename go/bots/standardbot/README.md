@@ -283,6 +283,15 @@ private engine's own tests once observed it decide.
 go test ./bots/standardbot/... -run TestCorpusReplay
 ```
 
+The replayer executes every case through both `chess-raiders-bot.star` and
+native Go, comparing the complete `(intent, memory, ranked options)` result.
+The corpus keeps its original historical intent oracle and its exact decimal
+`int64` `randomDraw` strings. [`parity-manifest.json`](parity-manifest.json)
+is the small machine-readable contract for a third implementation: it names
+the inputs, compared outputs, and the stable decision-pipeline source IDs.
+Its companion test rejects an ID that is missing from, duplicated in, or
+unpaired between the Go and Starlark sources.
+
 reports `N/N recorded decisions agree` on success, or one line per
 disagreeing case naming the file, the originating test/case and the
 mismatching field on failure. An empty or missing `testdata/corpus` is a

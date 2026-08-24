@@ -422,7 +422,11 @@ func buildMemory(obs *Observation, memory map[string]int64, intent *Intent) map[
 		toIndex = int64(squareIndex(intent.To))
 	}
 
-	stillFrozen := memory != nil && memory["revision"] == obs.Revision
+	// A missing revision is a fresh memory map, not revision zero. Starlark's
+	// memory.get("revision") returns None in that case, so it initializes every
+	// refused-ring slot before recording this decision.
+	previousRevision, hasPreviousRevision := memory["revision"]
+	stillFrozen := hasPreviousRevision && previousRevision == obs.Revision
 	cursor := int64(0)
 	if stillFrozen {
 		cursor = memory["refusedCursor"]

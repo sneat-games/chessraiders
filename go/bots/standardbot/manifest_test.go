@@ -175,6 +175,6 @@ func TestStandardBotManifestClosureRejectsAnUndeclaredFile(t *testing.T) {
 // lives in the script itself, the one place this value is consumed, so
 // every present and future producer gets it for free. No params changed;
 // params.resolved.json is untouched.
-const standardBotClosureDigest = "sha256:8d5e43f769723310c34a78fba1c5b369af821303079da281c8fccb61c16052cd"
+const standardBotClosureDigest = "sha256:3496cdde52044c653580506c82d678d4d5a1502836f287ee71a9b6caeed8a65b"
 
-const standardBotScriptDigest = "385201fe61a3b9d1b2cc2d7a1318a01f2b85112f06104dff9918f6eccf27bca1"
+const standardBotScriptDigest = "51f1493477e40b5c120a1b1ab35a3a44df795f281a36d2442cd528bee604156f"

@@ -18,25 +18,31 @@ func intn(randomDraw int64, count int) int {
 	return int(res)
 }
 
+// PARITY-FUNCTION: SBP-F-DECIDE
 // Decide computes the bot decision directly on typed Go structures.
 func Decide(obs *Observation, memory map[string]int64, params *BotParams, hostRandomDraw int64, options int) (*Intent, map[string]int64, []Option) {
+	// PARITY-BRANCH: SBP-B-DECIDE-LIFECYCLE
 	if obs.Lifecycle != "playing" {
 		return nil, memory, nil
 	}
 
 	b := buildBoard(obs)
+	// PARITY-BRANCH: SBP-B-DECIDE-OWN-UNITS
 	if len(b.own) == 0 {
 		return nil, memory, nil
 	}
 
+	// PARITY-BRANCH: SBP-B-DECIDE-PROTECTED-CHARGE
 	if len(b.protectedChargingUnits) > 0 {
 		return finishDecision(obs, b, memory, nil, nil)
 	}
 
+	// PARITY-BRANCH: SBP-B-DECIDE-PRIORITY-IN-FLIGHT
 	if priorityCaptiveDeliveryInFlight(obs, b) {
 		return finishDecision(obs, b, memory, nil, nil)
 	}
 
+	// PARITY-BRANCH: SBP-B-DECIDE-PRIORITY-DELIVERY
 	if len(b.chargingUnits) == 0 && !holdsFocus(b, memory) && len(b.convoyHome) == 0 {
 		priority := priorityCaptiveDeliveryProposal(obs, b, params)
 		if priority != nil {
@@ -46,14 +52,17 @@ func Decide(obs *Observation, memory map[string]int64, params *BotParams, hostRa
 	}
 
 	var proposals []proposal
+	// PARITY-BRANCH: SBP-B-DECIDE-MOVE-PROPOSALS
 	if !holdsFocus(b, memory) {
 		proposals = moveProposals(obs, b, params, memory)
 	}
+	// PARITY-BRANCH: SBP-B-DECIDE-SYSTEM-PROPOSALS
 	if len(b.chargingUnits) == 0 {
 		proposals = append(proposals, systemProposals(obs, b, params)...)
 	}
 	proposals = dropRefused(proposals, obs, memory)
 
+	// PARITY-BRANCH: SBP-B-DECIDE-KING-CHANNEL
 	if kingChannelActive(obs, b) && len(b.chargingUnits) == 0 && b.kingCell != nil {
 		kingThreshold := retentionScore(memory, CommitKindKing)
 		kingID := b.kingCell.UnitID.String()
@@ -72,6 +81,7 @@ func Decide(obs *Observation, memory map[string]int64, params *BotParams, hostRa
 		proposals = filtered
 	}
 
+	// PARITY-BRANCH: SBP-B-DECIDE-ROUTE-CHANNEL
 	if len(b.chargingUnits) > 0 {
 		threshold := retentionScore(memory, CommitKindRoute)
 		var filtered []proposal
@@ -89,6 +99,7 @@ func Decide(obs *Observation, memory map[string]int64, params *BotParams, hostRa
 		proposals = filtered
 	}
 
+	// PARITY-BRANCH: SBP-B-DECIDE-NO-PROPOSALS
 	if len(proposals) == 0 {
 		return finishDecision(obs, b, memory, nil, nil)
 	}
@@ -102,6 +113,7 @@ func Decide(obs *Observation, memory map[string]int64, params *BotParams, hostRa
 
 	ranked := rankOptions(proposals, params, options)
 	bestProposal := proposals[0]
+	// PARITY-BRANCH: SBP-B-DECIDE-PASS-FLOOR
 	if bestProposal.score < params.PassBelow {
 		return finishDecision(obs, b, memory, nil, ranked)
 	}

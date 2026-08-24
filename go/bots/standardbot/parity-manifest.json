@@ -1,0 +1,27 @@
+{
+  "schema": "chess-raiders-standard-bot-parity/v1",
+  "corpus": {
+    "format": "chess-bot-conformance-case/v1",
+    "inputs": ["observation", "memory", "parameters", "randomDraw", "options"],
+    "asserts": ["intent", "memory", "rankedOptions"],
+    "randomDraw": "decimal-int64-string"
+  },
+  "implementations": {
+    "starlark": "chess-raiders-bot.star:decide",
+    "go": "bot.go:Decide"
+  },
+  "ids": [
+    "SBP-F-DECIDE",
+    "SBP-B-DECIDE-LIFECYCLE",
+    "SBP-B-DECIDE-OWN-UNITS",
+    "SBP-B-DECIDE-PROTECTED-CHARGE",
+    "SBP-B-DECIDE-PRIORITY-IN-FLIGHT",
+    "SBP-B-DECIDE-PRIORITY-DELIVERY",
+    "SBP-B-DECIDE-MOVE-PROPOSALS",
+    "SBP-B-DECIDE-SYSTEM-PROPOSALS",
+    "SBP-B-DECIDE-KING-CHANNEL",
+    "SBP-B-DECIDE-ROUTE-CHANNEL",
+    "SBP-B-DECIDE-NO-PROPOSALS",
+    "SBP-B-DECIDE-PASS-FLOOR"
+  ]
+}

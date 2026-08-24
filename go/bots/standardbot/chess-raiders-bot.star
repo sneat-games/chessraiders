@@ -2753,6 +2753,7 @@ def intn(random_draw, count):
 # read top to bottom, this is the whole decision in five named steps.
 # =============================================================================
 
+# PARITY-FUNCTION: SBP-F-DECIDE
 def decide(observation, memory, params, host_random_draw, options = 0):
     """Returns a THREE-tuple: (chosen_intent, updated_memory, explained_options).
 
@@ -2780,27 +2781,32 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     build_memory directly — see that function's own doc comment, and
     COMMITMENT_DECAY's, for why and how the ONE new "committed" memory
     entry is written, decayed and cleared."""
+    # PARITY-BRANCH: SBP-B-DECIDE-LIFECYCLE
     if observation["lifecycle"] != "playing":
         return None, memory, []
 
     board = build_board(observation)
+    # PARITY-BRANCH: SBP-B-DECIDE-OWN-UNITS
     if not board["own"]:
         return None, memory, []
 
     # A visible enemy-king charge is already the highest-value objective.
     # Retain it even when it originated outside this bot's memory.
+    # PARITY-BRANCH: SBP-B-DECIDE-PROTECTED-CHARGE
     if board["protected_charging_units"]:
         return finish_decision(observation, board, memory, None, [])
 
     # StandardRules' convoy charge (2s) is longer than the Commander
     # cadence (1s). Keep this precise first-Engineer delivery route until it
     # settles instead of letting an equally-homeward alternative reset it.
+    # PARITY-BRANCH: SBP-B-DECIDE-PRIORITY-IN-FLIGHT
     if priority_captive_delivery_in_flight(observation, board):
         return finish_decision(observation, board, memory, None, [])
 
     # See this function's own doc comment above: gated identically to
     # bot4chess.go's own Decide (not holds_focus, no king-carrying convoy
     # already in flight — board["convoy_home"] empty).
+    # PARITY-BRANCH: SBP-B-DECIDE-PRIORITY-DELIVERY
     if not board["charging_units"] and not holds_focus(board, memory) and not board["convoy_home"]:
         priority = priority_captive_delivery_proposal(observation, board, params)
         if priority != None:
@@ -2808,8 +2814,10 @@ def decide(observation, memory, params, host_random_draw, options = 0):
             return finish_decision(observation, board, memory, priority, ranked)
 
     proposals = []
+    # PARITY-BRANCH: SBP-B-DECIDE-MOVE-PROPOSALS
     if not holds_focus(board, memory):
         proposals = move_proposals(observation, board, params, memory)
+    # PARITY-BRANCH: SBP-B-DECIDE-SYSTEM-PROPOSALS
     if not board["charging_units"]:
         proposals = proposals + system_proposals(observation, board, params)
     proposals = drop_refused(proposals, observation, memory)
@@ -2831,6 +2839,7 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     # `not board["charging_units"]` because system_proposals itself already
     # is (this function's own call above) — a route charge and the king's
     # Restore are never BOTH freshly competing on the same decision.
+    # PARITY-BRANCH: SBP-B-DECIDE-KING-CHANNEL
     if king_channel_active(observation, board) and not board["charging_units"] and board["king_cell"] != None:
         king_threshold = retention_score(memory, COMMIT_KIND_KING)
         king_id = board["king_cell"]["unitId"]
@@ -2845,6 +2854,7 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     # BASELINE alone (COMMITMENT_DECAY's own comment has the full
     # accounting) — retention_score falls back to that same flat baseline
     # whenever memory holds no route commitment at all.
+    # PARITY-BRANCH: SBP-B-DECIDE-ROUTE-CHANNEL
     if board["charging_units"]:
         threshold = retention_score(memory, COMMIT_KIND_ROUTE)
         # Scoped to the CHARGING unit's own alternatives only (proposal
@@ -2859,6 +2869,7 @@ def decide(observation, memory, params, host_random_draw, options = 0):
         proposals = [proposal for proposal in proposals
                      if proposal.get("actor") not in board["charging_units"] or proposal["score"] > threshold]
 
+    # PARITY-BRANCH: SBP-B-DECIDE-NO-PROPOSALS
     if not proposals:
         return finish_decision(observation, board, memory, None, [])
 
@@ -2869,6 +2880,7 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     # applies passBelow itself.
     ranked = rank_options(proposals, params, options)
     best_proposal = proposals[0]
+    # PARITY-BRANCH: SBP-B-DECIDE-PASS-FLOOR
     if best_proposal["score"] < params["passBelow"]:
         return finish_decision(observation, board, memory, None, ranked)
 
