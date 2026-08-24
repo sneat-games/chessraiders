@@ -1,0 +1,6315 @@
+{
+  "schema": "chess-raiders-standard-bot-semantic-parity/v1",
+  "bindings": [
+    {
+      "id": "SBP-B-ACTIVE-LEADER-GUARD-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "activeLeaderGuard",
+          "source": "!leaderGuardMatches(obs, memory)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "active_leader_guard",
+          "source": "not leader_guard_matches(observation, memory)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-ADD-TERM-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "addTerm",
+          "source": "value == 0.0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "add_term",
+          "source": "value == 0.0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-APPLY-REPEAT-PENALTY-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "applyRepeatPenalty",
+          "source": "sq \u003e= 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "apply_repeat_penalty",
+          "source": "square \u003e= 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-APPLY-REPEAT-PENALTY-10",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "applyRepeatPenalty",
+          "source": "actorID != repeatedCell.UnitID.String()"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "apply_repeat_penalty",
+          "source": "proposal[\"actor\"] != repeated_cell[\"unitId\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-APPLY-REPEAT-PENALTY-11",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "applyRepeatPenalty",
+          "source": "isQuietMove(obs, b, repeatedCell, destination) \u0026\u0026 cellThreatenedCount(repeatedCell) == 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "apply_repeat_penalty",
+          "source": "is_quiet_move(observation, board, repeated_cell, destination) and threatened_count(repeated_cell) == 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-APPLY-REPEAT-PENALTY-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "applyRepeatPenalty",
+          "source": "p.intent.Kind == \"move\" \u0026\u0026 p.intent.Promotion == \"\" \u0026\u0026 cell != nil \u0026\u0026 destination != \"\" \u0026\u0026 !cell.Convoy \u0026\u0026 cell.Rank != \"king\" \u0026\u0026 !isCurrentBeaconBearer(obs, cell) \u0026\u0026 isQuietMove(obs, b, cell, destination) \u0026\u0026 cellThreatenedCount(cell) == 0 \u0026\u0026 recentlyVacated[squareIndex(destination)]"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "apply_repeat_penalty",
+          "source": "(proposal[\"intent\"][\"kind\"] == \"move\" and not proposal[\"intent\"].get(\"promotion\") and cell and destination and not cell[\"convoy\"] and cell[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, cell) and is_quiet_move(observation, board, cell, destination) and threatened_count(cell) == 0 and square_index(destination) in recently_vacated)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-APPLY-REPEAT-PENALTY-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "applyRepeatPenalty",
+          "source": "len(cycleKeys) \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "apply_repeat_penalty",
+          "source": "cycle_keys"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-APPLY-REPEAT-PENALTY-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "applyRepeatPenalty",
+          "source": "!cycleKeys[p.key] \u0026\u0026 candidate != nil \u0026\u0026 !candidate.Convoy \u0026\u0026 candidate.Rank != \"king\" \u0026\u0026 !isCurrentBeaconBearer(obs, candidate) \u0026\u0026 p.score \u003e= params.PassBelow"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "apply_repeat_penalty",
+          "source": "(proposal[\"key\"] not in cycle_keys and candidate and not candidate[\"convoy\"] and candidate[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, candidate) and proposal[\"score\"] \u003e= params[\"passBelow\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-APPLY-REPEAT-PENALTY-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "applyRepeatPenalty",
+          "source": "otherViable"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "apply_repeat_penalty",
+          "source": "other_viable"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-APPLY-REPEAT-PENALTY-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "applyRepeatPenalty",
+          "source": "lastToVal \u003c 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "apply_repeat_penalty",
+          "source": "last_to \u003c 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-APPLY-REPEAT-PENALTY-7",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "applyRepeatPenalty",
+          "source": "repeatedCell == nil || repeatedCell.Convoy || repeatedCell.Rank == \"king\" || isCurrentBeaconBearer(obs, repeatedCell)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "apply_repeat_penalty",
+          "source": "not repeated_cell or repeated_cell[\"convoy\"] or repeated_cell[\"rank\"] == \"king\" or is_current_beacon_bearer(observation, repeated_cell)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-APPLY-REPEAT-PENALTY-8",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "applyRepeatPenalty",
+          "source": "candidate != nil \u0026\u0026 candidate.UnitID.String() != repeatedCell.UnitID.String() \u0026\u0026 !candidate.Convoy \u0026\u0026 candidate.Rank != \"king\" \u0026\u0026 !isCurrentBeaconBearer(obs, candidate) \u0026\u0026 p.score \u003e= params.PassBelow"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "apply_repeat_penalty",
+          "source": "(candidate and candidate[\"unitId\"] != repeated_cell[\"unitId\"] and not candidate[\"convoy\"] and candidate[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, candidate) and proposal[\"score\"] \u003e= params[\"passBelow\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-APPLY-REPEAT-PENALTY-9",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "applyRepeatPenalty",
+          "source": "!otherViable"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "apply_repeat_penalty",
+          "source": "not other_viable"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-DEPLOY-OR-RESTORE-PROPOSAL-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconDeployOrRestoreProposal",
+          "source": "!obs.Rules.BeaconEnabled"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_deploy_or_restore_proposal",
+          "source": "not observation[\"rules\"].get(\"beaconEnabled\", False)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-DEPLOY-OR-RESTORE-PROPOSAL-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconDeployOrRestoreProposal",
+          "source": "kingCell == nil || b.busyUnits[kingCell.UnitID.String()]"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_deploy_or_restore_proposal",
+          "source": "king_cell == None or board[\"busy_units\"].get(king_cell[\"unitId\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-DEPLOY-OR-RESTORE-PROPOSAL-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconDeployOrRestoreProposal",
+          "source": "beacon.Lifecycle == \"undeployed\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_deploy_or_restore_proposal",
+          "source": "beacon[\"lifecycle\"] == \"undeployed\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-DEPLOY-OR-RESTORE-PROPOSAL-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconDeployOrRestoreProposal",
+          "source": "beacon.Lifecycle == \"lost\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_deploy_or_restore_proposal",
+          "source": "beacon[\"lifecycle\"] == \"lost\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-FORGE-PROPOSALS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconForgeProposals",
+          "source": "!obs.Rules.BeaconEnabled || !obs.Rules.BeaconForgeEnabled"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_forge_proposals",
+          "source": "not observation[\"rules\"].get(\"beaconEnabled\", False) or not observation[\"rules\"].get(\"beaconForgeEnabled\", False)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-FORGE-PROPOSALS-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconForgeProposals",
+          "source": "obs.Beacon.Lifecycle != \"lost\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_forge_proposals",
+          "source": "observation[\"beacon\"][\"lifecycle\"] != \"lost\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-FORGE-PROPOSALS-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconForgeProposals",
+          "source": "cell.Convoy || cell.Refitting || cell.Rank != \"pawn\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_forge_proposals",
+          "source": "cell[\"convoy\"] or cell[\"refitting\"] or cell[\"rank\"] != \"pawn\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-FORGE-PROPOSALS-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconForgeProposals",
+          "source": "!containsString(ownPawnBaseSquares, cell.Square)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_forge_proposals",
+          "source": "cell[\"square\"] not in own_pawn_base_squares"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-FORGE-PROPOSALS-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconForgeProposals",
+          "source": "cellThreatenedCount(cell) \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_forge_proposals",
+          "source": "threatened_count(cell) \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconHandOffProposal",
+          "source": "!obs.Rules.BeaconEnabled"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_hand_off_proposal",
+          "source": "not observation[\"rules\"].get(\"beaconEnabled\", False)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconHandOffProposal",
+          "source": "kingCell == nil || b.busyUnits[kingCell.UnitID.String()]"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_hand_off_proposal",
+          "source": "king_cell == None or board[\"busy_units\"].get(king_cell[\"unitId\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconHandOffProposal",
+          "source": "!obs.Rules.BeaconKingStartsAsBearer"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_hand_off_proposal",
+          "source": "not observation[\"rules\"][\"beaconKingStartsAsBearer\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconHandOffProposal",
+          "source": "beacon.Lifecycle != \"deployed\" || beacon.EverHandedOff"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_hand_off_proposal",
+          "source": "beacon[\"lifecycle\"] != \"deployed\" or beacon[\"everHandedOff\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconHandOffProposal",
+          "source": "beacon.BearerSquare != kingCell.Square"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_hand_off_proposal",
+          "source": "beacon[\"bearerSquare\"] != king_cell[\"square\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconHandOffProposal",
+          "source": "to == \"\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_hand_off_proposal",
+          "source": "to == None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BEACON-HAND-OFF-PROPOSAL-7",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconHandOffProposal",
+          "source": "cell.Square == to"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_hand_off_proposal",
+          "source": "cell[\"square\"] == to"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-BOARD-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "buildBoard",
+          "source": "cellCopy.Side == obs.Side"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_board",
+          "source": "cell[\"side\"] == observation[\"side\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-BOARD-10",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "buildBoard",
+          "source": "ownInterrogationTargets[uid]"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_board",
+          "source": "own_interrogation_targets.get(unit_id)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-BOARD-11",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "buildBoard",
+          "source": "enemyInterrogationActive \u0026\u0026 b.kingCell != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_board",
+          "source": "enemy_interrogation_active and king_cell"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-BOARD-12",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "buildBoard",
+          "source": "!b.busyUnits[cell.UnitID.String()]"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_board",
+          "source": "len(charging_units) \u003e= max_active_commands"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-BOARD-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "buildBoard",
+          "source": "cell.TargetLocked"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_board",
+          "source": "cell.get(\"targetLocked\")"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-BOARD-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "buildBoard",
+          "source": "cell.InterrogationRemainingMs != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_board",
+          "source": "cell.get(\"interrogationRemainingMs\") != None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-BOARD-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "buildBoard",
+          "source": "cell.Side == obs.Side"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_board",
+          "source": "cell[\"side\"] == observation[\"side\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-BOARD-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "buildBoard",
+          "source": "cell.Profession == \"engineer\" \u0026\u0026 cell.Grade == \"master\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_board",
+          "source": "cell.get(\"profession\", \"\") == \"engineer\" and cell.get(\"grade\") == \"master\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-BOARD-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "buildBoard",
+          "source": "cell.Rank == \"king\" \u0026\u0026 !cell.Convoy"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_board",
+          "source": "cell[\"rank\"] == \"king\" and not cell[\"convoy\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-BOARD-7",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "buildBoard",
+          "source": "cell.Charging != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_board",
+          "source": "charging"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-BOARD-8",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "buildBoard",
+          "source": "target != nil \u0026\u0026 target.Rank == \"king\" \u0026\u0026 !target.Ghost"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_board",
+          "source": "target and target[\"rank\"] == \"king\" and not target[\"ghost\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-BOARD-9",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "buildBoard",
+          "source": "cell.Training != nil || cell.ForgingRemainingMs \u003e 0 || cell.RecoveryRemainingMs \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_board",
+          "source": "cell.get(\"training\") or cell.get(\"forgingRemainingMs\", 0) \u003e 0 or cell.get(\"recoveryRemainingMs\", 0) \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-MEMORY-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "buildMemory",
+          "source": "updatedMemory[\"leaderGuardActive\"] == 1 \u0026\u0026 !leaderGuardMatches(obs, updatedMemory)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_memory",
+          "source": "updated_memory.get(\"leaderGuardActive\", 0) == 1 and not leader_guard_matches(observation, updated_memory)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-MEMORY-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "buildMemory",
+          "source": "intent != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_memory",
+          "source": "not still_frozen"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-MEMORY-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "buildMemory",
+          "source": "stillFrozen"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_memory",
+          "source": "intent and intent[\"kind\"] == \"action\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-MEMORY-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "buildMemory",
+          "source": "intent != nil \u0026\u0026 intent.Kind == \"action\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_memory",
+          "source": "intent and intent[\"kind\"] == \"move\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-MEMORY-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "buildMemory",
+          "source": "intent != nil \u0026\u0026 intent.Kind == \"move\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_memory",
+          "source": "leader"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-MEMORY-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "buildMemory",
+          "source": "leader != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_memory",
+          "source": "quiet_ordinary"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-BUILD-MEMORY-7",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "buildMemory",
+          "source": "quietOrdinary != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_memory",
+          "source": "intent and intent[\"kind\"] == \"move\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-CAN-PROMOTE-NEXT-MOVE-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "canPromoteNextMove",
+          "source": "candidate == nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "can_promote_next_move",
+          "source": "is_promotion_square(side, next_destination)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-CAPTURE-CHOICE-AVAILABLE-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "captureChoiceAvailable",
+          "source": "targetCell == nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "capture_choice_available",
+          "source": "not target_cell"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-CAPTURE-CHOICE-AVAILABLE-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "captureChoiceAvailable",
+          "source": "targetCell.Rank == \"king\" || targetCell.Convoy"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "capture_choice_available",
+          "source": "target_cell[\"rank\"] == \"king\" or target_cell[\"convoy\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-CAPTURE-CHOICE-AVAILABLE-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "captureChoiceAvailable",
+          "source": "obs.Rules.AllowsKill \u0026\u0026 outcomes != nil \u0026\u0026 outcomes.Kill != nil \u0026\u0026 outcomes.Kill.Affordable"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "capture_choice_available",
+          "source": "observation[\"rules\"][\"allowsKill\"] and outcomes.get(\"kill\", EMPTY_OUTCOME)[\"affordable\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-CAPTURE-CHOICE-AVAILABLE-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "captureChoiceAvailable",
+          "source": "obs.Rules.AllowsCapture \u0026\u0026 outcomes != nil \u0026\u0026 outcomes.Capture != nil \u0026\u0026 outcomes.Capture.Affordable"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "capture_choice_available",
+          "source": "observation[\"rules\"][\"allowsCapture\"] and outcomes.get(\"capture\", EMPTY_OUTCOME)[\"affordable\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-CAPTURE-EXPECTED-SUCCESS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "captureExpectedSuccess",
+          "source": "outcome == nil || !outcome.OddsKnown"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "capture_expected_success",
+          "source": "not outcome[\"oddsKnown\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-CELL-VALUE-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "cellValue",
+          "source": "cell == nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "cell_value",
+          "source": "cell[\"kingCargo\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-CELL-VALUE-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "cellValue",
+          "source": "cell.KingCargo"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "cell_value",
+          "source": "cell[\"ghost\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-CURRENT-MORALE-NEED-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "currentMoraleNeed",
+          "source": "obs.CaptureMoraleNeed != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "current_morale_need",
+          "source": "\"captureMoraleNeed\" in observation"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DECIDE-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "obs.Lifecycle != \"playing\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "observation[\"lifecycle\"] != \"playing\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DECIDE-10",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "ok"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "board[\"charging_units\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DECIDE-11",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "ok"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "proposal.get(\"actor\") not in board[\"charging_units\"] or proposal[\"score\"] \u003e threshold] if not proposals"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DECIDE-12",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "actorID != kingID || p.score \u003e kingThreshold"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "not proposals"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DECIDE-13",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "len(b.chargingUnits) \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "best_proposal[\"score\"] \u003c params[\"passBelow\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DECIDE-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "len(b.own) == 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "not board[\"own\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DECIDE-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "len(b.protectedChargingUnits) \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "board[\"protected_charging_units\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DECIDE-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "priorityCaptiveDeliveryInFlight(obs, b)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "priority_captive_delivery_in_flight(observation, board)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DECIDE-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "len(b.chargingUnits) == 0 \u0026\u0026 !holdsFocus(b, memory) \u0026\u0026 len(b.convoyHome) == 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "not board[\"charging_units\"] and not holds_focus(board, memory) and not board[\"convoy_home\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DECIDE-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "priority != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "priority != None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DECIDE-7",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "!holdsFocus(b, memory)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "not holds_focus(board, memory)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DECIDE-8",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "len(b.chargingUnits) == 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "not board[\"charging_units\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DECIDE-9",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "kingChannelActive(obs, b) \u0026\u0026 len(b.chargingUnits) == 0 \u0026\u0026 b.kingCell != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "king_channel_active(observation, board) and not board[\"charging_units\"] and board[\"king_cell\"] != None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DELIVERY-LANE-BLOCKERS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "deliveryLaneBlockers",
+          "source": "enemyBySquare[target] != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "delivery_lane_blockers",
+          "source": "target in enemy_by_square"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DELIVERY-LANE-BLOCKERS-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "deliveryLaneBlockers",
+          "source": "ownBySquare[target] != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "delivery_lane_blockers",
+          "source": "target in own_by_square"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DELIVERY-LANE-BLOCKERS-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "deliveryLaneBlockers",
+          "source": "len(neighbors) == 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "delivery_lane_blockers",
+          "source": "not neighbors"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DELIVERY-LANE-BLOCKERS-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "deliveryLaneBlockers",
+          "source": "enemyBySquare[neighbor] != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "delivery_lane_blockers",
+          "source": "neighbor in enemy_by_square"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DELIVERY-LANE-BLOCKERS-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "deliveryLaneBlockers",
+          "source": "ownBySquare[neighbor] == nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "delivery_lane_blockers",
+          "source": "neighbor not in own_by_square"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DELIVERY-SQUARE-NEIGHBORS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "deliverySquareNeighbors",
+          "source": "df == 0 \u0026\u0026 dr == 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "_delivery_square_neighbors",
+          "source": "file_delta == 0 and rank_delta == 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DELIVERY-SQUARE-NEIGHBORS-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "deliverySquareNeighbors",
+          "source": "nf \u003c 0 || nf \u003e 7 || nr \u003c 0 || nr \u003e 7"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "_delivery_square_neighbors",
+          "source": "neighbor_file \u003c 0 or neighbor_file \u003e 7 or neighbor_rank \u003c 0 or neighbor_rank \u003e 7"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DISTANCE-TO-NEAREST-ENEMY-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "distanceToNearestEnemy",
+          "source": "gap \u003c closest"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "distance_to_nearest_enemy",
+          "source": "gap \u003c closest"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DISTANCE-TO-NEAREST-SQUARE-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "distanceToNearestSquare",
+          "source": "gap \u003c closest"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "distance_to_nearest_square",
+          "source": "gap \u003c closest"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DROP-REFUSED-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "dropRefused",
+          "source": "memory == nil || memory[\"revision\"] != obs.Revision"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "drop_refused",
+          "source": "not memory or memory.get(\"revision\") != observation[\"revision\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DROP-REFUSED-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "dropRefused",
+          "source": "ok \u0026\u0026 idx \u003e= 0 \u0026\u0026 idx \u003c= MaxSquareIndex"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "drop_refused",
+          "source": "index \u003e= 0 and index \u003c= MAX_SQUARE_INDEX"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-DROP-REFUSED-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "dropRefused",
+          "source": "len(refusedSquares) == 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "drop_refused",
+          "source": "not refused_squares"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-EFFECTIVE-CAPTURE-TARGET-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "effectiveCaptureTarget",
+          "source": "targetCell != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "effective_capture_target",
+          "source": "target_cell"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-EFFECTIVE-CAPTURE-TARGET-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "effectiveCaptureTarget",
+          "source": "cell.Convoy || cell.Rank != \"pawn\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "effective_capture_target",
+          "source": "cell[\"convoy\"] or cell[\"rank\"] != \"pawn\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-EFFECTIVE-CAPTURE-TARGET-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "effectiveCaptureTarget",
+          "source": "ok"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "effective_capture_target",
+          "source": "not victim_square"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-ESPIONAGE-PROPOSALS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "espionageProposals",
+          "source": "kingCell == nil || b.busyUnits[kingCell.UnitID.String()]"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "espionage_proposals",
+          "source": "king_cell == None or board[\"busy_units\"].get(king_cell[\"unitId\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-ESPIONAGE-PROPOSALS-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "espionageProposals",
+          "source": "obs.EnemyManaged \u003c= 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "espionage_proposals",
+          "source": "observation[\"enemyManaged\"] \u003c= 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-ESPIONAGE-PROPOSALS-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "espionageProposals",
+          "source": "suspect.Rank == \"king\" || suspect.Convoy"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "espionage_proposals",
+          "source": "suspect[\"rank\"] == \"king\" or suspect[\"convoy\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-ESPIONAGE-PROPOSALS-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "espionageProposals",
+          "source": "chebyshevDistance(kingCell.Square, suspect.Square) != 1"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "espionage_proposals",
+          "source": "chebyshev_distance(king_cell[\"square\"], suspect[\"square\"]) != 1"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-FINISH-DECISION-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "finishDecision",
+          "source": "chosen != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "finish_decision",
+          "source": "committed == 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-FORMATION-LEADER-PRIORITY-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "formationLeaderPriority",
+          "source": "cell.Convoy"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "formation_leader_priority",
+          "source": "cell[\"convoy\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-FORMATION-LEADER-PRIORITY-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "formationLeaderPriority",
+          "source": "cell.Rank == \"king\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "formation_leader_priority",
+          "source": "cell[\"rank\"] == \"king\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-FORMATION-LEADER-PRIORITY-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "formationLeaderPriority",
+          "source": "params.MoralePush \u003c= 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "formation_leader_priority",
+          "source": "params[\"moralePush\"] \u003c= 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-FORMATION-LEADER-PRIORITY-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "formationLeaderPriority",
+          "source": "obs.OwnMorale-needed \u003e= LeaderExcessMorale"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "formation_leader_priority",
+          "source": "observation.get(\"ownMorale\", 0) - needed \u003e= LEADER_EXCESS_MORALE"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-FORMATION-LEADER-PRIORITY-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "formationLeaderPriority",
+          "source": "isQuietMove(obs, b, cell, destination) \u0026\u0026 hasCandidate(obs, cell.Square, destination) \u0026\u0026 fact != nil \u0026\u0026 fact.DestinationVisible \u0026\u0026 supportedAndUnthreatened(fact) \u0026\u0026 after \u003c current \u0026\u0026 after \u003e= needed+1"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "formation_leader_priority",
+          "source": "(is_quiet_move(observation, board, cell, destination) and has_candidate(observation, cell[\"square\"], destination) and fact.get(\"destinationVisible\", False) and supported_and_unthreatened(fact) and after \u003c current and after \u003e= needed + 1)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-FORMATION-LEADER-PRIORITY-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "formationLeaderPriority",
+          "source": "current \u003e= needed+1"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "formation_leader_priority",
+          "source": "current \u003e= needed + 1"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-FORMATION-LEADER-PRIORITY-7",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "formationLeaderPriority",
+          "source": "isQuietMove(obs, b, cell, destination) \u0026\u0026 hasCandidate(obs, cell.Square, destination) \u0026\u0026 fact != nil \u0026\u0026 fact.DestinationVisible \u0026\u0026 supportedAndUnthreatened(fact) \u0026\u0026 after \u003e current \u0026\u0026 after \u003c= needed+2"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "formation_leader_priority",
+          "source": "(is_quiet_move(observation, board, cell, destination) and has_candidate(observation, cell[\"square\"], destination) and fact.get(\"destinationVisible\", False) and supported_and_unthreatened(fact) and after \u003e current and after \u003c= needed + 2)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-FORMATION-LEADER-PRIORITY-8",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "formationLeaderPriority",
+          "source": "!isCurrentBeaconBearer(obs, cell) || params.BeaconAggression \u003c= 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "formation_leader_priority",
+          "source": "not is_current_beacon_bearer(observation, cell) or params[\"beaconAggression\"] \u003c= 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-FORMATION-LEADER-PRIORITY-9",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "formationLeaderPriority",
+          "source": "!(cell.Rank == \"pawn\" \u0026\u0026 isPromotionSquare(b.side, destination)) \u0026\u0026 isQuietMove(obs, b, cell, destination) \u0026\u0026 hasCandidate(obs, cell.Square, destination) \u0026\u0026 fact != nil \u0026\u0026 fact.DestinationVisible \u0026\u0026 supportedAndUnthreatened(fact) \u0026\u0026 leaderSupport(obs, b, cell, destination) \u003e currentSupport"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "formation_leader_priority",
+          "source": "(not (cell[\"rank\"] == \"pawn\" and is_promotion_square(board[\"side\"], destination)) and is_quiet_move(observation, board, cell, destination) and has_candidate(observation, cell[\"square\"], destination) and fact.get(\"destinationVisible\", False) and supported_and_unthreatened(fact) and leader_support(observation, board, cell, destination) \u003e current_support)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-GUARD-CHANGES-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "guardChanges",
+          "source": "target != nil \u0026\u0026 !containsString(target.GuardedBy, oldSquare)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "guard_changes",
+          "source": "target and old_square not in relation_squares(target, \"guardedBy\")"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-GUARD-CHANGES-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "guardChanges",
+          "source": "containsString(after, square)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "guard_changes",
+          "source": "square in after"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-GUARD-CHANGES-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "guardChanges",
+          "source": "target != nil \u0026\u0026 len(target.GuardedBy) == 1 \u0026\u0026 target.GuardedBy[0] == oldSquare"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "guard_changes",
+          "source": "target and relation_squares(target, \"guardedBy\") == [old_square]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-HOLDS-FOCUS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "holdsFocus",
+          "source": "focusMarker \u003c= 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "holds_focus",
+          "source": "focus_marker \u003c= 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-INTN-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "intn",
+          "source": "count \u003c= 1"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "intn",
+          "source": "count \u003c= 1"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-IS-QUIET-MOVE-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "isQuietMove",
+          "source": "b.enemyBySquare[destination] != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "is_quiet_move",
+          "source": "board[\"enemy_by_square\"].get(destination)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-KING-CHANNEL-ACTIVE-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "kingChannelActive",
+          "source": "b.kingCell == nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "king_channel_active",
+          "source": "board[\"king_cell\"] == None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-LEADER-GUARD-MATCHES-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderGuardMatches",
+          "source": "memory[\"leaderGuardActive\"] != 1"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_guard_matches",
+          "source": "memory.get(\"leaderGuardActive\", 0) != 1"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-LEADER-GUARD-MATCHES-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderGuardMatches",
+          "source": "sourceCell != nil \u0026\u0026 sourceCell.Side != obs.Side"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_guard_matches",
+          "source": "source_cell and source_cell[\"side\"] != observation[\"side\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-LEADER-GUARD-MATCHES-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderGuardMatches",
+          "source": "sourceCell != nil \u0026\u0026 leaderKind(obs, sourceCell) == memory[\"leaderGuardKind\"]"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_guard_matches",
+          "source": "source_cell and leader_kind(observation, source_cell) == memory[\"leaderGuardKind\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-LEADER-GUARD-MATCHES-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderGuardMatches",
+          "source": "sourceCell.Side != \"white\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_guard_matches",
+          "source": "value \u003c 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-LEADER-GUARD-MATCHES-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderGuardMatches",
+          "source": "destinationCell != nil \u0026\u0026 destinationCell.Side != obs.Side"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_guard_matches",
+          "source": "destination_cell and destination_cell[\"side\"] != observation[\"side\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-LEADER-GUARD-MATCHES-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderGuardMatches",
+          "source": "destinationCell == nil || leaderKind(obs, destinationCell) != memory[\"leaderGuardKind\"]"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_guard_matches",
+          "source": "not destination_cell or leader_kind(observation, destination_cell) != memory[\"leaderGuardKind\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-LEADER-KIND-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderKind",
+          "source": "cell.Rank == \"king\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_kind",
+          "source": "cell[\"rank\"] == \"king\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-LEADER-KIND-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderKind",
+          "source": "isCurrentBeaconBearer(obs, cell)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_kind",
+          "source": "is_current_beacon_bearer(observation, cell)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-LEADER-REVERSE-FORBIDDEN-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderReverseForbidden",
+          "source": "guard == nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_reverse_forbidden",
+          "source": "guard == None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-LEADER-REVERSE-FORBIDDEN-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderReverseForbidden",
+          "source": "cell.Square != squareName(int(guard.to)) || destination != squareName(int(guard.from))"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_reverse_forbidden",
+          "source": "cell[\"square\"] != square_name(guard[\"to\"]) or destination != square_name(guard[\"from\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-LEADER-REVERSE-FORBIDDEN-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderReverseForbidden",
+          "source": "leaderKind(obs, cell) != guard.kind"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_reverse_forbidden",
+          "source": "leader_kind(observation, cell) != guard[\"kind\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-LEADER-SUPPORT-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "leaderSupport",
+          "source": "ally.UnitID.String() == leaderUID"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_support",
+          "source": "ally[\"unitId\"] == leader[\"unitId\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-LEADER-SUPPORT-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "leaderSupport",
+          "source": "dist == 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_support",
+          "source": "distance == 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-MOST-ADVANCED-ADJACENT-ALLY-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "mostAdvancedAdjacentAlly",
+          "source": "kingCell == nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "most_advanced_adjacent_ally",
+          "source": "king_cell == None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-MOST-ADVANCED-ADJACENT-ALLY-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "mostAdvancedAdjacentAlly",
+          "source": "cell.Rank == \"king\" || cell.Convoy"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "most_advanced_adjacent_ally",
+          "source": "cell[\"rank\"] == \"king\" or cell[\"convoy\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-MOST-ADVANCED-ADJACENT-ALLY-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "mostAdvancedAdjacentAlly",
+          "source": "chebyshevDistance(kingCell.Square, cell.Square) != 1"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "most_advanced_adjacent_ally",
+          "source": "chebyshev_distance(king_cell[\"square\"], cell[\"square\"]) != 1"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-MOST-ADVANCED-ADJACENT-ALLY-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "mostAdvancedAdjacentAlly",
+          "source": "progress \u003e bestProgress"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "most_advanced_adjacent_ally",
+          "source": "progress \u003e best_progress"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-MOVE-PROPOSALS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "moveProposals",
+          "source": "len(b.moveActionableUnits) == 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "move_proposals",
+          "source": "not board[\"move_actionable_units\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-MOVE-PROPOSALS-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "moveProposals",
+          "source": "rankedUnits[i].priority != rankedUnits[j].priority"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "move_proposals",
+          "source": "breadth \u003c= 0 or breadth \u003e len(ranked_units)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-MOVE-PROPOSALS-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "moveProposals",
+          "source": "breadth \u003c= 0 || breadth \u003e len(rankedUnits)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "move_proposals",
+          "source": "destination == cell[\"square\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-MOVE-PROPOSALS-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "moveProposals",
+          "source": "destination == cell.Square"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "move_proposals",
+          "source": "cell.get(\"charging\") and destination == cell[\"charging\"][\"square\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-MOVE-PROPOSALS-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "moveProposals",
+          "source": "cell.Charging != nil \u0026\u0026 destination == cell.Charging.Square"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "move_proposals",
+          "source": "not capture_choice_available(observation, board, cell, destination)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-MOVE-PROPOSALS-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "moveProposals",
+          "source": "!captureChoiceAvailable(obs, b, cell, destination)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "move_proposals",
+          "source": "leader_reverse_forbidden(observation, leader_guard, cell, destination)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-MOVE-PROPOSALS-7",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "moveProposals",
+          "source": "leaderReverseForbidden(obs, leaderGuard, cell, destination)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "move_proposals",
+          "source": "candidate_spread \u003c= 0 or candidate_spread \u003e len(candidates)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-NEXT-COMMITTED-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "nextCommitted",
+          "source": "chosen != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "next_committed",
+          "source": "intent != None and intent[\"kind\"] == \"move\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-NEXT-COMMITTED-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "nextCommitted",
+          "source": "intent != nil \u0026\u0026 intent.Kind == \"move\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "next_committed",
+          "source": "charge_ms \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-NEXT-COMMITTED-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "nextCommitted",
+          "source": "mover != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "next_committed",
+          "source": "is_king_channel_start(intent)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-NEXT-COMMITTED-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "nextCommitted",
+          "source": "chargeMs \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "next_committed",
+          "source": "board[\"charging_units\"] and stored_kind == COMMIT_KIND_ROUTE"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-NEXT-COMMITTED-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "nextCommitted",
+          "source": "isKingChannelStart(intent)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "next_committed",
+          "source": "king_channel_active(observation, board) and stored_kind == COMMIT_KIND_KING and actor != king_id"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PACK-COMMITTED-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "packCommitted",
+          "source": "offsetScore \u003c 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "pack_committed",
+          "source": "offset_score \u003c 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PACK-COMMITTED-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "packCommitted",
+          "source": "offsetScore \u003e= CommitScoreField"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "pack_committed",
+          "source": "offset_score \u003e= COMMIT_SCORE_FIELD"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PACK-PLACEMENT-BOARDS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "packPlacementBoards",
+          "source": "64-baseSquare \u003c squaresInSlot"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "pack_placement_boards",
+          "source": "raw \u003c 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PACK-PLACEMENT-BOARDS-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "packPlacementBoards",
+          "source": "(raw\u003e\u003esquare)\u00261 == 1"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "pack_placement_boards",
+          "source": "(raw \u003e\u003e square) \u0026 1"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PLACEMENT-BITBOARDS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "placementBitboards",
+          "source": "rankSlot \u003c 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "placement_bitboards",
+          "source": "rank_slot == None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryInFlight",
+          "source": "!b.needsFirstMasterEngineer"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_in_flight",
+          "source": "not board[\"needs_first_master_engineer\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryInFlight",
+          "source": "charging == nil || !cell.Convoy || cell.CargoCount == 0 || cell.KingCargo || cell.Rank != \"pawn\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_in_flight",
+          "source": "(not charging or not cell[\"convoy\"] or cell[\"cargoCount\"] == 0 or cell[\"kingCargo\"] or cell[\"rank\"] != \"pawn\")"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryInFlight",
+          "source": "b.allBySquare[charging.Square] != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_in_flight",
+          "source": "board[\"all_by_square\"].get(charging[\"square\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryInFlight",
+          "source": "obs.Rules.CargoBasedDelivery"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_in_flight",
+          "source": "cell[\"square\"] in base_squares"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryInFlight",
+          "source": "containsString(baseSquares, cell.Square)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_in_flight",
+          "source": "distance_to_nearest_square(charging[\"square\"], base_squares) \u003c distance_to_nearest_square(cell[\"square\"], base_squares)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryProposal",
+          "source": "!b.needsFirstMasterEngineer"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_proposal",
+          "source": "not board[\"needs_first_master_engineer\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-10",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryProposal",
+          "source": "to == \"\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_proposal",
+          "source": "(candidate == cell[\"square\"] or board[\"enemy_by_square\"].get(candidate) or not has_candidate(observation, cell[\"square\"], candidate) or not fact.get(\"destinationVisible\", False) or not is_safe_subject(fact))"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-11",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryProposal",
+          "source": "candidate == cell.Square || b.enemyBySquare[candidate] != nil || !hasCandidate(obs, cell.Square, candidate) || fact == nil || !fact.DestinationVisible || !isSafeSubject(fact)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_proposal",
+          "source": "gain \u003e best_gain"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-12",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryProposal",
+          "source": "gain \u003e bestGain"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_proposal",
+          "source": "to == None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryProposal",
+          "source": "!cell.Convoy || cell.CargoCount == 0 || cell.KingCargo || cell.Rank != \"pawn\" || b.busyUnits[cell.UnitID.String()]"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_proposal",
+          "source": "(not cell[\"convoy\"] or cell[\"cargoCount\"] == 0 or cell[\"kingCargo\"] or cell[\"rank\"] != \"pawn\" or board[\"busy_units\"].get(cell[\"unitId\"]))"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryProposal",
+          "source": "cell.NotBriefed"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_proposal",
+          "source": "cell.get(\"notBriefed\")"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryProposal",
+          "source": "obs.Rules.CargoBasedDelivery"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_proposal",
+          "source": "not destinations"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryProposal",
+          "source": "len(destinations) == 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_proposal",
+          "source": "cell[\"square\"] in base_squares"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryProposal",
+          "source": "containsString(baseSquares, cell.Square)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_proposal",
+          "source": "(candidate == cell[\"square\"] or board[\"enemy_by_square\"].get(candidate) or not has_candidate(observation, cell[\"square\"], candidate) or not fact.get(\"destinationVisible\", False) or not is_safe_subject(fact))"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-7",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryProposal",
+          "source": "candidate == cell.Square || b.enemyBySquare[candidate] != nil || !hasCandidate(obs, cell.Square, candidate) || fact == nil || !fact.DestinationVisible || !isSafeSubject(fact)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_proposal",
+          "source": "candidate in base_squares"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-8",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryProposal",
+          "source": "containsString(baseSquares, candidate)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_proposal",
+          "source": "fallback == None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-9",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryProposal",
+          "source": "fallback == \"\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_proposal",
+          "source": "to == None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-PROJECTED-CELL-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "projectedCell",
+          "source": "ok"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "projected_cell",
+          "source": "raw == None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-QUIET-LEADER-INTENT-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "quietLeaderIntent",
+          "source": "intent == nil || intent.Kind != \"move\" || intent.Promotion != \"\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "quiet_leader_intent",
+          "source": "not intent or intent[\"kind\"] != \"move\" or intent.get(\"promotion\")"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-QUIET-LEADER-INTENT-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "quietLeaderIntent",
+          "source": "cell != nil \u0026\u0026 cell.Side != obs.Side"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "quiet_leader_intent",
+          "source": "cell and cell[\"side\"] != observation[\"side\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-QUIET-LEADER-INTENT-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "quietLeaderIntent",
+          "source": "cell == nil || cell.Convoy || leaderKind(obs, cell) == 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "quiet_leader_intent",
+          "source": "not cell or cell[\"convoy\"] or not leader_kind(observation, cell)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-QUIET-LEADER-INTENT-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "quietLeaderIntent",
+          "source": "piece.Side != obs.Side"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "quiet_leader_intent",
+          "source": "not is_quiet_move(observation, board, cell, intent[\"to\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-QUIET-ORDINARY-INTENT-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "quietOrdinaryIntent",
+          "source": "intent == nil || intent.Kind != \"move\" || intent.Promotion != \"\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "quiet_ordinary_intent",
+          "source": "not intent or intent[\"kind\"] != \"move\" or intent.get(\"promotion\")"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-QUIET-ORDINARY-INTENT-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "quietOrdinaryIntent",
+          "source": "cell != nil \u0026\u0026 cell.Side != obs.Side"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "quiet_ordinary_intent",
+          "source": "cell and cell[\"side\"] != observation[\"side\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-QUIET-ORDINARY-INTENT-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "quietOrdinaryIntent",
+          "source": "cell == nil || cell.Convoy || leaderKind(obs, cell) != 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "quiet_ordinary_intent",
+          "source": "not cell or cell[\"convoy\"] or leader_kind(observation, cell)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-RANK-OPTIONS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "rankOptions",
+          "source": "count \u003c= 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "rank_options",
+          "source": "count \u003c= 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-RANK-OPTIONS-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "rankOptions",
+          "source": "p.score \u003c params.PassBelow"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "rank_options",
+          "source": "proposal[\"score\"] \u003c params[\"passBelow\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-RANK-OPTIONS-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "rankOptions",
+          "source": "p.actor != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "rank_options",
+          "source": "seen_actors.get(actor)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-RANK-OPTIONS-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "rankOptions",
+          "source": "ok \u0026\u0026 !uid.IsZero()"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "rank_options",
+          "source": "len(chosen) \u003e= count"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-RANK-OPTIONS-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "rankOptions",
+          "source": "ok \u0026\u0026 str != \"\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "rank_options",
+          "source": "index == 0 or proposal[\"score\"] \u003c leader_score - TIE_BREAK_BAND"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-RETENTION-SCORE-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "retentionScore",
+          "source": "storedKind != kind"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "retention_score",
+          "source": "stored_kind != kind"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-ROUND-HALF-UP-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "roundHalfUp",
+          "source": "value \u003e= 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "round_half_up",
+          "source": "value \u003e= 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "targetCell != nil \u0026\u0026 targetCell.Rank != \"king\" \u0026\u0026 !targetCell.Convoy"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "target_cell and target_cell[\"rank\"] != \"king\" and not target_cell[\"convoy\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-10",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "params.Prisoner \u003e 0 \u0026\u0026 targetCell.Rank != \"king\" \u0026\u0026 !targetCell.Convoy"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "candidate_known"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-11",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "b.needsFirstMasterEngineer \u0026\u0026 cell.Rank == \"pawn\" \u0026\u0026 !cell.Convoy \u0026\u0026 outcomes != nil \u0026\u0026 outcomes.Capture != nil \u0026\u0026 outcomes.Capture.Affordable \u0026\u0026 (captureBackingCount(targetCell, cell.Square) \u003e 0 || cellGuardedCount(targetCell) == 0)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "target_cell"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-12",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "candidateKnown \u0026\u0026 candidate != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "post_threat \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-13",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "targetCell != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "cell[\"kingCargo\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-14",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "postThreat \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "captured_value \u003e= risk"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-15",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "cell.KingCargo"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "post_guarded \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-16",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "capturedValue \u003e= risk"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "params[\"tempo\"] \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-17",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "postGuarded \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "charge_ms \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-18",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "params.Tempo \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "active_charge and destination != active_charge[\"square\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-19",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "chargeMs \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "cell[\"convoy\"] and cell[\"kingCargo\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "params.Prisoner \u003e 0 \u0026\u0026 obs.Rules.AllowsCapture \u0026\u0026 outcomes != nil \u0026\u0026 outcomes.Capture != nil \u0026\u0026 outcomes.Capture.Affordable"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "(params[\"prisoner\"] \u003e 0 and observation[\"rules\"][\"allowsCapture\"] and outcomes.get(\"capture\", EMPTY_OUTCOME)[\"affordable\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-20",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "activeCharge != nil \u0026\u0026 destination != activeCharge.Square"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "destination in board[\"delivery_squares\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-21",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "cell.Convoy \u0026\u0026 cell.KingCargo"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "here_cost \u003c UNREACHABLE_PATH_COST"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-22",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "containsString(b.deliverySquares, destination)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "there_cost \u003e= UNREACHABLE_PATH_COST"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-23",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "activeCharge != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "cell[\"convoy\"] and cell[\"cargoCount\"] \u003e 0 and params[\"prisoner\"] \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-24",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "!okHere"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "board[\"needs_first_master_engineer\"] and cell[\"rank\"] == \"pawn\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-25",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "!okThere"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "not cell[\"convoy\"] and params[\"delivery\"] \u003e 0 and cell[\"square\"] in board[\"blocking_base\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-26",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "hereCost \u003c UnreachablePathCost"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "params[\"advance\"] \u003e 0 and not cell[\"convoy\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-27",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "thereCost \u003e= UnreachablePathCost"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "quiet_move and (not candidate_known or not candidate.get(\"destinationVisible\", False))"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-28",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "cell.Convoy \u0026\u0026 cell.CargoCount \u003e 0 \u0026\u0026 params.Prisoner \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "quiet_move and guarded_count(candidate) \u003c= 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-29",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "obs.Rules.CargoBasedDelivery"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "cell[\"rank\"] == \"pawn\" and positional_known_and_supported and ordinary_piece"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "obs.Rules.AllowsKill"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "observation[\"rules\"][\"allowsKill\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-30",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "b.needsFirstMasterEngineer \u0026\u0026 cell.Rank == \"pawn\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "is_promotion_square(board[\"side\"], destination)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-31",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "!cell.Convoy \u0026\u0026 params.Delivery \u003e 0 \u0026\u0026 containsString(b.blockingBase, cell.Square)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "(quiet_move and candidate_known and candidate.get(\"destinationVisible\", False) and supported_and_unthreatened(candidate) and can_promote_next_move(board[\"side\"], candidate))"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-32",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "rankVal \u003e QueenValue"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "ordinary_piece and positional_known_and_supported"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-33",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "params.Advance \u003e 0 \u0026\u0026 !cell.Convoy"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "(quiet_move and positional_known_and_supported and cell[\"rank\"] in [\"knight\", \"bishop\", \"rook\", \"queen\"] and ordinary_piece and not cell.get(\"moved\", False) and gain \u003e 0)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-34",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "quietMove \u0026\u0026 (!candidateKnown || candidate == nil || !candidate.DestinationVisible)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "quiet_move and positional_known_and_supported and ordinary_piece and candidate.get(\"patrolGain\", 0) \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-35",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "quietMove \u0026\u0026 guardedCount(candidate) \u003c= 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "(quiet_move and candidate_known and not is_promotion_square(board[\"side\"], destination) and candidate.get(\"destinationVisible\", False) and threatened_count(candidate) == 0 and ordinary_piece)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-36",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "cell.Rank == \"pawn\" \u0026\u0026 positionalKnownAndSupported \u0026\u0026 ordinaryPiece"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "net_outbound_material \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-37",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "isPromotionSquare(b.side, destination)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "net_outbound_material \u003c 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-38",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "quietMove \u0026\u0026 candidateKnown \u0026\u0026 candidate != nil \u0026\u0026 candidate.DestinationVisible \u0026\u0026 supportedAndUnthreatened(candidate) \u0026\u0026 canPromoteNextMove(b.side, candidate)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "inbound_material \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-39",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "ordinaryPiece \u0026\u0026 positionalKnownAndSupported"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "(not cell[\"convoy\"] and quiet_move and candidate_known and candidate.get(\"destinationVisible\", False) and supported_and_unthreatened(candidate) and cell[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, cell))"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "captureChoice != \"\" \u0026\u0026 outcomes != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "capture_choice"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-40",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "quietMove \u0026\u0026 positionalKnownAndSupported \u0026\u0026 (cell.Rank == \"knight\" || cell.Rank == \"bishop\" || cell.Rank == \"rook\" || cell.Rank == \"queen\") \u0026\u0026 ordinaryPiece \u0026\u0026 !cell.Moved \u0026\u0026 gain \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "enemy[\"rank\"] == \"king\" and not enemy[\"ghost\"] and enemy[\"square\"] in (candidate.get(\"nextPossibleMoves\", []) or [])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-41",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "quietMove \u0026\u0026 positionalKnownAndSupported \u0026\u0026 ordinaryPiece \u0026\u0026 candidate != nil \u0026\u0026 candidate.PatrolGain \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "params[\"targetLock\"] \u003e 0 and board[\"locked_units\"].get(cell[\"unitId\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-42",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "patrol \u003e float64(PatrolGainCap)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "post_safety_known and post_threat == 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-43",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "quietMove \u0026\u0026 candidateKnown \u0026\u0026 candidate != nil \u0026\u0026 !isPromotionSquare(b.side, destination) \u0026\u0026 candidate.DestinationVisible \u0026\u0026 threatenedCount(candidate) == 0 \u0026\u0026 ordinaryPiece"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "params[\"kingSafety\"] \u003e 0 and board[\"king_threatened\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-44",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "netOutboundMaterial \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "cell[\"rank\"] == \"king\" and not cell[\"convoy\"] and post_safety_known and post_threat == 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-45",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "netOutboundMaterial \u003c 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "(target_cell and board[\"king_cell\"] and board[\"king_cell\"][\"square\"] in relation_squares(target_cell, \"threatens\"))"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-46",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "inboundMaterial \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "params[\"moralePush\"] \u003e 0 and cell[\"rank\"] == \"king\" and not cell[\"convoy\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-47",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "!cell.Convoy \u0026\u0026 quietMove \u0026\u0026 candidateKnown \u0026\u0026 candidate != nil \u0026\u0026 candidate.DestinationVisible \u0026\u0026 supportedAndUnthreatened(candidate) \u0026\u0026 cell.Rank != \"king\" \u0026\u0026 !isCurrentBeaconBearer(obs, cell)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "gain \u003e 0 and king_safe_after"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-48",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "enemy.Rank == \"king\" \u0026\u0026 !enemy.Ghost \u0026\u0026 containsString(candidate.NextPossibleMoves, enemy.Square)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "candidate_known"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-49",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "params.TargetLock \u003e 0 \u0026\u0026 b.lockedUnits[cell.UnitID.String()]"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "excess \u003e= LEADER_EXCESS_MORALE"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "captureChoice == \"capture\" \u0026\u0026 outcomes.Capture != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "target_cell"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-50",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "postSafetyKnown \u0026\u0026 postThreat == 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "candidate_known and gain \u003c 0 and king_safe_after"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-51",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "params.KingSafety \u003e 0 \u0026\u0026 b.kingThreatened"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "(observation.get(\"ownMorale\", 0) - needed \u003e= LEADER_EXCESS_MORALE and after_morale \u003e= needed + 1)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-52",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "cell.Rank == \"king\" \u0026\u0026 !cell.Convoy \u0026\u0026 postSafetyKnown \u0026\u0026 postThreat == 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "post_threat \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-53",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "targetCell != nil \u0026\u0026 b.kingCell != nil \u0026\u0026 containsString(targetCell.Threatens, b.kingCell.Square)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "(is_current_beacon_bearer(observation, cell) and cell[\"rank\"] != \"king\" and not cell[\"convoy\"] and quiet_move and params[\"beaconAggression\"] \u003e 0)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-54",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "params.MoralePush \u003e 0 \u0026\u0026 cell.Rank == \"king\" \u0026\u0026 !cell.Convoy"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "candidate_known and candidate.get(\"destinationVisible\", False) and supported_and_unthreatened(candidate)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-55",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "candidateKnown \u0026\u0026 candidate != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "support_gain \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-56",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "gain \u003e 0 \u0026\u0026 kingSafeAfter"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "cell[\"rank\"] == \"pawn\" and not cell[\"convoy\"] and is_promotion_square(board[\"side\"], destination)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-57",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "candidateKnown"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "capture_choice"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "captureChoice == \"kill\" \u0026\u0026 outcomes.Kill != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "(board[\"needs_first_master_engineer\"] and cell[\"rank\"] == \"pawn\" and cell[\"convoy\"] and cell[\"cargoCount\"] \u003e 0)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-7",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "targetCell != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "target_cell[\"rank\"] == \"king\" and not target_cell[\"ghost\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-8",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "b.needsFirstMasterEngineer \u0026\u0026 cell.Rank == \"pawn\" \u0026\u0026 cell.Convoy \u0026\u0026 cell.CargoCount \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "params[\"prisoner\"] \u003e 0 and target_cell[\"rank\"] != \"king\" and not target_cell[\"convoy\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SCORE-MOVE-9",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "targetCell.Rank == \"king\" \u0026\u0026 !targetCell.Ghost"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "(board[\"needs_first_master_engineer\"] and cell[\"rank\"] == \"pawn\" and not cell[\"convoy\"] and outcomes.get(\"capture\", EMPTY_OUTCOME)[\"affordable\"] and (capture_backing_count(target_cell, cell[\"square\"]) \u003e 0 or guarded_count(target_cell) == 0))"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SERGEANT-SUPPORTED-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "sergeantSupported",
+          "source": "cell.Profession == \"sergeant\" \u0026\u0026 !cell.Convoy \u0026\u0026 !cell.Refitting \u0026\u0026 chebyshevDistance(square, cell.Square) == 1"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "sergeant_supported",
+          "source": "(cell.get(\"profession\", \"\") == \"sergeant\" and not cell[\"convoy\"] and not cell[\"refitting\"] and chebyshev_distance(square, cell[\"square\"]) == 1)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SUPPORT-MATERIAL-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "supportMaterial",
+          "source": "cell != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "support_material",
+          "source": "cell"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SYSTEM-PROPOSALS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "systemProposals",
+          "source": "!beaconAllowed \u0026\u0026 (!anyOtherSystemEnabled || params.System \u003c= 0)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "system_proposals",
+          "source": "(not beacon_allowed and (not any_other_system_enabled or params[\"system\"] \u003c= 0))"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SYSTEM-PROPOSALS-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "systemProposals",
+          "source": "params.System \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "system_proposals",
+          "source": "params[\"system\"] \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SYSTEM-PROPOSALS-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "systemProposals",
+          "source": "systems.Training \u0026\u0026 obs.Rules.SpecialistsEnabled"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "system_proposals",
+          "source": "systems[\"training\"] and observation[\"rules\"][\"specialistsEnabled\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SYSTEM-PROPOSALS-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "systemProposals",
+          "source": "systems.Walls \u0026\u0026 (obs.Rules.WoodWallsEnabled || obs.Rules.StoneWallsEnabled)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "system_proposals",
+          "source": "systems[\"walls\"] and (observation[\"rules\"][\"woodWallsEnabled\"] or observation[\"rules\"][\"stoneWallsEnabled\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SYSTEM-PROPOSALS-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "systemProposals",
+          "source": "systems.Espionage"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "system_proposals",
+          "source": "systems[\"espionage\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SYSTEM-PROPOSALS-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "systemProposals",
+          "source": "beaconAllowed"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "system_proposals",
+          "source": "beacon_allowed"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SYSTEM-PROPOSALS-7",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "systemProposals",
+          "source": "handOff != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "system_proposals",
+          "source": "hand_off != None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SYSTEM-PROPOSALS-8",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "systemProposals",
+          "source": "deployOrRestore != nil"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "system_proposals",
+          "source": "deploy_or_restore != None"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-SYSTEM-PROPOSALS-9",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "systemProposals",
+          "source": "obs.Rules.BeaconForgeEnabled"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "system_proposals",
+          "source": "observation[\"rules\"][\"beaconForgeEnabled\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-TRAINING-PROPOSALS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "trainingProposals",
+          "source": "cell.Profession == \"engineer\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "training_proposals",
+          "source": "cell.get(\"profession\", \"\") == \"engineer\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-TRAINING-PROPOSALS-10",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "trainingProposals",
+          "source": "params.AdvancedTraining \u0026\u0026 cell.Profession == \"engineer\" \u0026\u0026 containsString(cell.EligibleFor, \"masterEngineerTraining\") \u0026\u0026 cell.Grade != \"master\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "training_proposals",
+          "source": "(params[\"advancedTraining\"] and cell.get(\"profession\", \"\") == \"engineer\" and \"masterEngineerTraining\" in (cell.get(\"eligibleFor\", []) or []) and cell.get(\"grade\") != \"master\")"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-TRAINING-PROPOSALS-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "trainingProposals",
+          "source": "cell.Convoy || cell.Refitting || cell.Rank != \"pawn\" || b.busyUnits[cell.UnitID.String()]"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "training_proposals",
+          "source": "(cell[\"convoy\"] or cell[\"refitting\"] or cell[\"rank\"] != \"pawn\" or board[\"busy_units\"].get(cell[\"unitId\"]))"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-TRAINING-PROPOSALS-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "trainingProposals",
+          "source": "!containsString(baseSquares, cell.Square)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "training_proposals",
+          "source": "cell[\"square\"] not in base_squares"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-TRAINING-PROPOSALS-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "trainingProposals",
+          "source": "cellThreatenedCount(cell) \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "training_proposals",
+          "source": "threatened_count(cell) \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-TRAINING-PROPOSALS-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "trainingProposals",
+          "source": "cell.Profession == \"\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "training_proposals",
+          "source": "cell.get(\"profession\", \"\") == \"\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-TRAINING-PROPOSALS-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "trainingProposals",
+          "source": "obs.Rules.VeteranProgression \u0026\u0026 !cell.Veteran"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "training_proposals",
+          "source": "observation[\"rules\"][\"veteranProgression\"] and not cell.get(\"veteran\", False)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-TRAINING-PROPOSALS-7",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "trainingProposals",
+          "source": "obs.OwnSpecialists \u003e= ceiling"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "training_proposals",
+          "source": "observation[\"ownSpecialists\"] \u003e= ceiling"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-TRAINING-PROPOSALS-8",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "trainingProposals",
+          "source": "!haveEngineer \u0026\u0026 containsString(permitted, \"engineer\")"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "training_proposals",
+          "source": "not have_engineer and \"engineer\" in permitted"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-TRAINING-PROPOSALS-9",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "trainingProposals",
+          "source": "!containsString(permitted, profession)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "training_proposals",
+          "source": "profession not in permitted"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-UNIT-PRIORITY-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "unitPriority",
+          "source": "cell.Convoy \u0026\u0026 cell.KingCargo"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unit_priority",
+          "source": "cell[\"convoy\"] and cell[\"kingCargo\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-UNIT-PRIORITY-10",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "unitPriority",
+          "source": "isQuietMove(obs, b, cell, destination) \u0026\u0026 hasCandidate(obs, cell.Square, destination) \u0026\u0026 fact != nil \u0026\u0026 fact.DestinationVisible \u0026\u0026 supportedAndUnthreatened(fact) \u0026\u0026 containsString(fact.NextPossibleMoves, enemy.Square)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unit_priority",
+          "source": "(is_quiet_move(observation, board, cell, destination) and has_candidate(observation, cell[\"square\"], destination) and fact.get(\"destinationVisible\", False) and supported_and_unthreatened(fact) and enemy[\"square\"] in (fact.get(\"nextPossibleMoves\", []) or []))"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-UNIT-PRIORITY-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "unitPriority",
+          "source": "cell.Convoy \u0026\u0026 cell.CargoCount \u003e 0 \u0026\u0026 params.Prisoner \u003e 0"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unit_priority",
+          "source": "cell[\"convoy\"] and cell[\"cargoCount\"] \u003e 0 and params[\"prisoner\"] \u003e 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-UNIT-PRIORITY-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "unitPriority",
+          "source": "params.TargetLock \u003e 0 \u0026\u0026 b.lockedUnits[cell.UnitID.String()]"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unit_priority",
+          "source": "params[\"targetLock\"] \u003e 0 and board[\"locked_units\"].get(cell[\"unitId\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-UNIT-PRIORITY-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "unitPriority",
+          "source": "params.KingSafety \u003e 0 \u0026\u0026 b.kingThreatened"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unit_priority",
+          "source": "params[\"kingSafety\"] \u003e 0 and board[\"king_threatened\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-UNIT-PRIORITY-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "unitPriority",
+          "source": "cell.Rank == \"king\""
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unit_priority",
+          "source": "cell[\"rank\"] == \"king\""
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-UNIT-PRIORITY-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "unitPriority",
+          "source": "b.kingCell != nil \u0026\u0026 chebyshevDistance(cell.Square, b.kingCell.Square) \u003c= NearKingRadius"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unit_priority",
+          "source": "board[\"king_cell\"] and chebyshev_distance(cell[\"square\"], board[\"king_cell\"][\"square\"]) \u003c= NEAR_KING_RADIUS"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-UNIT-PRIORITY-7",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "unitPriority",
+          "source": "!cell.Convoy \u0026\u0026 cell.Rank != \"king\" \u0026\u0026 !isCurrentBeaconBearer(obs, cell)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unit_priority",
+          "source": "not cell[\"convoy\"] and cell[\"rank\"] != \"king\" and not is_current_beacon_bearer(observation, cell)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-UNIT-PRIORITY-8",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "unitPriority",
+          "source": "enemy.Rank != \"king\" || enemy.Ghost"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unit_priority",
+          "source": "enemy[\"rank\"] != \"king\" or enemy[\"ghost\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-UNIT-PRIORITY-9",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "unitPriority",
+          "source": "containsString(obs.Legal[cell.Square], enemy.Square) \u0026\u0026 captureChoiceAvailable(obs, b, cell, enemy.Square)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unit_priority",
+          "source": "(enemy[\"square\"] in observation[\"legal\"].get(cell[\"square\"], []) and capture_choice_available(observation, board, cell, enemy[\"square\"]))"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-UNPACK-PLACEMENT-BOARDS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "unpackPlacementBoards",
+          "source": "64-baseSquare \u003c squaresInSlot"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unpack_placement_boards",
+          "source": "code != 0"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-WALL-PROPOSALS-1",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "wallProposals",
+          "source": "cell.Convoy || cell.Refitting"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "wall_proposals",
+          "source": "cell[\"convoy\"] or cell[\"refitting\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-WALL-PROPOSALS-2",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "wallProposals",
+          "source": "wall.A == cell.Square"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "wall_proposals",
+          "source": "wall[\"a\"] == cell[\"square\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-WALL-PROPOSALS-3",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "wallProposals",
+          "source": "wall.B == cell.Square"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "wall_proposals",
+          "source": "wall[\"b\"] == cell[\"square\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-WALL-PROPOSALS-4",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "wallProposals",
+          "source": "wall.OwnWorkSession"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "wall_proposals",
+          "source": "wall[\"ownWorkSession\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-WALL-PROPOSALS-5",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "wallProposals",
+          "source": "wall.Side == b.side \u0026\u0026 cell.Profession == \"engineer\" \u0026\u0026 wall.MaximumIntegrity \u003e 0 \u0026\u0026 wall.Integrity*10 \u003c wall.MaximumIntegrity*6"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "wall_proposals",
+          "source": "(wall[\"side\"] == board[\"side\"] and cell.get(\"profession\", \"\") == \"engineer\" and wall[\"maximumIntegrity\"] \u003e 0 and wall[\"integrity\"] * 10 \u003c wall[\"maximumIntegrity\"] * 6)"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-WALL-PROPOSALS-6",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "wallProposals",
+          "source": "sergeantSupported(b, cell.Square)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "wall_proposals",
+          "source": "sergeant_supported(board, cell[\"square\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-WALL-PROPOSALS-7",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "wallProposals",
+          "source": "wall.Side != b.side \u0026\u0026 params.ContestEnemyWork"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "wall_proposals",
+          "source": "wall[\"side\"] != board[\"side\"] and params[\"contestEnemyWork\"]"
+        }
+      ]
+    },
+    {
+      "id": "SBP-B-WALL-PROPOSALS-8",
+      "kind": "branch",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "wallProposals",
+          "source": "sergeantSupported(b, cell.Square)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "wall_proposals",
+          "source": "sergeant_supported(board, cell[\"square\"])"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-ACTIVE-LEADER-GUARD",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "activeLeaderGuard",
+          "source": "func activeLeaderGuard(obs *Observation, memory map[string]int64) *leaderGuard"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "active_leader_guard",
+          "source": "def active_leader_guard(observation, memory):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-ADD-TERM",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "addTerm",
+          "source": "func addTerm(terms *[]Term, term string, value float64, detail string) float64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "add_term",
+          "source": "def add_term(terms, term, value, detail):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-APPLY-REPEAT-PENALTY",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "applyRepeatPenalty",
+          "source": "func applyRepeatPenalty(obs *Observation, b *boardContext, params *BotParams, memory map[string]int64, proposals []proposal) []proposal"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "apply_repeat_penalty",
+          "source": "def apply_repeat_penalty(observation, board, params, memory, proposals):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-BEACON-AGGRESSION",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "beaconAggression",
+          "source": "func beaconAggression(obs *Observation, params *BotParams) float64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_aggression",
+          "source": "def beacon_aggression(observation, params):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-BEACON-DEPLOY-OR-RESTORE-PROPOSAL",
+      "kind": "function",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconDeployOrRestoreProposal",
+          "source": "func beaconDeployOrRestoreProposal(obs *Observation, b *boardContext, params *BotParams) *proposal"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_deploy_or_restore_proposal",
+          "source": "def beacon_deploy_or_restore_proposal(observation, board, params):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-BEACON-FORGE-PROPOSALS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconForgeProposals",
+          "source": "func beaconForgeProposals(obs *Observation, b *boardContext, params *BotParams) []proposal"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_forge_proposals",
+          "source": "def beacon_forge_proposals(observation, board, params):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-BEACON-HAND-OFF-PROPOSAL",
+      "kind": "function",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "beaconHandOffProposal",
+          "source": "func beaconHandOffProposal(obs *Observation, b *boardContext, params *BotParams) *proposal"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "beacon_hand_off_proposal",
+          "source": "def beacon_hand_off_proposal(observation, board, params):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-BUILD-BOARD",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "buildBoard",
+          "source": "func buildBoard(obs *Observation) *boardContext"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_board",
+          "source": "def build_board(observation):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-BUILD-MEMORY",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "buildMemory",
+          "source": "func buildMemory(obs *Observation, memory map[string]int64, intent *Intent) map[string]int64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "build_memory",
+          "source": "def build_memory(observation, memory, intent):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-CAN-PROMOTE-NEXT-MOVE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "canPromoteNextMove",
+          "source": "func canPromoteNextMove(side string, candidate *CandidateFact) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "can_promote_next_move",
+          "source": "def can_promote_next_move(side, candidate):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-CANDIDATE-AT",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "candidateAt",
+          "source": "func candidateAt(obs *Observation, sourceSquare, destination string) *CandidateFact"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "candidate_at",
+          "source": "def candidate_at(observation, source_square, destination):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-CAPTURE-BACKING-COUNT",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "captureBackingCount",
+          "source": "func captureBackingCount(targetCell *Cell, moverSquare string) int"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "capture_backing_count",
+          "source": "def capture_backing_count(target_cell, mover_square):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-CAPTURE-CHOICE-AVAILABLE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "captureChoiceAvailable",
+          "source": "func captureChoiceAvailable(obs *Observation, b *boardContext, cell *Cell, destination string) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "capture_choice_available",
+          "source": "def capture_choice_available(observation, board, cell, destination):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-CAPTURE-EXPECTED-SUCCESS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "captureExpectedSuccess",
+          "source": "func captureExpectedSuccess(outcome *CaptureOutcome) float64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "capture_expected_success",
+          "source": "def capture_expected_success(outcome):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-CELL-VALUE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "cellValue",
+          "source": "func cellValue(cell *Cell) float64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "cell_value",
+          "source": "def cell_value(cell):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-CHEBYSHEV-DISTANCE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "chebyshevDistance",
+          "source": "func chebyshevDistance(firstSquare, secondSquare string) int"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "chebyshev_distance",
+          "source": "def chebyshev_distance(first_square, second_square):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-CLEAR-LEADER-GUARD",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "clearLeaderGuard",
+          "source": "func clearLeaderGuard(memory map[string]int64)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "clear_leader_guard",
+          "source": "def clear_leader_guard(memory):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-CURRENT-MORALE-NEED",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "currentMoraleNeed",
+          "source": "func currentMoraleNeed(obs *Observation) int"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "current_morale_need",
+          "source": "def current_morale_need(observation):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-DECAY-POWER",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "decayPower",
+          "source": "func decayPower(age int64) float64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decay_power",
+          "source": "def decay_power(age):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-DECIDE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "Decide",
+          "source": "func Decide(obs *Observation, memory map[string]int64, params *BotParams, hostRandomDraw int64, options int) (*Intent, map[string]int64, []Option)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "decide",
+          "source": "def decide(observation, memory, params, host_random_draw, options = 0):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-DELIVERY-LANE-BLOCKERS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "deliveryLaneBlockers",
+          "source": "func deliveryLaneBlockers(deliverySquares []string, ownBySquare map[string]*Cell, enemyBySquare map[string]*Cell) []string"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "delivery_lane_blockers",
+          "source": "def delivery_lane_blockers(delivery_squares, own_by_square, enemy_by_square):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-DELIVERY-SQUARE-NEIGHBORS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "deliverySquareNeighbors",
+          "source": "func deliverySquareNeighbors(square string) []string"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "_delivery_square_neighbors",
+          "source": "def _delivery_square_neighbors(square):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-DISTANCE-TO-NEAREST-ENEMY",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "distanceToNearestEnemy",
+          "source": "func distanceToNearestEnemy(square string, enemyCells []*Cell) int"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "distance_to_nearest_enemy",
+          "source": "def distance_to_nearest_enemy(square, enemy_cells):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-DISTANCE-TO-NEAREST-SQUARE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "distanceToNearestSquare",
+          "source": "func distanceToNearestSquare(square string, candidateSquares []string) int"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "distance_to_nearest_square",
+          "source": "def distance_to_nearest_square(square, candidate_squares):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-DROP-REFUSED",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "dropRefused",
+          "source": "func dropRefused(proposals []proposal, obs *Observation, memory map[string]int64) []proposal"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "drop_refused",
+          "source": "def drop_refused(proposals, observation, memory):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-EFFECTIVE-CAPTURE-TARGET",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "effectiveCaptureTarget",
+          "source": "func effectiveCaptureTarget(obs *Observation, b *boardContext, cell *Cell, destination string) *Cell"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "effective_capture_target",
+          "source": "def effective_capture_target(observation, board, cell, destination):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-ESPIONAGE-PROPOSALS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "espionageProposals",
+          "source": "func espionageProposals(obs *Observation, b *boardContext, params *BotParams) []proposal"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "espionage_proposals",
+          "source": "def espionage_proposals(observation, board, params):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-FINISH-DECISION",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "finishDecision",
+          "source": "func finishDecision(obs *Observation, b *boardContext, memory map[string]int64, chosen *proposal, ranked []Option) (*Intent, map[string]int64, []Option)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "finish_decision",
+          "source": "def finish_decision(observation, board, memory, chosen, ranked):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-FORMATION-LEADER-PRIORITY",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "formationLeaderPriority",
+          "source": "func formationLeaderPriority(obs *Observation, b *boardContext, params *BotParams, cell *Cell) float64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "formation_leader_priority",
+          "source": "def formation_leader_priority(observation, board, params, cell):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-FORWARD-PROGRESS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "forwardProgress",
+          "source": "func forwardProgress(side, square string) int"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "forward_progress",
+          "source": "def forward_progress(side, square):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-GUARD-CHANGES",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "guardChanges",
+          "source": "func guardChanges(b *boardContext, cell *Cell, candidate *CandidateFact) ([]string, []string)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "guard_changes",
+          "source": "def guard_changes(board, cell, candidate):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-GUARDED-COUNT",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "cellGuardedCount",
+          "source": "func cellGuardedCount(cell *Cell) int"
+        },
+        {
+          "file": "board.go",
+          "function": "guardedCount",
+          "source": "func guardedCount(fact *CandidateFact) int"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "guarded_count",
+          "source": "def guarded_count(subject):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-HAS-CANDIDATE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "hasCandidate",
+          "source": "func hasCandidate(obs *Observation, sourceSquare, destination string) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "has_candidate",
+          "source": "def has_candidate(observation, source_square, destination):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-HOLDS-FOCUS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "holdsFocus",
+          "source": "func holdsFocus(b *boardContext, memory map[string]int64) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "holds_focus",
+          "source": "def holds_focus(board, memory):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-INBOUND-SUPPORT-MATERIAL",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "inboundSupportMaterial",
+          "source": "func inboundSupportMaterial(cell *Cell, candidate *CandidateFact) float64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "inbound_support_material",
+          "source": "def inbound_support_material(cell, candidate):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-INTN",
+      "kind": "function",
+      "go": [
+        {
+          "file": "bot.go",
+          "function": "intn",
+          "source": "func intn(randomDraw int64, count int) int"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "intn",
+          "source": "def intn(random_draw, count):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-IS-CURRENT-BEACON-BEARER",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "isCurrentBeaconBearer",
+          "source": "func isCurrentBeaconBearer(obs *Observation, cell *Cell) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "is_current_beacon_bearer",
+          "source": "def is_current_beacon_bearer(observation, cell):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-IS-KING-CHANNEL-START",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "isKingChannelStart",
+          "source": "func isKingChannelStart(intent *Intent) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "is_king_channel_start",
+          "source": "def is_king_channel_start(intent):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-IS-PROMOTION-SQUARE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "isPromotionSquare",
+          "source": "func isPromotionSquare(side, square string) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "is_promotion_square",
+          "source": "def is_promotion_square(side, square):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-IS-QUIET-MOVE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "isQuietMove",
+          "source": "func isQuietMove(obs *Observation, b *boardContext, cell *Cell, destination string) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "is_quiet_move",
+          "source": "def is_quiet_move(observation, board, cell, destination):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-IS-SAFE-SUBJECT",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "isSafeSubject",
+          "source": "func isSafeSubject(fact *CandidateFact) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "is_safe_subject",
+          "source": "def is_safe_subject(subject):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-KING-CHANNEL-ACTIVE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "kingChannelActive",
+          "source": "func kingChannelActive(obs *Observation, b *boardContext) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "king_channel_active",
+          "source": "def king_channel_active(observation, board):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-LEADER-GUARD-KEYS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderGuardKeys",
+          "source": "func leaderGuardKeys() []string"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_guard_keys",
+          "source": "def leader_guard_keys():"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-LEADER-GUARD-MATCHES",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderGuardMatches",
+          "source": "func leaderGuardMatches(obs *Observation, memory map[string]int64) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_guard_matches",
+          "source": "def leader_guard_matches(observation, memory):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-LEADER-KIND",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderKind",
+          "source": "func leaderKind(obs *Observation, cell *Cell) int64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_kind",
+          "source": "def leader_kind(observation, cell):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-LEADER-REVERSE-FORBIDDEN",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "leaderReverseForbidden",
+          "source": "func leaderReverseForbidden(obs *Observation, guard *leaderGuard, cell *Cell, destination string) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_reverse_forbidden",
+          "source": "def leader_reverse_forbidden(observation, guard, cell, destination):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-LEADER-SUPPORT",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "leaderSupport",
+          "source": "func leaderSupport(obs *Observation, b *boardContext, leader *Cell, destination string) float64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "leader_support",
+          "source": "def leader_support(observation, board, leader, destination):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-MOST-ADVANCED-ADJACENT-ALLY",
+      "kind": "function",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "mostAdvancedAdjacentAlly",
+          "source": "func mostAdvancedAdjacentAlly(b *boardContext) string"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "most_advanced_adjacent_ally",
+          "source": "def most_advanced_adjacent_ally(board):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-MOVE-PROPOSALS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "moveProposals",
+          "source": "func moveProposals(obs *Observation, b *boardContext, params *BotParams, memory map[string]int64) []proposal"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "move_proposals",
+          "source": "def move_proposals(observation, board, params, memory):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-NEXT-COMMITTED",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "nextCommitted",
+          "source": "func nextCommitted(obs *Observation, b *boardContext, memory map[string]int64, chosen *proposal) int64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "next_committed",
+          "source": "def next_committed(observation, board, memory, chosen):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-OUTCOMES-AT",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "outcomesAt",
+          "source": "func outcomesAt(obs *Observation, sourceSquare, destination string) *DestinationOutcomes"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "outcomes_at",
+          "source": "def outcomes_at(observation, source_square, destination):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-PACK-COMMITTED",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "packCommitted",
+          "source": "func packCommitted(kind int64, age int64, score float64) int64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "pack_committed",
+          "source": "def pack_committed(kind, age, score):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-PACK-PLACEMENT-BOARDS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "packPlacementBoards",
+          "source": "func packPlacementBoards(bitboards [12]int64) map[string]int64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "pack_placement_boards",
+          "source": "def pack_placement_boards(bitboards):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-PIECE-SQUARES",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "pieceSquares",
+          "source": "func pieceSquares(obs *Observation) []string"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "piece_squares",
+          "source": "def piece_squares(observation):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-PLACEMENT-BITBOARDS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "placementBitboards",
+          "source": "func placementBitboards(obs *Observation, movedUnitID string, movedTo string) [12]int64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "placement_bitboards",
+          "source": "def placement_bitboards(observation, moved_unit_id = 0, moved_to = \"\"):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-POST-MOVE-MORALE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "postMoveMorale",
+          "source": "func postMoveMorale(obs *Observation, b *boardContext, fromSquare, destination string) int"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "post_move_morale",
+          "source": "def post_move_morale(observation, board, from_square, destination):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryInFlight",
+          "source": "func priorityCaptiveDeliveryInFlight(obs *Observation, b *boardContext) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_in_flight",
+          "source": "def priority_captive_delivery_in_flight(observation, board):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "priorityCaptiveDeliveryProposal",
+          "source": "func priorityCaptiveDeliveryProposal(obs *Observation, b *boardContext, params *BotParams) *proposal"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "priority_captive_delivery_proposal",
+          "source": "def priority_captive_delivery_proposal(observation, board, params):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-PROJECTED-CELL",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "projectedCell",
+          "source": "func projectedCell(obs *Observation, square string) *Cell"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "projected_cell",
+          "source": "def projected_cell(observation, square):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-PROTECTION-FACTOR",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "protectionFactor",
+          "source": "func protectionFactor(fact *CandidateFact) float64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "protection_factor",
+          "source": "def protection_factor(candidate):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-QUIET-LEADER-INTENT",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "quietLeaderIntent",
+          "source": "func quietLeaderIntent(obs *Observation, intent *Intent) *Cell"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "quiet_leader_intent",
+          "source": "def quiet_leader_intent(observation, intent):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-QUIET-ORDINARY-INTENT",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "quietOrdinaryIntent",
+          "source": "func quietOrdinaryIntent(obs *Observation, intent *Intent) *Cell"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "quiet_ordinary_intent",
+          "source": "def quiet_ordinary_intent(observation, intent):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-RANK-OPTIONS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "rankOptions",
+          "source": "func rankOptions(proposals []proposal, params *BotParams, count int) []Option"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "rank_options",
+          "source": "def rank_options(proposals, params, count):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-RANK-VALUE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "rankValue",
+          "source": "func rankValue(rank string) float64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "rank_value",
+          "source": "def rank_value(rank):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-RETENTION-SCORE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "retentionScore",
+          "source": "func retentionScore(memory map[string]int64, kind int64) float64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "retention_score",
+          "source": "def retention_score(memory, kind):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-ROUND-HALF-UP",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "roundHalfUp",
+          "source": "func roundHalfUp(value float64) int64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "round_half_up",
+          "source": "def round_half_up(value):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-SCORE-MOVE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "scoreMove",
+          "source": "func scoreMove(obs *Observation, b *boardContext, params *BotParams, memory map[string]int64, cell *Cell, destination string) proposal"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "score_move",
+          "source": "def score_move(observation, board, params, memory, cell, destination):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-SERGEANT-SUPPORTED",
+      "kind": "function",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "sergeantSupported",
+          "source": "func sergeantSupported(b *boardContext, square string) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "sergeant_supported",
+          "source": "def sergeant_supported(board, square):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-SQUARE-FILE",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "squareFile",
+          "source": "func squareFile(square string) int"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "square_file",
+          "source": "def square_file(square):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-SQUARE-INDEX",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "squareIndex",
+          "source": "func squareIndex(square string) int"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "square_index",
+          "source": "def square_index(square):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-SQUARE-NAME",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "squareName",
+          "source": "func squareName(index int) string"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "square_name",
+          "source": "def square_name(index):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-SQUARE-RANK-NUMBER",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "squareRankNumber",
+          "source": "func squareRankNumber(square string) int"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "square_rank_number",
+          "source": "def square_rank_number(square):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-SUPPORT-MATERIAL",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "supportMaterial",
+          "source": "func supportMaterial(b *boardContext, squares []string) float64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "support_material",
+          "source": "def support_material(board, squares):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-SUPPORTED-AND-UNTHREATENED",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "supportedAndUnthreatened",
+          "source": "func supportedAndUnthreatened(fact *CandidateFact) bool"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "supported_and_unthreatened",
+          "source": "def supported_and_unthreatened(subject):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-SYSTEM-PROPOSALS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "systemProposals",
+          "source": "func systemProposals(obs *Observation, b *boardContext, params *BotParams) []proposal"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "system_proposals",
+          "source": "def system_proposals(observation, board, params):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-THREATENED-COUNT",
+      "kind": "function",
+      "go": [
+        {
+          "file": "board.go",
+          "function": "cellThreatenedCount",
+          "source": "func cellThreatenedCount(cell *Cell) int"
+        },
+        {
+          "file": "board.go",
+          "function": "threatenedCount",
+          "source": "func threatenedCount(fact *CandidateFact) int"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "threatened_count",
+          "source": "def threatened_count(subject):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-TRAINING-PROPOSALS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "trainingProposals",
+          "source": "func trainingProposals(obs *Observation, b *boardContext, params *BotParams) []proposal"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "training_proposals",
+          "source": "def training_proposals(observation, board, params):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-UNIT-PRIORITY",
+      "kind": "function",
+      "go": [
+        {
+          "file": "score.go",
+          "function": "unitPriority",
+          "source": "func unitPriority(obs *Observation, b *boardContext, params *BotParams, cell *Cell) float64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unit_priority",
+          "source": "def unit_priority(observation, board, params, cell):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-UNPACK-COMMITTED",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "unpackCommitted",
+          "source": "func unpackCommitted(packed int64) (kind int64, age int64, score float64)"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unpack_committed",
+          "source": "def unpack_committed(packed):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-UNPACK-PLACEMENT-BOARDS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "memory.go",
+          "function": "unpackPlacementBoards",
+          "source": "func unpackPlacementBoards(memory map[string]int64) [12]int64"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "unpack_placement_boards",
+          "source": "def unpack_placement_boards(memory):"
+        }
+      ]
+    },
+    {
+      "id": "SBP-F-WALL-PROPOSALS",
+      "kind": "function",
+      "go": [
+        {
+          "file": "systems.go",
+          "function": "wallProposals",
+          "source": "func wallProposals(obs *Observation, b *boardContext, params *BotParams) []proposal"
+        }
+      ],
+      "starlark": [
+        {
+          "file": "chess-raiders-bot.star",
+          "function": "wall_proposals",
+          "source": "def wall_proposals(observation, board, params):"
+        }
+      ]
+    }
+  ]
+}

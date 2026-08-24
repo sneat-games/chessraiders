@@ -12,9 +12,12 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 )
+
+const semanticLedgerPath = "parity-semantic-ledger.json"
 
 type parityManifest struct {
 	Schema    string          `json:"schema"`
@@ -41,6 +44,25 @@ type parityItem struct {
 	Kind           string
 	AnnotationKind string
 	Line           int
+	Anchor         paritySourceAnchor
+}
+
+type paritySourceAnchor struct {
+	File     string `json:"file"`
+	Function string `json:"function"`
+	Source   string `json:"source"`
+}
+
+type semanticBinding struct {
+	ID       string               `json:"id"`
+	Kind     string               `json:"kind"`
+	Go       []paritySourceAnchor `json:"go"`
+	Starlark []paritySourceAnchor `json:"starlark"`
+}
+
+type semanticLedger struct {
+	Schema   string            `json:"schema"`
+	Bindings []semanticBinding `json:"bindings"`
 }
 
 type parityKey struct {
@@ -54,7 +76,7 @@ type parityCounts struct {
 }
 
 var parityIDPattern = regexp.MustCompile(`PARITY-(FUNCTION|BRANCH): (SBP-[A-Z0-9-]+)`)
-var starlarkFunctionPattern = regexp.MustCompile(`^def\s+[A-Za-z0-9_]+\(`)
+var starlarkFunctionPattern = regexp.MustCompile(`^def\s+([A-Za-z0-9_]+)\(`)
 var starlarkBranchPattern = regexp.MustCompile(`^\s*(?:if|elif)\b`)
 
 var strategyGoFiles = []string{"bot.go", "board.go", "score.go", "memory.go", "systems.go"}
@@ -74,7 +96,19 @@ func TestEveryStrategyConstructHasCategorizedParityID(t *testing.T) {
 	countItems(t, actual, starlarkItems, false)
 	expected := expectedParityCounts(t, manifest.Inventory)
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("source parity multiplicity differs from manifest:\nactual: %#v\nexpected: %#v", actual, expected)
+		t.Fatal(parityCountDiff(actual, expected))
+	}
+
+	bindings := semanticBindingsFromItems(t, manifest.Inventory, goItems, starlarkItems)
+	if os.Getenv("UPDATE_PARITY_SEMANTIC_LEDGER") == "1" {
+		writeSemanticLedger(t, semanticLedger{
+			Schema:   "chess-raiders-standard-bot-semantic-parity/v1",
+			Bindings: bindings,
+		})
+		return
+	}
+	if err := validateSemanticLedger(manifest.Inventory, readSemanticLedger(t), bindings); err != nil {
+		t.Fatal(err)
 	}
 
 	t.Logf("Go: %d functions, %d if statements; Starlark: %d functions, %d if/elif branches; paired IDs: %d; structural IDs: Go %d, Starlark %d",
@@ -219,7 +253,9 @@ func goParityItems(t *testing.T) []parityItem {
 				continue
 			}
 			line := fset.Position(fn.Pos()).Line
-			items = append(items, requiredParityItem(t, path, lines, line-1, line-1, "function", line))
+			item := requiredParityItem(t, path, lines, line-1, line-1, "function", line)
+			item.Anchor = paritySourceAnchor{File: name, Function: fn.Name.Name, Source: sourceBetween(data, fset, fn.Pos(), fn.Body.Lbrace)}
+			items = append(items, item)
 			ast.Inspect(fn.Body, func(node ast.Node) bool {
 				branch, ok := node.(*ast.IfStmt)
 				if !ok {
@@ -227,7 +263,9 @@ func goParityItems(t *testing.T) []parityItem {
 				}
 				start := fset.Position(branch.Pos()).Line
 				end := fset.Position(branch.Body.Lbrace).Line
-				items = append(items, requiredParityItem(t, path, lines, start, end, "branch", start))
+				item := requiredParityItem(t, path, lines, start, end, "branch", start)
+				item.Anchor = paritySourceAnchor{File: name, Function: fn.Name.Name, Source: sourceBetween(data, fset, branch.Cond.Pos(), branch.Cond.End())}
+				items = append(items, item)
 				return true
 			})
 		}
@@ -244,13 +282,20 @@ func starlarkParityItems(t *testing.T) []parityItem {
 	}
 	lines := strings.Split(string(data), "\n")
 	var items []parityItem
+	function := ""
 	for index, line := range lines {
 		lineNumber := index + 1
-		if starlarkFunctionPattern.MatchString(line) {
-			items = append(items, requiredParityItem(t, path, lines, lineNumber-1, lineNumber-1, "function", lineNumber))
+		if match := starlarkFunctionPattern.FindStringSubmatch(line); match != nil {
+			function = match[1]
+			item := requiredParityItem(t, path, lines, lineNumber-1, lineNumber-1, "function", lineNumber)
+			item.Anchor = paritySourceAnchor{File: path, Function: function, Source: normalizeSource(line)}
+			items = append(items, item)
 		}
 		if starlarkBranchPattern.MatchString(line) {
-			items = append(items, requiredParityItem(t, path, lines, lineNumber, lineNumber, "branch", lineNumber))
+			end, source := starlarkBranchSource(lines, index)
+			item := requiredParityItem(t, path, lines, lineNumber, end+1, "branch", lineNumber)
+			item.Anchor = paritySourceAnchor{File: path, Function: function, Source: source}
+			items = append(items, item)
 		}
 	}
 	return items
@@ -278,4 +323,164 @@ func countKind(items []parityItem, kind string) int {
 		}
 	}
 	return count
+}
+
+func parityCountDiff(actual, expected map[parityKey]parityCounts) string {
+	keys := make(map[parityKey]bool, len(actual)+len(expected))
+	for key := range actual {
+		keys[key] = true
+	}
+	for key := range expected {
+		keys[key] = true
+	}
+	ordered := make([]parityKey, 0, len(keys))
+	for key := range keys {
+		ordered = append(ordered, key)
+	}
+	sort.Slice(ordered, func(i, j int) bool {
+		if ordered[i].ID != ordered[j].ID {
+			return ordered[i].ID < ordered[j].ID
+		}
+		return ordered[i].Kind < ordered[j].Kind
+	})
+	var lines []string
+	for _, key := range ordered {
+		if actual[key] != expected[key] {
+			lines = append(lines, fmt.Sprintf("%s/%s: actual=%+v expected=%+v", key.ID, key.Kind, actual[key], expected[key]))
+		}
+	}
+	return "source parity multiplicity differs from manifest:\n" + strings.Join(lines, "\n")
+}
+
+func sourceBetween(data []byte, fset *token.FileSet, start, end token.Pos) string {
+	from := fset.PositionFor(start, false).Offset
+	to := fset.PositionFor(end, false).Offset
+	return normalizeSource(string(data[from:to]))
+}
+
+func starlarkBranchSource(lines []string, start int) (int, string) {
+	parts := make([]string, 0, 2)
+	for end := start; end < len(lines); end++ {
+		line := strings.TrimSpace(strings.SplitN(lines[end], "#", 2)[0])
+		parts = append(parts, line)
+		if strings.HasSuffix(line, ":") {
+			source := strings.TrimSpace(strings.TrimSuffix(normalizeSource(strings.Join(parts, " ")), ":"))
+			source = strings.TrimPrefix(strings.TrimPrefix(source, "if "), "elif ")
+			return end, source
+		}
+	}
+	return len(lines) - 1, normalizeSource(strings.Join(parts, " "))
+}
+
+func normalizeSource(source string) string {
+	return strings.Join(strings.Fields(source), " ")
+}
+
+func semanticBindingsFromItems(t *testing.T, inventory parityInventory, goItems, starlarkItems []parityItem) []semanticBinding {
+	t.Helper()
+	bindings := make(map[string]*semanticBinding, len(inventory.Paired))
+	for _, id := range inventory.Paired {
+		bindings[id] = &semanticBinding{ID: id, Kind: parityKind(t, id)}
+	}
+	for _, item := range goItems {
+		if binding := bindings[item.ID]; binding != nil {
+			binding.Go = append(binding.Go, item.Anchor)
+		}
+	}
+	for _, item := range starlarkItems {
+		if binding := bindings[item.ID]; binding != nil {
+			binding.Starlark = append(binding.Starlark, item.Anchor)
+		}
+	}
+	result := make([]semanticBinding, 0, len(bindings))
+	for _, binding := range bindings {
+		sortAnchors(binding.Go)
+		sortAnchors(binding.Starlark)
+		result = append(result, *binding)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
+	return result
+}
+
+func sortAnchors(anchors []paritySourceAnchor) {
+	sort.Slice(anchors, func(i, j int) bool {
+		if anchors[i].File != anchors[j].File {
+			return anchors[i].File < anchors[j].File
+		}
+		if anchors[i].Function != anchors[j].Function {
+			return anchors[i].Function < anchors[j].Function
+		}
+		return anchors[i].Source < anchors[j].Source
+	})
+}
+
+func readSemanticLedger(t *testing.T) semanticLedger {
+	t.Helper()
+	data, err := os.ReadFile(semanticLedgerPath)
+	if err != nil {
+		t.Fatalf("read semantic ledger: %v; regenerate with UPDATE_PARITY_SEMANTIC_LEDGER=1", err)
+	}
+	var ledger semanticLedger
+	if err := json.Unmarshal(data, &ledger); err != nil {
+		t.Fatalf("decode semantic ledger: %v", err)
+	}
+	return ledger
+}
+
+func writeSemanticLedger(t *testing.T, ledger semanticLedger) {
+	t.Helper()
+	data, err := json.MarshalIndent(ledger, "", "  ")
+	if err != nil {
+		t.Fatalf("encode semantic ledger: %v", err)
+	}
+	if err := os.WriteFile(semanticLedgerPath, append(data, '\n'), 0o644); err != nil {
+		t.Fatalf("write semantic ledger: %v", err)
+	}
+}
+
+func validateSemanticLedger(inventory parityInventory, ledger semanticLedger, actual []semanticBinding) error {
+	if ledger.Schema != "chess-raiders-standard-bot-semantic-parity/v1" {
+		return fmt.Errorf("semantic ledger schema = %q", ledger.Schema)
+	}
+	if len(ledger.Bindings) != len(inventory.Paired) || len(actual) != len(inventory.Paired) {
+		return fmt.Errorf("semantic binding count: ledger=%d actual=%d paired=%d", len(ledger.Bindings), len(actual), len(inventory.Paired))
+	}
+	for index, id := range inventory.Paired {
+		if ledger.Bindings[index].ID != id || actual[index].ID != id {
+			return fmt.Errorf("semantic binding order at %d: ledger=%s actual=%s expected=%s", index, ledger.Bindings[index].ID, actual[index].ID, id)
+		}
+		if !reflect.DeepEqual(ledger.Bindings[index], actual[index]) {
+			return fmt.Errorf("semantic binding %s differs:\nledger: %#v\nactual: %#v", id, ledger.Bindings[index], actual[index])
+		}
+	}
+	return nil
+}
+
+func TestSemanticLedgerRejectsSelfConsistentDisplacement(t *testing.T) {
+	inventory := parityInventory{Paired: []string{"SBP-B-FIRST", "SBP-B-SECOND"}}
+	ledger := semanticLedger{Schema: "chess-raiders-standard-bot-semantic-parity/v1", Bindings: []semanticBinding{
+		{ID: "SBP-B-FIRST", Kind: "branch", Go: []paritySourceAnchor{{Source: "first"}}},
+		{ID: "SBP-B-SECOND", Kind: "branch", Go: []paritySourceAnchor{{Source: "second"}}},
+	}}
+	displaced := []semanticBinding{
+		{ID: "SBP-B-FIRST", Kind: "branch", Go: []paritySourceAnchor{{Source: "second"}}},
+		{ID: "SBP-B-SECOND", Kind: "branch", Go: []paritySourceAnchor{{Source: "first"}}},
+	}
+	if err := validateSemanticLedger(inventory, ledger, displaced); err == nil || !strings.Contains(err.Error(), "semantic binding") {
+		t.Fatalf("self-consistent displacement error = %v", err)
+	}
+}
+
+func TestSemanticLedgerRejectsMissingAndReorderedBindings(t *testing.T) {
+	inventory := parityInventory{Paired: []string{"SBP-B-FIRST", "SBP-B-SECOND"}}
+	ledger := semanticLedger{Schema: "chess-raiders-standard-bot-semantic-parity/v1", Bindings: []semanticBinding{
+		{ID: "SBP-B-FIRST", Kind: "branch"},
+		{ID: "SBP-B-SECOND", Kind: "branch"},
+	}}
+	if err := validateSemanticLedger(inventory, ledger, ledger.Bindings[:1]); err == nil || !strings.Contains(err.Error(), "count") {
+		t.Fatalf("missing binding error = %v", err)
+	}
+	if err := validateSemanticLedger(inventory, ledger, []semanticBinding{ledger.Bindings[1], ledger.Bindings[0]}); err == nil || !strings.Contains(err.Error(), "order") {
+		t.Fatalf("reordered binding error = %v", err)
+	}
 }

@@ -513,10 +513,10 @@ func applyRepeatPenalty(obs *Observation, b *boardContext, params *BotParams, me
 	recentlyVacated := make(map[int]bool)
 	for slot := 0; slot < QuietVacatedSquares; slot++ {
 		sq, ok := memory[fmt.Sprintf("quietVacated%d", slot)]
-		if !ok { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-1
+		if !ok { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-DEFAULT-VACATED
 			sq = int64(NoSquareIndex)
 		}
-		if sq >= 0 { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-2
+		if sq >= 0 { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-1
 			recentlyVacated[int(sq)] = true
 		}
 	}
@@ -528,24 +528,24 @@ func applyRepeatPenalty(obs *Observation, b *boardContext, params *BotParams, me
 			!cell.Convoy && cell.Rank != "king" && !isCurrentBeaconBearer(obs, cell) &&
 			isQuietMove(obs, b, cell, destination) &&
 			cellThreatenedCount(cell) == 0 &&
-			recentlyVacated[squareIndex(destination)] { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-3
+			recentlyVacated[squareIndex(destination)] { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-2
 			cycleKeys[p.key] = true
 		}
 	}
-	if len(cycleKeys) > 0 { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-4
+	if len(cycleKeys) > 0 { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-3
 		otherViable := false
 		for _, p := range proposals {
 			candidate := b.ownBySquare[p.intent.From]
 			if !cycleKeys[p.key] && candidate != nil && !candidate.Convoy && candidate.Rank != "king" &&
-				!isCurrentBeaconBearer(obs, candidate) && p.score >= params.PassBelow { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-5
+				!isCurrentBeaconBearer(obs, candidate) && p.score >= params.PassBelow { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-4
 				otherViable = true
 				break
 			}
 		}
-		if otherViable { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-6
+		if otherViable { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-5
 			var nonCycle []proposal
 			for _, p := range proposals {
-				if !cycleKeys[p.key] { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-7
+				if !cycleKeys[p.key] { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-FILTER-CYCLE
 					nonCycle = append(nonCycle, p)
 				}
 			}
@@ -554,41 +554,41 @@ func applyRepeatPenalty(obs *Observation, b *boardContext, params *BotParams, me
 	}
 
 	lastToVal, ok := memory["lastQuietTo"]
-	if !ok { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-8
+	if !ok { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-DEFAULT-LAST-TO
 		lastToVal = int64(NoSquareIndex)
 	}
-	if lastToVal < 0 { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-9
+	if lastToVal < 0 { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-6
 		return proposals
 	}
 	repeatedCell := b.ownBySquare[squareName(int(lastToVal))]
-	if repeatedCell == nil || repeatedCell.Convoy || repeatedCell.Rank == "king" || isCurrentBeaconBearer(obs, repeatedCell) { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-10
+	if repeatedCell == nil || repeatedCell.Convoy || repeatedCell.Rank == "king" || isCurrentBeaconBearer(obs, repeatedCell) { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-7
 		return proposals
 	}
 	otherViable := false
 	for _, p := range proposals {
 		candidate := b.ownBySquare[p.intent.From]
 		if candidate != nil && candidate.UnitID.String() != repeatedCell.UnitID.String() && !candidate.Convoy &&
-			candidate.Rank != "king" && !isCurrentBeaconBearer(obs, candidate) && p.score >= params.PassBelow { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-11
+			candidate.Rank != "king" && !isCurrentBeaconBearer(obs, candidate) && p.score >= params.PassBelow { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-8
 			otherViable = true
 			break
 		}
 	}
-	if !otherViable { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-12
+	if !otherViable { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-9
 		return proposals
 	}
 	for i := range proposals {
 		p := &proposals[i]
 		actorID := ""
-		if uid, ok := p.actor.(UnitID); ok { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-13
+		if uid, ok := p.actor.(UnitID); ok { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-ACTOR-UNIT-ID
 			actorID = uid.String()
-		} else if str, ok := p.actor.(string); ok { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-14
+		} else if str, ok := p.actor.(string); ok { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-ACTOR-STRING
 			actorID = str
 		}
-		if actorID != repeatedCell.UnitID.String() { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-15
+		if actorID != repeatedCell.UnitID.String() { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-10
 			continue
 		}
 		destination := p.intent.To
-		if isQuietMove(obs, b, repeatedCell, destination) && cellThreatenedCount(repeatedCell) == 0 { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-16
+		if isQuietMove(obs, b, repeatedCell, destination) && cellThreatenedCount(repeatedCell) == 0 { // PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-11
 			penalty := -params.Advance
 			p.score += addTerm(&p.terms, "repeatPenalty", penalty, "quiet")
 		}
