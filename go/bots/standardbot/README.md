@@ -259,7 +259,7 @@ memory, parameters, randomDraw, options}` into THIS checkout's own
 `runtime.Compile(Script)` and reports every decision that disagrees with what
 was recorded, naming the case and the field. It resolves which script
 version it is checking against by pinning the exact recorded Chess Raiders Go
-module v0.0.2 release and requiring every case's own declared `script.version`
+module v0.0.4 release and requiring every case's own declared `script.version`
 to match — never by inferring a version from this module's `go.mod`, which has
 no version for a module that does not require itself. It also pins the reviewed
 53 `(test, case)` identities to their exact filenames, so a corpus that quietly
@@ -295,6 +295,13 @@ manifest, or a paired ID missing from either implementation. The manifest's
 `goStructural` and `starlarkStructural` categories explicitly list the
 representation and error-handling control flow which is intentionally local to
 one implementation.
+
+This public package intentionally executes only the Go and Starlark
+implementations. The private `github.com/sneat-co/chessraiders` TypeScript/WASM
+parity harness consumes this exact `testdata/corpus` directory and
+`parity-manifest.json`; that cross-repository test architecture does not mean
+the public Go package executes TypeScript or WASM, nor that the browser loads a
+WASM bot.
 
 reports `N/N recorded decisions agree` on success, or one line per
 disagreeing case naming the file, the originating test/case and the

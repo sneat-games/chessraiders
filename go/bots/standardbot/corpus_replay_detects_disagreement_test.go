@@ -81,31 +81,36 @@ func TestReplayCaseDetectsAWrongRecordedIntent(t *testing.T) {
 	t.Logf("confirmed detection: %v", err)
 }
 
-// TestSharedCorpusRunnerDetectsADivergentNativeImplementation proves the new
-// shared runner compares more than the historical intent oracle. It starts
-// from a real Starlark/native-Go tuple and corrupts only the native memory,
-// modelling the class of port drift that the former separate replayers could
-// not observe.
+// TestSharedCorpusRunnerDetectsADivergentNativeImplementation injects a
+// deliberately divergent native implementation through the same execution
+// seam used by replayCaseBoth. This exercises shared case input, implementation
+// invocation, JSON decoding, recorded-intent validation, and tuple comparison;
+// it does not bypass the runner by calling compareDecisionOutputs directly.
 func TestSharedCorpusRunnerDetectsADivergentNativeImplementation(t *testing.T) {
 	path, c := sampleCase(t)
 	program, err := runtime.Compile(standardbot.Script)
 	if err != nil {
 		t.Fatalf("runtime.Compile: %v", err)
 	}
-	starlark, err := replayCaseStarlarkOutputs(program, path, c)
-	if err != nil {
-		t.Fatalf("Starlark sample run: %v", err)
-	}
-	goNative, err := replayCaseGoOutputs(path, c)
-	if err != nil {
-		t.Fatalf("native Go sample run: %v", err)
-	}
-	if err := compareDecisionOutputs(path, c, starlark, goNative); err != nil {
+	if err := replayCaseBoth(program, path, c); err != nil {
 		t.Fatalf("unmodified implementations disagree before perturbation: %v", err)
 	}
 
-	goNative.memory = json.RawMessage(`{"deliberatelyDivergent":1}`)
-	err = compareDecisionOutputs(path, c, starlark, goNative)
+	starlarkImplementation := func(path string, c corpusCase) (decisionOutputs, error) {
+		return replayCaseStarlarkOutputs(program, path, c)
+	}
+	divergentGoImplementation := func(path string, c corpusCase) (decisionOutputs, error) {
+		actual, err := replayCaseGoOutputs(path, c)
+		if err != nil {
+			return decisionOutputs{}, err
+		}
+		return decisionOutputs{
+			intent:  actual.intent,
+			memory:  json.RawMessage(`{"deliberatelyDivergent":1}`),
+			options: actual.options,
+		}, nil
+	}
+	err = replayCaseWithImplementations(path, c, starlarkImplementation, divergentGoImplementation)
 	if err == nil {
 		t.Fatal("shared corpus runner accepted deliberately divergent native-Go memory")
 	}
@@ -113,6 +118,27 @@ func TestSharedCorpusRunnerDetectsADivergentNativeImplementation(t *testing.T) {
 		t.Errorf("shared runner error does not name the divergent return channel: %v", err)
 	}
 	t.Logf("confirmed native-Go divergence detection: %v", err)
+}
+
+func TestDecisionComparisonPreservesJSONIntegersBeyondFloat64Precision(t *testing.T) {
+	c := corpusCase{Test: "large-json-integer", Case: 0}
+	starlark := decisionOutputs{
+		intent:  json.RawMessage(`{"kind":"move","revision":9007199254740992}`),
+		memory:  json.RawMessage(`{}`),
+		options: json.RawMessage(`[]`),
+	}
+	goNative := decisionOutputs{
+		intent:  json.RawMessage(`{"kind":"move","revision":9007199254740993}`),
+		memory:  json.RawMessage(`{}`),
+		options: json.RawMessage(`[]`),
+	}
+	err := compareDecisionOutputs("large-number.json", c, starlark, goNative)
+	if err == nil {
+		t.Fatal("decision comparison rounded distinct integers above 2^53 into agreement")
+	}
+	if !strings.Contains(err.Error(), "native Go intent differs from Starlark") {
+		t.Fatalf("large-integer mismatch did not name the differing channel: %v", err)
+	}
 }
 
 // TestReplayCaseDetectsAPerturbedParameterRow perturbs `parameters` rather

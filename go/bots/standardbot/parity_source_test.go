@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"sort"
 	"strings"
 	"testing"
 )
@@ -22,18 +21,38 @@ type parityManifest struct {
 }
 
 type parityInventory struct {
-	Paired             []string `json:"paired"`
-	GoStructural       []string `json:"goStructural"`
-	StarlarkStructural []string `json:"starlarkStructural"`
+	Paired             []string             `json:"paired"`
+	FanOut             []parityMultiplicity `json:"fanOut"`
+	GoStructural       []string             `json:"goStructural"`
+	StarlarkStructural []string             `json:"starlarkStructural"`
+}
+
+type parityMultiplicity struct {
+	ID       string `json:"id"`
+	Kind     string `json:"kind"`
+	Go       int    `json:"go"`
+	Starlark int    `json:"starlark"`
+	Reason   string `json:"reason"`
 }
 
 type parityItem struct {
-	ID   string
-	Kind string
-	Line int
+	ID             string
+	Kind           string
+	AnnotationKind string
+	Line           int
 }
 
-var parityIDPattern = regexp.MustCompile(`PARITY-(?:FUNCTION|BRANCH): (SBP-[A-Z0-9-]+)`)
+type parityKey struct {
+	ID   string
+	Kind string
+}
+
+type parityCounts struct {
+	Go       int
+	Starlark int
+}
+
+var parityIDPattern = regexp.MustCompile(`PARITY-(FUNCTION|BRANCH): (SBP-[A-Z0-9-]+)`)
 var starlarkFunctionPattern = regexp.MustCompile(`^def\s+[A-Za-z0-9_]+\(`)
 var starlarkBranchPattern = regexp.MustCompile(`^\s*(?:if|elif)\b`)
 
@@ -49,39 +68,85 @@ func TestEveryStrategyConstructHasCategorizedParityID(t *testing.T) {
 	goItems := goParityItems(t)
 	starlarkItems := starlarkParityItems(t)
 
-	goIDs := itemIDSet(goItems)
-	starlarkIDs := itemIDSet(starlarkItems)
-	paired := stringSet(manifest.Inventory.Paired)
-	goStructural := stringSet(manifest.Inventory.GoStructural)
-	starlarkStructural := stringSet(manifest.Inventory.StarlarkStructural)
-
-	if overlap := intersect(goStructural, starlarkStructural); len(overlap) != 0 {
-		t.Fatalf("structural IDs cannot belong to both implementations: %v", overlap)
-	}
-	if overlap := intersect(paired, goStructural); len(overlap) != 0 {
-		t.Fatalf("paired and Go-structural IDs overlap: %v", overlap)
-	}
-	if overlap := intersect(paired, starlarkStructural); len(overlap) != 0 {
-		t.Fatalf("paired and Starlark-structural IDs overlap: %v", overlap)
-	}
-
-	if got, want := difference(goIDs, goStructural), paired; !reflect.DeepEqual(got, want) {
-		t.Fatalf("Go paired IDs differ from manifest; got %v, want %v", got, want)
-	}
-	if got, want := difference(starlarkIDs, starlarkStructural), paired; !reflect.DeepEqual(got, want) {
-		t.Fatalf("Starlark paired IDs differ from manifest; got %v, want %v", got, want)
-	}
-	if got := intersect(goIDs, goStructural); !reflect.DeepEqual(got, goStructural) {
-		t.Fatalf("manifest names absent Go-structural IDs: %v", difference(goStructural, goIDs))
-	}
-	if got := intersect(starlarkIDs, starlarkStructural); !reflect.DeepEqual(got, starlarkStructural) {
-		t.Fatalf("manifest names absent Starlark-structural IDs: %v", difference(starlarkStructural, starlarkIDs))
+	actual := make(map[parityKey]parityCounts)
+	countItems(t, actual, goItems, true)
+	countItems(t, actual, starlarkItems, false)
+	expected := expectedParityCounts(t, manifest.Inventory)
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("source parity multiplicity differs from manifest:\nactual: %#v\nexpected: %#v", actual, expected)
 	}
 
 	t.Logf("Go: %d functions, %d if statements; Starlark: %d functions, %d if/elif branches; paired IDs: %d; structural IDs: Go %d, Starlark %d",
 		countKind(goItems, "function"), countKind(goItems, "branch"),
 		countKind(starlarkItems, "function"), countKind(starlarkItems, "branch"),
-		len(paired), len(goStructural), len(starlarkStructural))
+		len(manifest.Inventory.Paired), len(manifest.Inventory.GoStructural), len(manifest.Inventory.StarlarkStructural))
+}
+
+func countItems(t *testing.T, counts map[parityKey]parityCounts, items []parityItem, isGo bool) {
+	t.Helper()
+	for _, item := range items {
+		if item.AnnotationKind != item.Kind {
+			t.Fatalf("%s annotation at line %d has kind %q on a %s", item.ID, item.Line, item.AnnotationKind, item.Kind)
+		}
+		key := parityKey{ID: item.ID, Kind: item.Kind}
+		count := counts[key]
+		if isGo {
+			count.Go++
+		} else {
+			count.Starlark++
+		}
+		counts[key] = count
+	}
+}
+
+func expectedParityCounts(t *testing.T, inventory parityInventory) map[parityKey]parityCounts {
+	t.Helper()
+	expected := make(map[parityKey]parityCounts)
+	for _, id := range inventory.Paired {
+		key := parityKey{ID: id, Kind: parityKind(t, id)}
+		if _, exists := expected[key]; exists {
+			t.Fatalf("manifest repeats paired ID %s", id)
+		}
+		expected[key] = parityCounts{Go: 1, Starlark: 1}
+	}
+	for _, fanOut := range inventory.FanOut {
+		key := parityKey{ID: fanOut.ID, Kind: fanOut.Kind}
+		if _, paired := expected[key]; !paired {
+			t.Fatalf("fan-out %s/%s is not listed as paired", fanOut.ID, fanOut.Kind)
+		}
+		if fanOut.Reason == "" || fanOut.Go < 1 || fanOut.Starlark < 1 || fanOut.Go == fanOut.Starlark {
+			t.Fatalf("invalid fan-out declaration: %#v", fanOut)
+		}
+		expected[key] = parityCounts{Go: fanOut.Go, Starlark: fanOut.Starlark}
+	}
+	for _, id := range inventory.GoStructural {
+		key := parityKey{ID: id, Kind: parityKind(t, id)}
+		if _, exists := expected[key]; exists {
+			t.Fatalf("Go-structural ID %s is already categorized", id)
+		}
+		expected[key] = parityCounts{Go: 1}
+	}
+	for _, id := range inventory.StarlarkStructural {
+		key := parityKey{ID: id, Kind: parityKind(t, id)}
+		if _, exists := expected[key]; exists {
+			t.Fatalf("Starlark-structural ID %s is already categorized", id)
+		}
+		expected[key] = parityCounts{Starlark: 1}
+	}
+	return expected
+}
+
+func parityKind(t *testing.T, id string) string {
+	t.Helper()
+	switch {
+	case strings.Contains(id, "-F-"):
+		return "function"
+	case strings.Contains(id, "-B-"):
+		return "branch"
+	default:
+		t.Fatalf("parity ID %s does not encode function/branch kind", id)
+		return ""
+	}
 }
 
 func readParityManifest(t *testing.T) parityManifest {
@@ -121,7 +186,7 @@ func goParityItems(t *testing.T) []parityItem {
 				continue
 			}
 			line := fset.Position(fn.Pos()).Line
-			items = append(items, parityItem{ID: requiredParityID(t, path, lines, line-1, line-1), Kind: "function", Line: line})
+			items = append(items, requiredParityItem(t, path, lines, line-1, line-1, "function", line))
 			ast.Inspect(fn.Body, func(node ast.Node) bool {
 				branch, ok := node.(*ast.IfStmt)
 				if !ok {
@@ -129,7 +194,7 @@ func goParityItems(t *testing.T) []parityItem {
 				}
 				start := fset.Position(branch.Pos()).Line
 				end := fset.Position(branch.Body.Lbrace).Line
-				items = append(items, parityItem{ID: requiredParityID(t, path, lines, start, end), Kind: "branch", Line: start})
+				items = append(items, requiredParityItem(t, path, lines, start, end, "branch", start))
 				return true
 			})
 		}
@@ -149,80 +214,27 @@ func starlarkParityItems(t *testing.T) []parityItem {
 	for index, line := range lines {
 		lineNumber := index + 1
 		if starlarkFunctionPattern.MatchString(line) {
-			items = append(items, parityItem{ID: requiredParityID(t, path, lines, lineNumber-1, lineNumber-1), Kind: "function", Line: lineNumber})
+			items = append(items, requiredParityItem(t, path, lines, lineNumber-1, lineNumber-1, "function", lineNumber))
 		}
 		if starlarkBranchPattern.MatchString(line) {
-			items = append(items, parityItem{ID: requiredParityID(t, path, lines, lineNumber, lineNumber), Kind: "branch", Line: lineNumber})
+			items = append(items, requiredParityItem(t, path, lines, lineNumber, lineNumber, "branch", lineNumber))
 		}
 	}
 	return items
 }
 
-func requiredParityID(t *testing.T, path string, lines []string, first, last int) string {
+func requiredParityItem(t *testing.T, path string, lines []string, first, last int, kind string, sourceLine int) parityItem {
 	t.Helper()
 	if first < 1 || last > len(lines) || first > last {
 		t.Fatalf("invalid annotation range %s:%d-%d", path, first, last)
 	}
 	for line := first; line <= last; line++ {
 		if match := parityIDPattern.FindStringSubmatch(lines[line-1]); match != nil {
-			return match[1]
+			return parityItem{ID: match[2], Kind: kind, AnnotationKind: strings.ToLower(match[1]), Line: sourceLine}
 		}
 	}
 	t.Fatalf("%s:%d has no parity annotation", path, first)
-	return ""
-}
-
-func itemIDSet(items []parityItem) []string {
-	set := make(map[string]struct{}, len(items))
-	for _, item := range items {
-		set[item.ID] = struct{}{}
-	}
-	return sortedSet(set)
-}
-
-func stringSet(values []string) []string {
-	set := make(map[string]struct{}, len(values))
-	for _, value := range values {
-		set[value] = struct{}{}
-	}
-	return sortedSet(set)
-}
-
-func intersect(left, right []string) []string {
-	seen := make(map[string]bool, len(right))
-	for _, value := range right {
-		seen[value] = true
-	}
-	var result []string
-	for _, value := range left {
-		if seen[value] {
-			result = append(result, value)
-		}
-	}
-	return result
-}
-
-func difference(left, right []string) []string {
-	seen := make(map[string]bool, len(right))
-	for _, value := range right {
-		seen[value] = true
-	}
-	var result []string
-	for _, value := range left {
-		if !seen[value] {
-			result = append(result, value)
-		}
-	}
-	return result
-}
-
-func sortedSet(set map[string]struct{}) []string {
-	values := make([]string, 0, len(set))
-	for value := range set {
-		values = append(values, value)
-	}
-	sort.Strings(values)
-	return values
+	return parityItem{}
 }
 
 func countKind(items []parityItem, kind string) int {

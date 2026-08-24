@@ -3,6 +3,7 @@
 package standardbot_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -398,6 +399,8 @@ type decisionOutputs struct {
 	options json.RawMessage
 }
 
+type decisionImplementation func(path string, c corpusCase) (decisionOutputs, error)
+
 func replayCaseGoOutputs(path string, c corpusCase) (decisionOutputs, error) {
 	draw, err := strconv.ParseInt(c.RandomDraw, 10, 64)
 	if err != nil {
@@ -425,11 +428,18 @@ func replayCase(program *runtime.Program, path string, c corpusCase) error {
 }
 
 func replayCaseBoth(program *runtime.Program, path string, c corpusCase) error {
-	starlark, err := replayCaseStarlarkOutputs(program, path, c)
+	starlarkImplementation := func(path string, c corpusCase) (decisionOutputs, error) {
+		return replayCaseStarlarkOutputs(program, path, c)
+	}
+	return replayCaseWithImplementations(path, c, starlarkImplementation, replayCaseGoOutputs)
+}
+
+func replayCaseWithImplementations(path string, c corpusCase, starlarkImplementation, goImplementation decisionImplementation) error {
+	starlark, err := starlarkImplementation(path, c)
 	if err != nil {
 		return err
 	}
-	goNative, err := replayCaseGoOutputs(path, c)
+	goNative, err := goImplementation(path, c)
 	if err != nil {
 		return err
 	}
@@ -515,7 +525,7 @@ func compareDecisionOutputs(path string, c corpusCase, starlark, goNative decisi
 }
 
 // canonicalJSON decodes raw into a plain interface{} tree (map[string]any /
-// []any / string / float64 / bool / nil) rather than a hand-declared intent
+// []any / string / json.Number / bool / nil) rather than a hand-declared intent
 // struct, so a field chess-raiders-bot.star's decide() starts returning tomorrow — one
 // this package's own author never enumerated in a struct — cannot be
 // silently dropped on either side of the comparison in replayCase. An empty
@@ -529,7 +539,9 @@ func canonicalJSON(raw json.RawMessage) (interface{}, error) {
 		raw = json.RawMessage("null")
 	}
 	var v interface{}
-	if err := json.Unmarshal(raw, &v); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	if err := decoder.Decode(&v); err != nil {
 		return nil, err
 	}
 	return v, nil

@@ -20,7 +20,38 @@
     "starlark": "chess-raiders-bot.star:decide",
     "go": "bot.go:Decide"
   },
+  "executionScope": {
+    "publicRunner": [
+      "starlark",
+      "go"
+    ],
+    "externalConsumer": {
+      "repository": "github.com/sneat-co/chessraiders",
+      "runner": "TypeScript/WASM parity harness",
+      "consumes": [
+        "testdata/corpus",
+        "parity-manifest.json"
+      ],
+      "note": "The public Go package exports the shared cases and IDs; it does not execute TypeScript or WASM."
+    }
+  },
   "inventory": {
+    "fanOut": [
+      {
+        "id": "SBP-F-GUARDED-COUNT",
+        "kind": "function",
+        "go": 2,
+        "starlark": 1,
+        "reason": "Go has statically typed CandidateFact and Cell helpers; Starlark uses one duck-typed relation helper for both."
+      },
+      {
+        "id": "SBP-F-THREATENED-COUNT",
+        "kind": "function",
+        "go": 2,
+        "starlark": 1,
+        "reason": "Go has statically typed CandidateFact and Cell helpers; Starlark uses one duck-typed relation helper for both."
+      }
+    ],
     "paired": [
       "SBP-B-ACTIVE-LEADER-GUARD-1",
       "SBP-B-ADD-TERM-1",
