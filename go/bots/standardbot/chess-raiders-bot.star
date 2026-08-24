@@ -296,26 +296,31 @@ JS_SAFE_INTEGER_MAX = 9007199254740991  # 2**53 - 1 — the largest integer magn
 # geometry this script must not compute (see the host's own geometry.go).
 # =============================================================================
 
+# PARITY-FUNCTION: SBP-F-SQUARE-FILE
 def square_file(square):
     """The 0..7 file (column) of an algebraic square like "e4"."""
     return ord(square[0]) - ord("a")
 
+# PARITY-FUNCTION: SBP-F-SQUARE-RANK-NUMBER
 def square_rank_number(square):
     """The 0..7 rank (row) of an algebraic square like "e4"."""
     return ord(square[1]) - ord("1")
 
+# PARITY-FUNCTION: SBP-F-SQUARE-INDEX
 def square_index(square):
     """The host's own 0..63 board index for an algebraic square, so a
     memory entry can be compared against facade4chess.BotMemory's raw
     square-index encoding."""
     return square_file(square) * BOARD_FILES + square_rank_number(square)
 
+# PARITY-FUNCTION: SBP-F-SQUARE-NAME
 def square_name(index):
     """The inverse of square_index."""
     file_number = index // BOARD_FILES
     rank_number = index % BOARD_FILES
     return chr(ord("a") + file_number) + chr(ord("1") + rank_number)
 
+# PARITY-FUNCTION: SBP-F-CHEBYSHEV-DISTANCE
 def chebyshev_distance(first_square, second_square):
     """King-move distance between two GIVEN squares — measuring, never
     asking whether either square is reachable."""
@@ -323,14 +328,17 @@ def chebyshev_distance(first_square, second_square):
     rank_gap = abs(square_rank_number(first_square) - square_rank_number(second_square))
     return file_gap if file_gap > rank_gap else rank_gap
 
+# PARITY-FUNCTION: SBP-F-FORWARD-PROGRESS
 def forward_progress(side, square):
     """How far a square is toward the enemy back rank, 0..7."""
     rank_number = square_rank_number(square)
     return rank_number if side == "white" else LAST_RANK_INDEX - rank_number
 
+# PARITY-FUNCTION: SBP-F-IS-PROMOTION-SQUARE
 def is_promotion_square(side, square):
     return forward_progress(side, square) == LAST_RANK_INDEX
 
+# PARITY-FUNCTION: SBP-F-RANK-VALUE
 def rank_value(rank):
     return {
         "pawn": PAWN_VALUE,
@@ -341,88 +349,104 @@ def rank_value(rank):
         "king": KING_VALUE,
     }.get(rank, 0.0)
 
+# PARITY-FUNCTION: SBP-F-CELL-VALUE
 def cell_value(cell):
     """What capturing this projected occupant is worth."""
     value = rank_value(cell["rank"])
-    if cell["kingCargo"]:
+    if cell["kingCargo"]: # PARITY-BRANCH: SBP-B-CELL-VALUE-1
         value += KING_CARGO_VALUE
-    if cell["ghost"]:
+    if cell["ghost"]: # PARITY-BRANCH: SBP-B-CELL-VALUE-2
         value *= GHOST_DISCOUNT
     return value
 
+# PARITY-FUNCTION: SBP-F-DISTANCE-TO-NEAREST-ENEMY
 def distance_to_nearest_enemy(square, enemy_cells):
     closest = UNREACHABLE_DISTANCE
     for enemy_cell in enemy_cells:
         gap = chebyshev_distance(square, enemy_cell["square"])
-        if gap < closest:
+        if gap < closest: # PARITY-BRANCH: SBP-B-DISTANCE-TO-NEAREST-ENEMY-1
             closest = gap
     return closest
 
+# PARITY-FUNCTION: SBP-F-DISTANCE-TO-NEAREST-SQUARE
 def distance_to_nearest_square(square, candidate_squares):
     closest = UNREACHABLE_DISTANCE
     for candidate in candidate_squares:
         gap = chebyshev_distance(square, candidate)
-        if gap < closest:
+        if gap < closest: # PARITY-BRANCH: SBP-B-DISTANCE-TO-NEAREST-SQUARE-1
             closest = gap
     return closest
 
 EMPTY_CANDIDATE = {}
 
+# PARITY-FUNCTION: SBP-F-CANDIDATE-AT
 def candidate_at(observation, source_square, destination):
     return observation.get("candidates", {}).get(source_square, {}).get(destination, EMPTY_CANDIDATE)
 
+# PARITY-FUNCTION: SBP-F-HAS-CANDIDATE
 def has_candidate(observation, source_square, destination):
     """Whether the host supplied a deterministic post-state candidate."""
     return observation.get("candidates", {}).get(source_square, {}).get(destination) != None
 
+# PARITY-FUNCTION: SBP-STAR-STRUCT-F-RELATION-SQUARES
 def relation_squares(subject, relation):
     """Relationship arrays are sorted/deduplicated by the host and omitted
     when empty. The script reads that compact wire without inventing geometry."""
     return subject.get(relation, []) or []
 
+# PARITY-FUNCTION: SBP-F-GUARDED-COUNT
 def guarded_count(subject):
     return len(relation_squares(subject, "guardedBy"))
 
+# PARITY-FUNCTION: SBP-F-THREATENED-COUNT
 def threatened_count(subject):
     return len(relation_squares(subject, "threatenedBy"))
 
+# PARITY-FUNCTION: SBP-F-SUPPORTED-AND-UNTHREATENED
 def supported_and_unthreatened(subject):
     return guarded_count(subject) > 0 and threatened_count(subject) == 0
 
+# PARITY-FUNCTION: SBP-F-IS-SAFE-SUBJECT
 def is_safe_subject(subject):
     """The common safety gate: a friendly guard, or no visible threat."""
     return guarded_count(subject) > 0 or threatened_count(subject) == 0
 
+# PARITY-FUNCTION: SBP-F-PROJECTED-CELL
 def projected_cell(observation, square):
     """Returns a transient square-bearing copy of one projected piece.
     The wire keys pieces by square and intentionally omits Cell.square."""
     raw = observation["pieces"].get(square)
-    if raw == None:
+    if raw == None: # PARITY-BRANCH: SBP-B-PROJECTED-CELL-1
         return None
     cell = dict(raw)
     cell["square"] = square
     return cell
 
+# PARITY-FUNCTION: SBP-F-PIECE-SQUARES
 def piece_squares(observation):
     """Projected-piece object order is non-semantic. Always recover the
     engine's file-major square order explicitly before a decision depends on
     iteration order."""
     return sorted(observation["pieces"].keys(), key = square_index)
 
+# PARITY-FUNCTION: SBP-F-BEACON-AGGRESSION
 def beacon_aggression(observation, params):
     """The positive weight is both Beacon permission and preference."""
     return params["beaconAggression"]
 
+# PARITY-FUNCTION: SBP-F-IS-QUIET-MOVE
 def is_quiet_move(observation, board, cell, destination):
     """A quiet destination has neither a direct target nor host-confirmed
     en-passant victim. Captures retain their tactical scoring unchanged."""
-    if board["enemy_by_square"].get(destination):
+    if board["enemy_by_square"].get(destination): # PARITY-BRANCH: SBP-B-IS-QUIET-MOVE-1
         return False
     return not observation.get("enPassant", {}).get(cell["square"], {}).get(destination)
 
+# PARITY-FUNCTION: SBP-F-PROTECTION-FACTOR
 def protection_factor(candidate):
     return min(1.0, guarded_count(candidate) / 2.0)
 
+# PARITY-FUNCTION: SBP-F-DELIVERY-SQUARE-NEIGHBORS
 def _delivery_square_neighbors(square):
     """The up-to-8 king-step squares adjacent to `square`. Pure board
     arithmetic in the same idiom square_file/square_rank_number/chebyshev_
@@ -436,15 +460,16 @@ def _delivery_square_neighbors(square):
     neighbors = []
     for file_delta in (-1, 0, 1):
         for rank_delta in (-1, 0, 1):
-            if file_delta == 0 and rank_delta == 0:
+            if file_delta == 0 and rank_delta == 0: # PARITY-BRANCH: SBP-B-DELIVERY-SQUARE-NEIGHBORS-1
                 continue
             neighbor_file = file_number + file_delta
             neighbor_rank = rank_number + rank_delta
-            if neighbor_file < 0 or neighbor_file > 7 or neighbor_rank < 0 or neighbor_rank > 7:
+            if neighbor_file < 0 or neighbor_file > 7 or neighbor_rank < 0 or neighbor_rank > 7: # PARITY-BRANCH: SBP-B-DELIVERY-SQUARE-NEIGHBORS-2
                 continue
             neighbors.append(chr(ord("a") + neighbor_file) + chr(ord("1") + neighbor_rank))
     return neighbors
 
+# PARITY-FUNCTION: SBP-F-DELIVERY-LANE-BLOCKERS
 def delivery_lane_blockers(delivery_squares, own_by_square, enemy_by_square):
     """Every own unit that is the reason NONE of `delivery_squares` (this
     king-cargo convoy's own delivery squares) currently gives it a real
@@ -471,18 +496,18 @@ def delivery_lane_blockers(delivery_squares, own_by_square, enemy_by_square):
     enemy for a delivery square, here or anywhere else)."""
     blockers = {}
     for target in delivery_squares:
-        if target in enemy_by_square:
+        if target in enemy_by_square: # PARITY-BRANCH: SBP-B-DELIVERY-LANE-BLOCKERS-1
             return []
-        if target in own_by_square:
+        if target in own_by_square: # PARITY-BRANCH: SBP-B-DELIVERY-LANE-BLOCKERS-2
             blockers[target] = True
             continue
         neighbors = _delivery_square_neighbors(target)
-        if not neighbors:
+        if not neighbors: # PARITY-BRANCH: SBP-B-DELIVERY-LANE-BLOCKERS-3
             return []
         for neighbor in neighbors:
-            if neighbor in enemy_by_square:
+            if neighbor in enemy_by_square: # PARITY-BRANCH: SBP-B-DELIVERY-LANE-BLOCKERS-4
                 return []
-            if neighbor not in own_by_square:
+            if neighbor not in own_by_square: # PARITY-BRANCH: SBP-B-DELIVERY-LANE-BLOCKERS-5
                 return []  # a real, open approach exists -- nothing to clear
             blockers[neighbor] = True
     return blockers.keys()
@@ -495,6 +520,7 @@ def delivery_lane_blockers(delivery_squares, own_by_square, enemy_by_square):
 # copies in sorted-square order. It never mutates the decoded observation.
 # =============================================================================
 
+# PARITY-FUNCTION: SBP-F-BUILD-BOARD
 def build_board(observation):
     own_cells = []
     enemy_cells = []
@@ -504,7 +530,7 @@ def build_board(observation):
     for square in piece_squares(observation):
         cell = projected_cell(observation, square)
         all_by_square[square] = cell
-        if cell["side"] == observation["side"]:
+        if cell["side"] == observation["side"]: # PARITY-BRANCH: SBP-B-BUILD-BOARD-1
             own_cells.append(cell)
             own_by_square[square] = cell
         else:
@@ -513,7 +539,7 @@ def build_board(observation):
 
     locked_units = {}
     for cell in own_cells:
-        if cell.get("targetLocked"):
+        if cell.get("targetLocked"): # PARITY-BRANCH: SBP-B-BUILD-BOARD-2
             locked_units[cell["unitId"]] = True
 
     busy_units = {}
@@ -531,26 +557,26 @@ def build_board(observation):
     own_interrogation_targets = {}
     enemy_interrogation_active = False
     for cell in own_cells + enemy_cells:
-        if cell.get("interrogationRemainingMs") != None:
-            if cell["side"] == observation["side"]:
+        if cell.get("interrogationRemainingMs") != None: # PARITY-BRANCH: SBP-B-BUILD-BOARD-3
+            if cell["side"] == observation["side"]: # PARITY-BRANCH: SBP-B-BUILD-BOARD-4
                 own_interrogation_targets[cell["unitId"]] = True
             else:
                 enemy_interrogation_active = True
     for cell in own_cells:
         unit_id = cell["unitId"]
-        if cell.get("profession", "") == "engineer" and cell.get("grade") == "master":
+        if cell.get("profession", "") == "engineer" and cell.get("grade") == "master": # PARITY-BRANCH: SBP-B-BUILD-BOARD-5
             has_master_engineer = True
-        if cell["rank"] == "king" and not cell["convoy"]:
+        if cell["rank"] == "king" and not cell["convoy"]: # PARITY-BRANCH: SBP-B-BUILD-BOARD-6
             king_cell = cell
         charging = cell.get("charging")
-        if charging:
+        if charging: # PARITY-BRANCH: SBP-B-BUILD-BOARD-7
             charging_units[unit_id] = True
             busy_units[unit_id] = True
             target = enemy_by_square.get(charging["square"])
             # A charge already committed to the visible enemy king is the
             # win attempt: retain it. Lower-value or now-empty destinations
             # remain replaceable through the ordinary legal proposal path.
-            if target and target["rank"] == "king" and not target["ghost"]:
+            if target and target["rank"] == "king" and not target["ghost"]: # PARITY-BRANCH: SBP-B-BUILD-BOARD-8
                 protected_charging_units[unit_id] = True
             else:
                 replaceable_charging_units[unit_id] = True
@@ -561,16 +587,16 @@ def build_board(observation):
         # this bot propose an ordinary quiet move on its OWN forging pawn,
         # which apply's shared locked-channel cancellation then reads as
         # "cancel the Forge", destroying work already in flight.
-        if cell.get("training") or cell.get("forgingRemainingMs", 0) > 0 or cell.get("recoveryRemainingMs", 0) > 0:
+        if cell.get("training") or cell.get("forgingRemainingMs", 0) > 0 or cell.get("recoveryRemainingMs", 0) > 0: # PARITY-BRANCH: SBP-B-BUILD-BOARD-9
             busy_units[unit_id] = True
             nonroute_busy_units[unit_id] = True
-        if own_interrogation_targets.get(unit_id):
+        if own_interrogation_targets.get(unit_id): # PARITY-BRANCH: SBP-B-BUILD-BOARD-10
             busy_units[unit_id] = True
             nonroute_busy_units[unit_id] = True
 
     # Only a king interrogates. If the target is opposing, our own king is
     # the implicit source and is just as busy as the target.
-    if enemy_interrogation_active and king_cell:
+    if enemy_interrogation_active and king_cell: # PARITY-BRANCH: SBP-B-BUILD-BOARD-11
         busy_units[king_cell["unitId"]] = True
         nonroute_busy_units[king_cell["unitId"]] = True
 
@@ -593,7 +619,7 @@ def build_board(observation):
     # at the N=1 default and generalizes unchanged.
     replaceable_now = [cell for cell in own_cells if (replaceable_charging_units.get(cell["unitId"]) and
                                                         not nonroute_busy_units.get(cell["unitId"]))]
-    if len(charging_units) >= max_active_commands:
+    if len(charging_units) >= max_active_commands: # PARITY-BRANCH: SBP-B-BUILD-BOARD-12
         # At the command limit: no idle piece may start a new command until
         # capacity frees up. Below the limit, EVERY idle unit stays fully
         # actionable alongside whatever is already charging — see the
@@ -677,6 +703,7 @@ TERM_DETAILS = {
     ],
 }
 
+# PARITY-FUNCTION: SBP-F-ADD-TERM
 def add_term(terms, term, value, detail):
     """Records ONE signed contribution and returns the identical number, so
     every call site reads `score += add_term(terms, ...)` — the breakdown and
@@ -689,42 +716,43 @@ def add_term(terms, term, value, detail):
     zero, or whose branch computed nothing, is ABSENT from the breakdown
     rather than present as a zero — a reason worth nothing is not a reason,
     and showing one would pad an explanation with noise."""
-    if value == 0.0:
+    if value == 0.0: # PARITY-BRANCH: SBP-B-ADD-TERM-1
         return 0.0
     entry = {"term": term, "value": value}
-    if detail:
+    if detail: # PARITY-BRANCH: SBP-B-ADD-TERM-2
         entry["detail"] = detail
     terms.append(entry)
     return value
 
+# PARITY-FUNCTION: SBP-F-UNIT-PRIORITY
 def unit_priority(observation, board, params, cell):
     """Orders units before any move is scored: pieces near the action
     first, a king-carrying convoy always (delivery wins the match), and a
     publicly-locked piece early so it can dodge."""
     priority = -distance_to_nearest_enemy(cell["square"], board["enemy"])
-    if cell["convoy"] and cell["kingCargo"]:
+    if cell["convoy"] and cell["kingCargo"]: # PARITY-BRANCH: SBP-B-UNIT-PRIORITY-1
         priority += UNIT_PRIORITY_KING_CARGO
-    elif cell["convoy"] and cell["cargoCount"] > 0 and params["prisoner"] > 0:
+    elif cell["convoy"] and cell["cargoCount"] > 0 and params["prisoner"] > 0: # PARITY-BRANCH: SBP-B-UNIT-PRIORITY-2
         priority += UNIT_PRIORITY_PRISONER_CARGO
-    if params["targetLock"] > 0 and board["locked_units"].get(cell["unitId"]):
+    if params["targetLock"] > 0 and board["locked_units"].get(cell["unitId"]): # PARITY-BRANCH: SBP-B-UNIT-PRIORITY-3
         priority += UNIT_PRIORITY_LOCKED_BONUS
-    if params["kingSafety"] > 0 and board["king_threatened"]:
-        if cell["rank"] == "king":
+    if params["kingSafety"] > 0 and board["king_threatened"]: # PARITY-BRANCH: SBP-B-UNIT-PRIORITY-4
+        if cell["rank"] == "king": # PARITY-BRANCH: SBP-B-UNIT-PRIORITY-5
             priority += UNIT_PRIORITY_KING_ITSELF
-        elif board["king_cell"] and chebyshev_distance(cell["square"], board["king_cell"]["square"]) <= NEAR_KING_RADIUS:
+        elif board["king_cell"] and chebyshev_distance(cell["square"], board["king_cell"]["square"]) <= NEAR_KING_RADIUS: # PARITY-BRANCH: SBP-B-UNIT-PRIORITY-6
             priority += UNIT_PRIORITY_NEAR_KING
     priority += formation_leader_priority(observation, board, params, cell)
-    if not cell["convoy"] and cell["rank"] != "king" and not is_current_beacon_bearer(observation, cell):
+    if not cell["convoy"] and cell["rank"] != "king" and not is_current_beacon_bearer(observation, cell): # PARITY-BRANCH: SBP-B-UNIT-PRIORITY-7
         for enemy in board["enemy"]:
-            if enemy["rank"] != "king" or enemy["ghost"]:
+            if enemy["rank"] != "king" or enemy["ghost"]: # PARITY-BRANCH: SBP-B-UNIT-PRIORITY-8
                 continue
-            if (enemy["square"] in observation["legal"].get(cell["square"], []) and
+            if (enemy["square"] in observation["legal"].get(cell["square"], []) and # PARITY-BRANCH: SBP-B-UNIT-PRIORITY-9
                     capture_choice_available(observation, board, cell, enemy["square"])):
                 priority += KING_VALUE
                 break
             for destination in observation["legal"].get(cell["square"], []):
                 fact = candidate_at(observation, cell["square"], destination)
-                if (is_quiet_move(observation, board, cell, destination) and
+                if (is_quiet_move(observation, board, cell, destination) and # PARITY-BRANCH: SBP-B-UNIT-PRIORITY-10
                         has_candidate(observation, cell["square"], destination) and fact.get("destinationVisible", False) and
                         supported_and_unthreatened(fact) and
                         enemy["square"] in (fact.get("nextPossibleMoves", []) or [])):
@@ -739,6 +767,7 @@ EMPTY_OUTCOME = {
     "oddsKnown": False, "odds": {"success": 0, "defenderKilled": 0, "repelled": 0},
 }
 
+# PARITY-FUNCTION: SBP-F-OUTCOMES-AT
 def outcomes_at(observation, source_square, destination):
     """The host's own per-choice affordability AND odds facts for one (unit,
     destination) pair (observation.affordability — observation.go's
@@ -749,6 +778,7 @@ def outcomes_at(observation, source_square, destination):
     from chess.BeliefCaptureBands)."""
     return observation["affordability"].get(source_square, EMPTY_OUTCOMES).get(destination, EMPTY_OUTCOMES)
 
+# PARITY-FUNCTION: SBP-F-CAPTURE-EXPECTED-SUCCESS
 def capture_expected_success(outcome):
     """The fraction (0.0-1.0) of the time `outcome` (one CaptureOutcome —
     Kill or Capture) actually lands, for weighing EXPECTED material rather
@@ -763,10 +793,11 @@ def capture_expected_success(outcome):
     certain, and 1.0 is exactly this script's own behaviour before odds
     existed at all, so a ruleset that never enables capture risk sees no
     scoring change from this function's existence."""
-    if not outcome["oddsKnown"]:
+    if not outcome["oddsKnown"]: # PARITY-BRANCH: SBP-B-CAPTURE-EXPECTED-SUCCESS-1
         return 1.0
     return outcome["odds"]["success"] / 100.0
 
+# PARITY-FUNCTION: SBP-F-EFFECTIVE-CAPTURE-TARGET
 def effective_capture_target(observation, board, cell, destination):
     """Resolves what `cell` would actually capture by moving to
     `destination`: the piece standing there for an ordinary capture, or —
@@ -784,15 +815,16 @@ def effective_capture_target(observation, board, cell, destination):
     IsConvoy() guard), so cell["convoy"] short-circuits before the lookup,
     mirroring Go's own guard."""
     target_cell = board["enemy_by_square"].get(destination)
-    if target_cell:
+    if target_cell: # PARITY-BRANCH: SBP-B-EFFECTIVE-CAPTURE-TARGET-1
         return target_cell
-    if cell["convoy"] or cell["rank"] != "pawn":
+    if cell["convoy"] or cell["rank"] != "pawn": # PARITY-BRANCH: SBP-B-EFFECTIVE-CAPTURE-TARGET-2
         return None
     victim_square = observation["enPassant"].get(cell["square"], {}).get(destination)
-    if not victim_square:
+    if not victim_square: # PARITY-BRANCH: SBP-B-EFFECTIVE-CAPTURE-TARGET-3
         return None
     return board["enemy_by_square"].get(victim_square)
 
+# PARITY-FUNCTION: SBP-F-CAPTURE-CHOICE-AVAILABLE
 def capture_choice_available(observation, board, cell, destination):
     """Is this (unit, destination) pair one the bot may actually submit?
     True for an ordinary quiet-move destination (nothing to afford). For a
@@ -815,17 +847,18 @@ def capture_choice_available(observation, board, cell, destination):
     the whole point of this guard (see the accompanying report's
     rejection-rate measurement)."""
     target_cell = effective_capture_target(observation, board, cell, destination)
-    if not target_cell:
+    if not target_cell: # PARITY-BRANCH: SBP-B-CAPTURE-CHOICE-AVAILABLE-1
         return True
     outcomes = outcomes_at(observation, cell["square"], destination)
-    if target_cell["rank"] == "king" or target_cell["convoy"]:
+    if target_cell["rank"] == "king" or target_cell["convoy"]: # PARITY-BRANCH: SBP-B-CAPTURE-CHOICE-AVAILABLE-2
         return outcomes.get("capture", EMPTY_OUTCOME)["affordable"]
-    if observation["rules"]["allowsKill"] and outcomes.get("kill", EMPTY_OUTCOME)["affordable"]:
+    if observation["rules"]["allowsKill"] and outcomes.get("kill", EMPTY_OUTCOME)["affordable"]: # PARITY-BRANCH: SBP-B-CAPTURE-CHOICE-AVAILABLE-3
         return True
-    if observation["rules"]["allowsCapture"] and outcomes.get("capture", EMPTY_OUTCOME)["affordable"]:
+    if observation["rules"]["allowsCapture"] and outcomes.get("capture", EMPTY_OUTCOME)["affordable"]: # PARITY-BRANCH: SBP-B-CAPTURE-CHOICE-AVAILABLE-4
         return True
     return False
 
+# PARITY-FUNCTION: SBP-F-LEADER-SUPPORT
 def leader_support(observation, board, leader, destination):
     """Friendly guarding at a candidate leader square. A supporter ahead of
     the leader counts fully, one abreast counts half, and one behind cannot
@@ -834,16 +867,17 @@ def leader_support(observation, board, leader, destination):
     support = 0.0
     destination_progress = forward_progress(board["side"], destination)
     for ally in board["own"]:
-        if ally["unitId"] == leader["unitId"]:
+        if ally["unitId"] == leader["unitId"]: # PARITY-BRANCH: SBP-B-LEADER-SUPPORT-1
             continue
         distance = chebyshev_distance(destination, ally["square"])
-        if distance == 0:
+        if distance == 0: # PARITY-BRANCH: SBP-B-LEADER-SUPPORT-2
             continue
         ally_progress = forward_progress(board["side"], ally["square"])
         direction_weight = 1.0 if ally_progress > destination_progress else (0.5 if ally_progress == destination_progress else 0.0)
         support += direction_weight / distance
     return min(1.0, support / LEADER_SUPPORT_SATURATION)
 
+# PARITY-FUNCTION: SBP-F-CURRENT-MORALE-NEED
 def current_morale_need(observation):
     """The highest currently visible capture threshold, also bounded by the
     number already managed. The host owns affordability; this only asks how
@@ -863,7 +897,7 @@ def current_morale_need(observation):
     # Native input carries this already-restricted maximum directly from the
     # engine's legal move arena. Historical JSON corpus records lack it, so
     # retain the old scan only for those compatibility fixtures.
-    if "captureMoraleNeed" in observation:
+    if "captureMoraleNeed" in observation: # PARITY-BRANCH: SBP-B-CURRENT-MORALE-NEED-1
         return observation["captureMoraleNeed"]
     needed = observation.get("ownManaged", 0)
     for by_destination in observation.get("affordability", {}).values():
@@ -871,6 +905,7 @@ def current_morale_need(observation):
             needed = max(needed, outcomes.get("capture", EMPTY_OUTCOME).get("requiredMorale", 0))
     return needed
 
+# PARITY-FUNCTION: SBP-F-POST-MOVE-MORALE
 def post_move_morale(observation, board, from_square, destination):
     """Do not score the king as current morale plus forward gain: an
     incursion penalty already paid at the current square follows the king.
@@ -879,18 +914,21 @@ def post_move_morale(observation, board, from_square, destination):
     current_penalty = observation.get("ownMoralePenalty", 0)
     return max(0, forward_progress(board["side"], destination) - current_penalty)
 
+# PARITY-FUNCTION: SBP-F-IS-CURRENT-BEACON-BEARER
 def is_current_beacon_bearer(observation, cell):
     beacon = observation.get("beacon", {})
     return beacon.get("lifecycle") == "deployed" and beacon.get("bearerSquare") == cell["square"]
 
+# PARITY-FUNCTION: SBP-F-CAN-PROMOTE-NEXT-MOVE
 def can_promote_next_move(side, candidate):
     """The host's own post-settlement moves, not a pawn-geometry guess. An
     omitted/empty list means no known next promotion setup."""
     for next_destination in (candidate.get("nextPossibleMoves", []) or []):
-        if is_promotion_square(side, next_destination):
+        if is_promotion_square(side, next_destination): # PARITY-BRANCH: SBP-B-CAN-PROMOTE-NEXT-MOVE-1
             return True
     return False
 
+# PARITY-FUNCTION: SBP-F-SUPPORT-MATERIAL
 def support_material(board, squares):
     """Material on named friendly squares, capped before a term applies.
     The host determines which squares are guarded or abandoned; the script
@@ -898,15 +936,17 @@ def support_material(board, squares):
     material = 0.0
     for square in (squares or []):
         cell = board["own_by_square"].get(square)
-        if cell:
+        if cell: # PARITY-BRANCH: SBP-B-SUPPORT-MATERIAL-1
             material += min(rank_value(cell["rank"]), ROOK_VALUE)
     return min(material, SUPPORT_MATERIAL_CAP)
 
+# PARITY-FUNCTION: SBP-F-CAPTURE-BACKING-COUNT
 def capture_backing_count(target_cell, mover_square):
     """Other friendly attackers of a capture target can recapture after the
     mover settles there; the mover's own source is not backing itself."""
     return len([square for square in relation_squares(target_cell, "threatenedBy") if square != mover_square])
 
+# PARITY-FUNCTION: SBP-F-GUARD-CHANGES
 def guard_changes(board, cell, candidate):
     """Returns genuinely new mover->ally guard edges and allies losing their
     sole guard. Moving one of several redundant guards is deliberately free:
@@ -918,22 +958,24 @@ def guard_changes(board, cell, candidate):
     sole_guard_lost = []
     for square in after:
         target = board["own_by_square"].get(square)
-        if target and old_square not in relation_squares(target, "guardedBy"):
+        if target and old_square not in relation_squares(target, "guardedBy"): # PARITY-BRANCH: SBP-B-GUARD-CHANGES-1
             newly_guarded.append(square)
     for square in before:
-        if square in after:
+        if square in after: # PARITY-BRANCH: SBP-B-GUARD-CHANGES-2
             continue
         target = board["own_by_square"].get(square)
-        if target and relation_squares(target, "guardedBy") == [old_square]:
+        if target and relation_squares(target, "guardedBy") == [old_square]: # PARITY-BRANCH: SBP-B-GUARD-CHANGES-3
             sole_guard_lost.append(square)
     return newly_guarded, sole_guard_lost
 
+# PARITY-FUNCTION: SBP-F-INBOUND-SUPPORT-MATERIAL
 def inbound_support_material(cell, candidate):
     """Two real protectors are enough for this soft preference. The mover's
     material is what is protected, not the protector's rank."""
     count = guarded_count(candidate)
     return min(count, 2) * min(rank_value(cell["rank"]), ROOK_VALUE) / ROOK_VALUE
 
+# PARITY-FUNCTION: SBP-F-FORMATION-LEADER-PRIORITY
 def formation_leader_priority(observation, board, params, cell):
     """Lets a leader whose current weight permits formation work enter a
     shallow tier's breadth only while it has a known, guarded, safe move that
@@ -941,22 +983,22 @@ def formation_leader_priority(observation, board, params, cell):
     usual morale/Beacon terms still choose the destination. A king stops
     receiving this consideration once it has the one-to-two morale reserve;
     a Beacon bearer needs real support gain, so neither becomes a hero."""
-    if cell["convoy"]:
+    if cell["convoy"]: # PARITY-BRANCH: SBP-B-FORMATION-LEADER-PRIORITY-1
         return 0.0
     destinations = observation["legal"].get(cell["square"], [])
-    if cell["rank"] == "king":
-        if params["moralePush"] <= 0:
+    if cell["rank"] == "king": # PARITY-BRANCH: SBP-B-FORMATION-LEADER-PRIORITY-2
+        if params["moralePush"] <= 0: # PARITY-BRANCH: SBP-B-FORMATION-LEADER-PRIORITY-3
             return 0.0
         needed = current_morale_need(observation)
         current = post_move_morale(observation, board, cell["square"], cell["square"])
         # An excessive reserve is the one case where a leader should get
         # breadth preference to step BACK: score_move already awards this
         # same regroup, but shallow tiers must first get to consider it.
-        if observation.get("ownMorale", 0) - needed >= LEADER_EXCESS_MORALE:
+        if observation.get("ownMorale", 0) - needed >= LEADER_EXCESS_MORALE: # PARITY-BRANCH: SBP-B-FORMATION-LEADER-PRIORITY-4
             for destination in destinations:
                 fact = candidate_at(observation, cell["square"], destination)
                 after = post_move_morale(observation, board, cell["square"], destination)
-                if (is_quiet_move(observation, board, cell, destination) and
+                if (is_quiet_move(observation, board, cell, destination) and # PARITY-BRANCH: SBP-B-FORMATION-LEADER-PRIORITY-5
                         has_candidate(observation, cell["square"], destination) and fact.get("destinationVisible", False) and
                         supported_and_unthreatened(fact) and
                         after < current and after >= needed + 1):
@@ -964,32 +1006,33 @@ def formation_leader_priority(observation, board, params, cell):
             return 0.0
         # Once the king already holds the first reserve point, it no longer
         # gets breadth preference merely for being a king.
-        if current >= needed + 1:
+        if current >= needed + 1: # PARITY-BRANCH: SBP-B-FORMATION-LEADER-PRIORITY-6
             return 0.0
         for destination in destinations:
             fact = candidate_at(observation, cell["square"], destination)
             after = post_move_morale(observation, board, cell["square"], destination)
-            if (is_quiet_move(observation, board, cell, destination) and
+            if (is_quiet_move(observation, board, cell, destination) and # PARITY-BRANCH: SBP-B-FORMATION-LEADER-PRIORITY-7
                     has_candidate(observation, cell["square"], destination) and fact.get("destinationVisible", False) and
                     supported_and_unthreatened(fact) and
                     after > current and after <= needed + 2):
                 return UNIT_PRIORITY_FORMATION_LEADER
         return 0.0
-    if not is_current_beacon_bearer(observation, cell) or params["beaconAggression"] <= 0:
+    if not is_current_beacon_bearer(observation, cell) or params["beaconAggression"] <= 0: # PARITY-BRANCH: SBP-B-FORMATION-LEADER-PRIORITY-8
         return 0.0
     current_support = leader_support(observation, board, cell, cell["square"])
     for destination in destinations:
         fact = candidate_at(observation, cell["square"], destination)
-        if (not (cell["rank"] == "pawn" and is_promotion_square(board["side"], destination)) and is_quiet_move(observation, board, cell, destination) and
+        if (not (cell["rank"] == "pawn" and is_promotion_square(board["side"], destination)) and is_quiet_move(observation, board, cell, destination) and # PARITY-BRANCH: SBP-B-FORMATION-LEADER-PRIORITY-9
                 has_candidate(observation, cell["square"], destination) and fact.get("destinationVisible", False) and
                 supported_and_unthreatened(fact) and
                 leader_support(observation, board, cell, destination) > current_support):
             return UNIT_PRIORITY_FORMATION_LEADER
     return 0.0
 
+# PARITY-FUNCTION: SBP-STAR-STRUCT-F-HAS-OTHER-ORDINARY-CHOICE
 def has_other_ordinary_choice(observation, board, current_cell):
     for cell in board["actionable_units"]:
-        if cell["unitId"] == current_cell["unitId"] or cell["convoy"] or cell["rank"] == "king" or is_current_beacon_bearer(observation, cell):
+        if cell["unitId"] == current_cell["unitId"] or cell["convoy"] or cell["rank"] == "king" or is_current_beacon_bearer(observation, cell): # PARITY-BRANCH: SBP-STAR-STRUCT-B-HAS-OTHER-ORDINARY-CHOICE-1
             continue
         # notBriefed (REQ:not-briefed-is-not-no-legal-moves): actionable_units
         # is broader than move_actionable_units, so at the command limit it can
@@ -997,13 +1040,14 @@ def has_other_ordinary_choice(observation, board, current_cell):
         # observation["legal"] entry is simply absent — not "no moves" — so an
         # unbriefed cell must not be read as evidence either way; skip it
         # rather than let .get(..., []) silently read as "nothing here".
-        if cell.get("notBriefed"):
+        if cell.get("notBriefed"): # PARITY-BRANCH: SBP-STAR-STRUCT-B-HAS-OTHER-ORDINARY-CHOICE-2
             continue
         for destination in observation["legal"].get(cell["square"], []):
-            if destination != cell["square"]:
+            if destination != cell["square"]: # PARITY-BRANCH: SBP-STAR-STRUCT-B-HAS-OTHER-ORDINARY-CHOICE-3
                 return True
     return False
 
+# PARITY-FUNCTION: SBP-F-SCORE-MOVE
 def score_move(observation, board, params, memory, cell, destination):
     """Scores one (own unit, legal destination) pair, AND builds the named
     breakdown of that score. `destination` always comes from
@@ -1038,19 +1082,19 @@ def score_move(observation, board, params, memory, cell, destination):
     # correct, not merely a fallback).
     success_chance = 1.0
     capture_choice = None
-    if target_cell and target_cell["rank"] != "king" and not target_cell["convoy"]:
+    if target_cell and target_cell["rank"] != "king" and not target_cell["convoy"]: # PARITY-BRANCH: SBP-B-SCORE-MOVE-1
         outcomes = outcomes_at(observation, cell["square"], destination)
-        if (params["prisoner"] > 0 and observation["rules"]["allowsCapture"] and
+        if (params["prisoner"] > 0 and observation["rules"]["allowsCapture"] and # PARITY-BRANCH: SBP-B-SCORE-MOVE-2
                 outcomes.get("capture", EMPTY_OUTCOME)["affordable"]):
             capture_choice = "capture"
-        elif observation["rules"]["allowsKill"]:
+        elif observation["rules"]["allowsKill"]: # PARITY-BRANCH: SBP-B-SCORE-MOVE-3
             capture_choice = "kill"
-        if capture_choice:
+        if capture_choice: # PARITY-BRANCH: SBP-B-SCORE-MOVE-4
             success_chance = capture_expected_success(outcomes.get(capture_choice, EMPTY_OUTCOME))
 
     # Material: take what is there — weighted by how often the verb this
     # candidate would submit actually lands.
-    if target_cell:
+    if target_cell: # PARITY-BRANCH: SBP-B-SCORE-MOVE-5
         captured_value = cell_value(target_cell)
         # success_chance (capture-odds, main) weights the expected value the
         # SAME way for both the bot's own score and the adviser's explained
@@ -1066,13 +1110,13 @@ def score_move(observation, board, params, memory, cell, destination):
         # outright). cell["cargoCount"] is always >=1 here — gated on
         # cargoCount>0 explicitly — so this only ever shrinks the term
         # toward zero, never inverts its sign or divides by zero.
-        if (board["needs_first_master_engineer"] and cell["rank"] == "pawn" and
+        if (board["needs_first_master_engineer"] and cell["rank"] == "pawn" and # PARITY-BRANCH: SBP-B-SCORE-MOVE-6
                 cell["convoy"] and cell["cargoCount"] > 0):
             material_gain /= (cell["cargoCount"] + 1)
         score += add_term(terms, "material", material_gain, "capture")
-        if target_cell["rank"] == "king" and not target_cell["ghost"]:
+        if target_cell["rank"] == "king" and not target_cell["ghost"]: # PARITY-BRANCH: SBP-B-SCORE-MOVE-7
             score += add_term(terms, "kingHunt", params["advance"], "visible")
-        if params["prisoner"] > 0 and target_cell["rank"] != "king" and not target_cell["convoy"]:
+        if params["prisoner"] > 0 and target_cell["rank"] != "king" and not target_cell["convoy"]: # PARITY-BRANCH: SBP-B-SCORE-MOVE-8
             score += add_term(terms, "prisoner", CAPTURE_ALIVE_BONUS * params["prisoner"] * success_chance, "alive")
             # Veteran-progression bootstrap (bot4chess/score.go's own
             # valueVeteranBootstrap): while this side still needs its first
@@ -1089,17 +1133,17 @@ def score_move(observation, board, params, memory, cell, destination):
             # bot4chess's own prisonerAllowed answers, proven to agree with
             # this host computation on every input reachable here), so the
             # bonus never inflates a capture that settles as a Kill anyway.
-            if (board["needs_first_master_engineer"] and cell["rank"] == "pawn" and not cell["convoy"] and
+            if (board["needs_first_master_engineer"] and cell["rank"] == "pawn" and not cell["convoy"] and # PARITY-BRANCH: SBP-B-SCORE-MOVE-9
                     outcomes.get("capture", EMPTY_OUTCOME)["affordable"] and
                     (capture_backing_count(target_cell, cell["square"]) > 0 or guarded_count(target_cell) == 0)):
                 score += add_term(terms, "prisoner", VALUE_VETERAN_BOOTSTRAP * params["prisoner"], "bootstrap")
 
     # Safety: a trade that already wins material is worth taking; walking a
     # queen in front of a pawn for nothing is not.
-    if candidate_known:
+    if candidate_known: # PARITY-BRANCH: SBP-B-SCORE-MOVE-10
         post_threat = threatened_count(candidate)
         post_guarded = guarded_count(candidate)
-    elif target_cell:
+    elif target_cell: # PARITY-BRANCH: SBP-B-SCORE-MOVE-11
         # Captures have branching outcomes, so the host deliberately does not
         # fabricate one post-state candidate. Enemy guards of the target are
         # the visible recapture threats. Other friendly attackers of that
@@ -1114,23 +1158,23 @@ def score_move(observation, board, params, memory, cell, destination):
     # destination is safe. Captures retain their visible-target relation
     # fallback because their outcome branches cannot have one settled fact.
     post_safety_known = candidate_known or target_cell != None
-    if post_threat > 0:
+    if post_threat > 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-12
         risk = rank_value(cell["rank"])
-        if cell["kingCargo"]:
+        if cell["kingCargo"]: # PARITY-BRANCH: SBP-B-SCORE-MOVE-13
             risk += KING_CARGO_ESCORT_RISK
-        if captured_value >= risk:
+        if captured_value >= risk: # PARITY-BRANCH: SBP-B-SCORE-MOVE-14
             risk *= SAFE_TRADE_DISCOUNT
-        elif post_guarded > 0:
+        elif post_guarded > 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-15
             risk *= RECAPTURE_DISCOUNT
         score += add_term(terms, "safety", -risk * params["safety"], "risk")
 
     # Tempo: a slower piece spends more of the match charging.
-    if params["tempo"] > 0:
+    if params["tempo"] > 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-16
         charge_ms = observation["rules"]["pieceChargeMs"].get(cell["rank"], 0)
-        if charge_ms > 0:
+        if charge_ms > 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-17
             score += add_term(terms, "tempo", -(charge_ms / MILLISECONDS_PER_SECOND) * params["tempo"], "charge")
     active_charge = cell.get("charging")
-    if active_charge and destination != active_charge["square"]:
+    if active_charge and destination != active_charge["square"]: # PARITY-BRANCH: SBP-B-SCORE-MOVE-18
         # The wire intentionally exposes remaining time, not a fabricated
         # total duration. Near-settlement work is more urgent to retain;
         # the bounded inverse never pretends to know elapsed progress. This
@@ -1147,8 +1191,8 @@ def score_move(observation, board, params, memory, cell, destination):
     # worth. Chebyshev distance survives only as the fallback for a
     # position with no path home at all, where homeward drift still beats
     # standing still.
-    if cell["convoy"] and cell["kingCargo"]:
-        if destination in board["delivery_squares"]:
+    if cell["convoy"] and cell["kingCargo"]: # PARITY-BRANCH: SBP-B-SCORE-MOVE-19
+        if destination in board["delivery_squares"]: # PARITY-BRANCH: SBP-B-SCORE-MOVE-20
             score += add_term(terms, "delivery", DELIVERY_BONUS, "wins")
         else:
             # progress_from is the convoy's OWN square, UNLESS a charge is
@@ -1182,8 +1226,8 @@ def score_move(observation, board, params, memory, cell, destination):
             progress_from = active_charge["square"] if active_charge else cell["square"]
             here_cost = board["convoy_home"].get(progress_from, UNREACHABLE_PATH_COST)
             there_cost = board["convoy_home"].get(destination, UNREACHABLE_PATH_COST)
-            if here_cost < UNREACHABLE_PATH_COST:
-                if there_cost >= UNREACHABLE_PATH_COST:
+            if here_cost < UNREACHABLE_PATH_COST: # PARITY-BRANCH: SBP-B-SCORE-MOVE-21
+                if there_cost >= UNREACHABLE_PATH_COST: # PARITY-BRANCH: SBP-B-SCORE-MOVE-22
                     # stepping off the only route home
                     score += add_term(terms, "delivery", -DELIVERY_STEP_VALUE * params["delivery"], "offRoute")
                 else:
@@ -1195,7 +1239,7 @@ def score_move(observation, board, params, memory, cell, destination):
                 score += add_term(terms, "delivery", progress * DELIVERY_STEP_VALUE * params["delivery"], "drift")
 
     # Captive logistics: escort a prisoner home rather than parading it.
-    elif cell["convoy"] and cell["cargoCount"] > 0 and params["prisoner"] > 0:
+    elif cell["convoy"] and cell["cargoCount"] > 0 and params["prisoner"] > 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-23
         prisoner_rank = "pawn" if observation["rules"]["cargoBasedDelivery"] else cell["rank"]
         base_squares = observation["rules"]["baseSquares"].get(prisoner_rank, [])
         progress = (distance_to_nearest_square(cell["square"], base_squares) -
@@ -1212,7 +1256,7 @@ def score_move(observation, board, params, memory, cell, destination):
         # additional one this escort is holding. Gated to a Pawn-rank
         # escort, same as the capture-divide above: only that rank can ever
         # earn the ladder credit this whole feature exists for.
-        if board["needs_first_master_engineer"] and cell["rank"] == "pawn":
+        if board["needs_first_master_engineer"] and cell["rank"] == "pawn": # PARITY-BRANCH: SBP-B-SCORE-MOVE-24
             homeward *= cell["cargoCount"]
         score += add_term(terms, "prisoner", homeward, "escort")
 
@@ -1221,7 +1265,7 @@ def score_move(observation, board, params, memory, cell, destination):
     # pieces. This is not the convoy's own move — `cell` is whichever piece
     # happens to sit on one of those squares — so moving it ANYWHERE is
     # rewarded, independent of `destination`.
-    if not cell["convoy"] and params["delivery"] > 0 and cell["square"] in board["blocking_base"]:
+    if not cell["convoy"] and params["delivery"] > 0 and cell["square"] in board["blocking_base"]: # PARITY-BRANCH: SBP-B-SCORE-MOVE-25
         score += add_term(terms, "delivery",
                           (UNBLOCK_BASE_VALUE - min(rank_value(cell["rank"]), QUEEN_VALUE) * UNBLOCK_VALUE_SPREAD) * params["delivery"],
                           "unblock")
@@ -1229,28 +1273,28 @@ def score_move(observation, board, params, memory, cell, destination):
     # Positional pressure. A deterministic relocation receives one post-state
     # fact; destinationVisible remains a separate fog gate because fact
     # presence alone does not make a square visible.
-    if params["advance"] > 0 and not cell["convoy"]:
+    if params["advance"] > 0 and not cell["convoy"]: # PARITY-BRANCH: SBP-B-SCORE-MOVE-26
         gain = forward_progress(board["side"], destination) - forward_progress(board["side"], cell["square"])
         positional_known_and_supported = (not quiet_move or
                                           (candidate_known and candidate.get("destinationVisible", False) and guarded_count(candidate) > 0))
-        if quiet_move and (not candidate_known or not candidate.get("destinationVisible", False)):
+        if quiet_move and (not candidate_known or not candidate.get("destinationVisible", False)): # PARITY-BRANCH: SBP-B-SCORE-MOVE-27
             score += add_term(terms, "safety", -UNKNOWN_QUIET_PENALTY * params["safety"], "unknownQuiet")
-        elif quiet_move and guarded_count(candidate) <= 0:
+        elif quiet_move and guarded_count(candidate) <= 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-28
             score += add_term(terms, "safety", -UNSUPPORTED_QUIET_PENALTY * params["safety"], "unsupportedQuiet")
         ordinary_piece = cell["rank"] != "king" and not is_current_beacon_bearer(observation, cell)
-        if cell["rank"] == "pawn" and positional_known_and_supported and ordinary_piece:
+        if cell["rank"] == "pawn" and positional_known_and_supported and ordinary_piece: # PARITY-BRANCH: SBP-B-SCORE-MOVE-29
             score += add_term(terms, "advance", gain * ADVANCE_PAWN_MULTIPLIER * params["advance"], "pawn")
-            if is_promotion_square(board["side"], destination):
+            if is_promotion_square(board["side"], destination): # PARITY-BRANCH: SBP-B-SCORE-MOVE-30
                 score += add_term(terms, "advance", PROMOTION_BONUS * params["advance"], "promotion")
-            elif (quiet_move and candidate_known and candidate.get("destinationVisible", False) and
+            elif (quiet_move and candidate_known and candidate.get("destinationVisible", False) and # PARITY-BRANCH: SBP-B-SCORE-MOVE-31
                     supported_and_unthreatened(candidate) and can_promote_next_move(board["side"], candidate)):
                 score += add_term(terms, "advance", PROMOTION_NEXT_BONUS * params["advance"] * protection_factor(candidate), "promotionNext")
-        elif ordinary_piece and positional_known_and_supported:
+        elif ordinary_piece and positional_known_and_supported: # PARITY-BRANCH: SBP-B-SCORE-MOVE-32
             score += add_term(terms, "advance", gain * params["advance"], "piece")
-        if (quiet_move and positional_known_and_supported and
+        if (quiet_move and positional_known_and_supported and # PARITY-BRANCH: SBP-B-SCORE-MOVE-33
                 cell["rank"] in ["knight", "bishop", "rook", "queen"] and ordinary_piece and not cell.get("moved", False) and gain > 0):
             score += add_term(terms, "develop", DEVELOP_FIRST_FORWARD_VALUE * params["advance"] * protection_factor(candidate), "firstForward")
-        if quiet_move and positional_known_and_supported and ordinary_piece and candidate.get("patrolGain", 0) > 0:
+        if quiet_move and positional_known_and_supported and ordinary_piece and candidate.get("patrolGain", 0) > 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-34
             score += add_term(terms, "coverage", min(candidate.get("patrolGain", 0), PATROL_GAIN_CAP) * PATROL_GAIN_VALUE * params["advance"] * protection_factor(candidate), "patrol")
         # The before/after `guards` graph yields generic support changes.
         # Outbound support is NET material:
@@ -1284,85 +1328,85 @@ def score_move(observation, board, params, memory, cell, destination):
         # deliberately exempt leader/Beacon-bearer moves (this file's own
         # leader_reverse_forbidden/apply_repeat_penalty), so nothing else in
         # the model ever recognises this as a repeat.
-        if (quiet_move and candidate_known and not is_promotion_square(board["side"], destination) and
+        if (quiet_move and candidate_known and not is_promotion_square(board["side"], destination) and # PARITY-BRANCH: SBP-B-SCORE-MOVE-35
                 candidate.get("destinationVisible", False) and threatened_count(candidate) == 0 and ordinary_piece):
             newly_guarded, sole_guard_lost = guard_changes(board, cell, candidate)
             net_outbound_material = (support_material(board, newly_guarded) -
                                      support_material(board, sole_guard_lost))
-            if net_outbound_material > 0:
+            if net_outbound_material > 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-36
                 score += add_term(terms, "coverage", net_outbound_material * GUARDS_VALUE * params["advance"], "guards")
-            elif net_outbound_material < 0:
+            elif net_outbound_material < 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-37
                 score += add_term(terms, "safety", net_outbound_material * SOLE_GUARD_LOST_VALUE * params["safety"], "soleGuardLost")
             inbound_material = inbound_support_material(cell, candidate)
-            if inbound_material > 0:
+            if inbound_material > 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-38
                 score += add_term(terms, "safety", inbound_material * GUARDED_BY_VALUE * params["safety"], "guardedBy")
     # Exact host-proven king pressure is a named +30, not an approximation
     # scaled by a tier's generic advance preference. Admission priority gets
     # the same number independently; this term selects the matching
     # destination after breadth admits the actor.
-    if (not cell["convoy"] and quiet_move and candidate_known and
+    if (not cell["convoy"] and quiet_move and candidate_known and # PARITY-BRANCH: SBP-B-SCORE-MOVE-39
             candidate.get("destinationVisible", False) and supported_and_unthreatened(candidate) and
             cell["rank"] != "king" and not is_current_beacon_bearer(observation, cell)):
         for enemy in board["enemy"]:
-            if enemy["rank"] == "king" and not enemy["ghost"] and enemy["square"] in (candidate.get("nextPossibleMoves", []) or []):
+            if enemy["rank"] == "king" and not enemy["ghost"] and enemy["square"] in (candidate.get("nextPossibleMoves", []) or []): # PARITY-BRANCH: SBP-B-SCORE-MOVE-40
                 score += add_term(terms, "kingHunt", KING_VISIBLE_ATTACK_BONUS, "visible")
                 break
 
     # Dodge a target lock: the enemy has publicly committed to striking
     # this piece, so moving it is worth real value.
-    if params["targetLock"] > 0 and board["locked_units"].get(cell["unitId"]):
+    if params["targetLock"] > 0 and board["locked_units"].get(cell["unitId"]): # PARITY-BRANCH: SBP-B-SCORE-MOVE-41
         score += add_term(terms, "targetLock", TARGET_LOCK_DODGE_VALUE * params["targetLock"], "dodge")
-        if post_safety_known and post_threat == 0:
+        if post_safety_known and post_threat == 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-42
             score += add_term(terms, "targetLock", TARGET_LOCK_SAFE_VALUE * params["targetLock"], "safeDodge")
 
     # King safety: get the king out of danger, or take the piece
     # threatening it.
-    if params["kingSafety"] > 0 and board["king_threatened"]:
-        if cell["rank"] == "king" and not cell["convoy"] and post_safety_known and post_threat == 0:
+    if params["kingSafety"] > 0 and board["king_threatened"]: # PARITY-BRANCH: SBP-B-SCORE-MOVE-43
+        if cell["rank"] == "king" and not cell["convoy"] and post_safety_known and post_threat == 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-44
             score += add_term(terms, "kingSafety", params["kingSafety"], "escape")
-        if (target_cell and board["king_cell"] and
+        if (target_cell and board["king_cell"] and # PARITY-BRANCH: SBP-B-SCORE-MOVE-45
                 board["king_cell"]["square"] in relation_squares(target_cell, "threatens")):
             score += add_term(terms, "kingSafety", params["kingSafety"] * KING_GUARD_BONUS, "guard")
 
     # Morale is the king's own rank: pushing the king forward strengthens
     # every command system, and only a tier that values it plays that way.
-    if params["moralePush"] > 0 and cell["rank"] == "king" and not cell["convoy"]:
+    if params["moralePush"] > 0 and cell["rank"] == "king" and not cell["convoy"]: # PARITY-BRANCH: SBP-B-SCORE-MOVE-46
         gain = forward_progress(board["side"], destination) - forward_progress(board["side"], cell["square"])
         king_safe_after = ((candidate.get("destinationVisible", False) and supported_and_unthreatened(candidate)) if candidate_known else
                            (target_cell != None and post_threat == 0))
-        if gain > 0 and king_safe_after:
-            if candidate_known:
+        if gain > 0 and king_safe_after: # PARITY-BRANCH: SBP-B-SCORE-MOVE-47
+            if candidate_known: # PARITY-BRANCH: SBP-B-SCORE-MOVE-48
                 after_morale = post_move_morale(observation, board, cell["square"], destination)
                 excess = after_morale - current_morale_need(observation)
                 guard_strength = leader_support(observation, board, cell, destination)
-                if excess >= LEADER_EXCESS_MORALE:
+                if excess >= LEADER_EXCESS_MORALE: # PARITY-BRANCH: SBP-B-SCORE-MOVE-49
                     score += add_term(terms, "moralePush", -gain * MORALE_PUSH_VALUE * params["moralePush"], "excessAdvance")
                 else:
                     score += add_term(terms, "moralePush", gain * MORALE_PUSH_VALUE * params["moralePush"] * guard_strength, "guardedAdvance")
-        elif candidate_known and gain < 0 and king_safe_after:
+        elif candidate_known and gain < 0 and king_safe_after: # PARITY-BRANCH: SBP-B-SCORE-MOVE-50
             after_morale = post_move_morale(observation, board, cell["square"], destination)
             needed = current_morale_need(observation)
-            if (observation.get("ownMorale", 0) - needed >= LEADER_EXCESS_MORALE and
+            if (observation.get("ownMorale", 0) - needed >= LEADER_EXCESS_MORALE and # PARITY-BRANCH: SBP-B-SCORE-MOVE-51
                     after_morale >= needed + 1):
                 score += add_term(terms, "moralePush", -gain * MORALE_PUSH_VALUE * params["moralePush"] * LEADER_RETREAT_VALUE, "excessRetreat")
-        if post_threat > 0:
+        if post_threat > 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-52
             # never walk the king into a strike — a SAFETY cost, priced by the
             # safety weight, so it reads to a player as the danger it is
             score += add_term(terms, "safety", -KING_VALUE * params["safety"], "kingIntoStrike")
 
     # A Beacon bearer motivates the formation but is not a hero either. The
     # field is a permission as well as a weight on current observations.
-    if (is_current_beacon_bearer(observation, cell) and cell["rank"] != "king" and
+    if (is_current_beacon_bearer(observation, cell) and cell["rank"] != "king" and # PARITY-BRANCH: SBP-B-SCORE-MOVE-53
             not cell["convoy"] and quiet_move and params["beaconAggression"] > 0):
         gain = forward_progress(board["side"], destination) - forward_progress(board["side"], cell["square"])
-        if candidate_known and candidate.get("destinationVisible", False) and supported_and_unthreatened(candidate):
+        if candidate_known and candidate.get("destinationVisible", False) and supported_and_unthreatened(candidate): # PARITY-BRANCH: SBP-B-SCORE-MOVE-54
             support_gain = leader_support(observation, board, cell, destination) - leader_support(observation, board, cell, cell["square"])
-            if support_gain > 0:
+            if support_gain > 0: # PARITY-BRANCH: SBP-B-SCORE-MOVE-55
                 detail = "guardedAdvance" if gain > 0 else "regroup"
                 score += add_term(terms, "beaconAggression", support_gain * params["beaconAggression"] * protection_factor(candidate), detail)
 
     intent = {"kind": "move", "from": cell["square"], "to": destination}
-    if cell["rank"] == "pawn" and not cell["convoy"] and is_promotion_square(board["side"], destination):
+    if cell["rank"] == "pawn" and not cell["convoy"] and is_promotion_square(board["side"], destination): # PARITY-BRANCH: SBP-B-SCORE-MOVE-56
         intent["promotion"] = "queen"
     # capture_choice was already decided above, before scoring, precisely so
     # the material term could weigh THIS verb's own success odds — move_
@@ -1371,7 +1415,7 @@ def score_move(observation, board, params, memory, cell, destination):
     # reached scoring, and the preference order here (Capture when params
     # prefers it and morale affords it, else Kill) is that same "choose an
     # affordable outcome" instruction, computed once rather than twice.
-    if capture_choice:
+    if capture_choice: # PARITY-BRANCH: SBP-B-SCORE-MOVE-57
         intent["choice"] = capture_choice
 
     # `actor` is what REQ:options-are-distinct-by-unit excludes on — the UNIT,
@@ -1388,6 +1432,7 @@ def score_move(observation, board, params, memory, cell, destination):
     }
 
 
+# PARITY-FUNCTION: SBP-F-RANK-OPTIONS
 def rank_options(proposals, params, count):
     """Turns the ALREADY-SORTED proposal list into up to `count` ranked,
     explained options — ONE walk down a list that already exists, never a
@@ -1410,12 +1455,12 @@ def rank_options(proposals, params, count):
         about the game would be a lie dressed as advice. The host random draw
         that picks a BOT's move among ties is deliberately not used here — a
         bot has to pick one, an adviser does not."""
-    if count <= 0:
+    if count <= 0: # PARITY-BRANCH: SBP-B-RANK-OPTIONS-1
         return []
     chosen = []
     seen_actors = {}
     for proposal in proposals:
-        if proposal["score"] < params["passBelow"]:
+        if proposal["score"] < params["passBelow"]: # PARITY-BRANCH: SBP-B-RANK-OPTIONS-2
             break
         # `.get`, not `[...]`: system_proposals' lane is an empty generator
         # today, and a future Veteran/Commander proposal added there without
@@ -1424,11 +1469,11 @@ def rank_options(proposals, params, count):
         # action its own action identity as its exclusion key, which is
         # exactly what REQ:options-are-distinct-by-unit asks for in that case.
         actor = proposal.get("actor", proposal["key"])
-        if seen_actors.get(actor):
+        if seen_actors.get(actor): # PARITY-BRANCH: SBP-B-RANK-OPTIONS-3
             continue
         seen_actors[actor] = True
         chosen.append(proposal)
-        if len(chosen) >= count:
+        if len(chosen) >= count: # PARITY-BRANCH: SBP-B-RANK-OPTIONS-4
             break
 
     options = []
@@ -1436,7 +1481,7 @@ def rank_options(proposals, params, count):
     leader_score = 0.0
     for index in range(len(chosen)):
         proposal = chosen[index]
-        if index == 0 or proposal["score"] < leader_score - TIE_BREAK_BAND:
+        if index == 0 or proposal["score"] < leader_score - TIE_BREAK_BAND: # PARITY-BRANCH: SBP-B-RANK-OPTIONS-5
             rank = index + 1
             leader_score = proposal["score"]
         options.append({
@@ -1453,12 +1498,15 @@ def rank_options(proposals, params, count):
 # empty) system-action lane they compete against.
 # =============================================================================
 
+# PARITY-FUNCTION: SBP-STAR-STRUCT-F-UNIT-PRIORITY-KEY
 def _unit_priority_key(entry):
     return (-entry["priority"], square_index(entry["cell"]["square"]))
 
+# PARITY-FUNCTION: SBP-STAR-STRUCT-F-PROPOSAL-SCORE-KEY
 def _proposal_score_key(proposal):
     return (-proposal["score"], proposal["key"])
 
+# PARITY-FUNCTION: SBP-F-APPLY-REPEAT-PENALTY
 def apply_repeat_penalty(observation, board, params, memory, proposals):
     """Only penalise a second quiet ordinary move when a different ordinary
     proposal has already survived legality, affordability and breadth/spread
@@ -1473,58 +1521,59 @@ def apply_repeat_penalty(observation, board, params, memory, proposals):
     recently_vacated = {}
     for slot in range(QUIET_VACATED_SQUARES):
         square = memory.get("quietVacated" + str(slot), NO_SQUARE_INDEX)
-        if square >= 0:
+        if square >= 0: # PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-1
             recently_vacated[square] = True
     cycle_keys = {}
     for proposal in proposals:
         cell = board["own_by_square"].get(proposal["intent"]["from"])
         destination = proposal["intent"].get("to")
-        if (proposal["intent"]["kind"] == "move" and not proposal["intent"].get("promotion") and cell and destination and not cell["convoy"] and cell["rank"] != "king" and
+        if (proposal["intent"]["kind"] == "move" and not proposal["intent"].get("promotion") and cell and destination and not cell["convoy"] and cell["rank"] != "king" and # PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-2
                 not is_current_beacon_bearer(observation, cell) and
                 is_quiet_move(observation, board, cell, destination) and
                 threatened_count(cell) == 0 and
                 square_index(destination) in recently_vacated):
             cycle_keys[proposal["key"]] = True
-    if cycle_keys:
+    if cycle_keys: # PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-3
         other_viable = False
         for proposal in proposals:
             candidate = board["own_by_square"].get(proposal["intent"]["from"])
-            if (proposal["key"] not in cycle_keys and candidate and not candidate["convoy"] and candidate["rank"] != "king" and
+            if (proposal["key"] not in cycle_keys and candidate and not candidate["convoy"] and candidate["rank"] != "king" and # PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-4
                     not is_current_beacon_bearer(observation, candidate) and proposal["score"] >= params["passBelow"]):
                 other_viable = True
                 break
-        if other_viable:
+        if other_viable: # PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-5
             proposals = [proposal for proposal in proposals if proposal["key"] not in cycle_keys]
     last_to = memory.get("lastQuietTo", NO_SQUARE_INDEX)
-    if last_to < 0:
+    if last_to < 0: # PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-6
         return proposals
     repeated_cell = board["own_by_square"].get(square_name(last_to))
-    if not repeated_cell or repeated_cell["convoy"] or repeated_cell["rank"] == "king" or is_current_beacon_bearer(observation, repeated_cell):
+    if not repeated_cell or repeated_cell["convoy"] or repeated_cell["rank"] == "king" or is_current_beacon_bearer(observation, repeated_cell): # PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-7
         return proposals
     other_viable = False
     for proposal in proposals:
         candidate = board["own_by_square"].get(proposal["intent"]["from"])
-        if (candidate and candidate["unitId"] != repeated_cell["unitId"] and not candidate["convoy"] and candidate["rank"] != "king" and
+        if (candidate and candidate["unitId"] != repeated_cell["unitId"] and not candidate["convoy"] and candidate["rank"] != "king" and # PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-8
                 not is_current_beacon_bearer(observation, candidate) and proposal["score"] >= params["passBelow"]):
             other_viable = True
             break
-    if not other_viable:
+    if not other_viable: # PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-9
         return proposals
     for proposal in proposals:
-        if proposal["actor"] != repeated_cell["unitId"]:
+        if proposal["actor"] != repeated_cell["unitId"]: # PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-10
             continue
         destination = proposal["intent"].get("to")
-        if is_quiet_move(observation, board, repeated_cell, destination) and threatened_count(repeated_cell) == 0:
+        if is_quiet_move(observation, board, repeated_cell, destination) and threatened_count(repeated_cell) == 0: # PARITY-BRANCH: SBP-B-APPLY-REPEAT-PENALTY-11
             penalty = -params["advance"]
             proposal["score"] += add_term(proposal["terms"], "repeatPenalty", penalty, "quiet")
     return proposals
 
+# PARITY-FUNCTION: SBP-F-MOVE-PROPOSALS
 def move_proposals(observation, board, params, memory):
     """Expands the tier's breadth of own units into scored moves. Legality
     always comes from observation.legal, computed by the host — never from
     this function's own judgement, which only ever picks among what is
     already there."""
-    if not board["move_actionable_units"]:
+    if not board["move_actionable_units"]: # PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-1
         return []
 
     ranked_units = []
@@ -1533,7 +1582,7 @@ def move_proposals(observation, board, params, memory):
     ranked_units = sorted(ranked_units, key=_unit_priority_key)
 
     breadth = params["breadth"]
-    if breadth <= 0 or breadth > len(ranked_units):
+    if breadth <= 0 or breadth > len(ranked_units): # PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-2
         breadth = len(ranked_units)
 
     proposals = []
@@ -1543,13 +1592,13 @@ def move_proposals(observation, board, params, memory):
         destinations = observation["legal"].get(cell["square"], [])
         candidates = []
         for destination in destinations:
-            if destination == cell["square"]:
+            if destination == cell["square"]: # PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-3
                 continue
-            if cell.get("charging") and destination == cell["charging"]["square"]:
+            if cell.get("charging") and destination == cell["charging"]["square"]: # PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-4
                 continue  # retaining the current route is represented by pass
-            if not capture_choice_available(observation, board, cell, destination):
+            if not capture_choice_available(observation, board, cell, destination): # PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-5
                 continue
-            if leader_reverse_forbidden(observation, leader_guard, cell, destination):
+            if leader_reverse_forbidden(observation, leader_guard, cell, destination): # PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-6
                 continue
             candidates.append(score_move(observation, board, params, memory, cell, destination))
         # A shallow tier keeps only its narrow spread of that unit's best
@@ -1557,7 +1606,7 @@ def move_proposals(observation, board, params, memory):
         # means.
         candidates = sorted(candidates, key=_proposal_score_key)
         candidate_spread = params["candidateSpread"]
-        if candidate_spread <= 0 or candidate_spread > len(candidates):
+        if candidate_spread <= 0 or candidate_spread > len(candidates): # PARITY-BRANCH: SBP-B-MOVE-PROPOSALS-7
             candidate_spread = len(candidates)
         proposals.extend(candidates[:candidate_spread])
     return apply_repeat_penalty(observation, board, params, memory, proposals)
@@ -1575,6 +1624,7 @@ def move_proposals(observation, board, params, memory):
 # mechanism and decide()'s own call site for the gate.
 # =============================================================================
 
+# PARITY-FUNCTION: SBP-F-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL
 def priority_captive_delivery_proposal(observation, board, params):
     """A loaded, ordinary (non-king) Pawn-rank convoy takes the safe move
     that gets its captive home RIGHT NOW, ahead of anything else this
@@ -1621,10 +1671,10 @@ def priority_captive_delivery_proposal(observation, board, params):
     this proposal compete with anything else. Returns None when no
     qualifying, safe convoy exists at all, so decide() falls through to
     move_proposals/system_proposals unchanged."""
-    if not board["needs_first_master_engineer"]:
+    if not board["needs_first_master_engineer"]: # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-1
         return None
     for cell in board["own"]:
-        if (not cell["convoy"] or cell["cargoCount"] == 0 or cell["kingCargo"] or
+        if (not cell["convoy"] or cell["cargoCount"] == 0 or cell["kingCargo"] or # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-2
                 cell["rank"] != "pawn" or board["busy_units"].get(cell["unitId"])):
             continue
         # notBriefed (REQ:not-briefed-is-not-no-legal-moves): board["own"] is
@@ -1633,44 +1683,44 @@ def priority_captive_delivery_proposal(observation, board, params):
         # decision. Its observation["legal"]/candidates entries are simply
         # absent, not "no legal moves" — skip rather than treat that absence
         # as "nowhere to deliver".
-        if cell.get("notBriefed"):
+        if cell.get("notBriefed"): # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-3
             continue
         prisoner_rank = "pawn" if observation["rules"]["cargoBasedDelivery"] else cell["rank"]
         destinations = observation["legal"].get(cell["square"], [])
-        if not destinations:
+        if not destinations: # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-4
             continue
         base_squares = observation["rules"]["baseSquares"].get(prisoner_rank, [])
         to = None
 
-        if cell["square"] in base_squares:
+        if cell["square"] in base_squares: # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-5
             fallback = None
             for candidate in destinations:
                 fact = candidate_at(observation, cell["square"], candidate)
-                if (candidate == cell["square"] or board["enemy_by_square"].get(candidate) or
+                if (candidate == cell["square"] or board["enemy_by_square"].get(candidate) or # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-6
                         not has_candidate(observation, cell["square"], candidate) or
                         not fact.get("destinationVisible", False) or not is_safe_subject(fact)):
                     continue  # an attack (not the quiet departure that unloads), or unsafe
-                if candidate in base_squares:
+                if candidate in base_squares: # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-7
                     to = candidate
                     break
-                if fallback == None:
+                if fallback == None: # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-8
                     fallback = candidate
-            if to == None:
+            if to == None: # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-9
                 to = fallback
         else:
             here = distance_to_nearest_square(cell["square"], base_squares)
             best_gain = 0
             for candidate in destinations:
                 fact = candidate_at(observation, cell["square"], candidate)
-                if (candidate == cell["square"] or board["enemy_by_square"].get(candidate) or
+                if (candidate == cell["square"] or board["enemy_by_square"].get(candidate) or # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-10
                         not has_candidate(observation, cell["square"], candidate) or
                         not fact.get("destinationVisible", False) or not is_safe_subject(fact)):
                     continue
                 gain = here - distance_to_nearest_square(candidate, base_squares)
-                if gain > best_gain:
+                if gain > best_gain: # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-11
                     best_gain, to = gain, candidate
 
-        if to == None:
+        if to == None: # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-PROPOSAL-12
             continue
         return {
             "intent": {"kind": "move", "from": cell["square"], "to": to},
@@ -1682,6 +1732,7 @@ def priority_captive_delivery_proposal(observation, board, params):
     return None
 
 
+# PARITY-FUNCTION: SBP-F-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT
 def priority_captive_delivery_in_flight(observation, board):
     """Whether the one active route is the first Master Engineer's own
     pawn-convoy delivery. Such a route is a hard commitment, not a candidate
@@ -1700,27 +1751,28 @@ def priority_captive_delivery_in_flight(observation, board):
     A convoy already on its delivery rank is also retained: its pending quiet
     departure is the only command that unloads the captive (apply.go unloads
     on departure), even though its destination need not reduce distance."""
-    if not board["needs_first_master_engineer"]:
+    if not board["needs_first_master_engineer"]: # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-1
         return False
     for cell in board["own"]:
         charging = cell.get("charging")
-        if (not charging or not cell["convoy"] or cell["cargoCount"] == 0 or
+        if (not charging or not cell["convoy"] or cell["cargoCount"] == 0 or # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-2
                 cell["kingCargo"] or cell["rank"] != "pawn"):
             continue
         # The priority proposal below only chooses a QUIET departure. An
         # occupied route target is an attack, which must retain ordinary
         # route-replacement freedom even if it happens to point homeward.
-        if board["all_by_square"].get(charging["square"]):
+        if board["all_by_square"].get(charging["square"]): # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-3
             continue
         prisoner_rank = "pawn" if observation["rules"]["cargoBasedDelivery"] else cell["rank"]
         base_squares = observation["rules"]["baseSquares"].get(prisoner_rank, [])
-        if cell["square"] in base_squares:
+        if cell["square"] in base_squares: # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-4
             return True
-        if distance_to_nearest_square(charging["square"], base_squares) < distance_to_nearest_square(cell["square"], base_squares):
+        if distance_to_nearest_square(charging["square"], base_squares) < distance_to_nearest_square(cell["square"], base_squares): # PARITY-BRANCH: SBP-B-PRIORITY-CAPTIVE-DELIVERY-IN-FLIGHT-5
             return True
     return False
 
 
+# PARITY-FUNCTION: SBP-F-MOST-ADVANCED-ADJACENT-ALLY
 def most_advanced_adjacent_ally(board):
     """Picks the own, non-king, non-convoy, not-busy unit standing exactly
     one king-step from the king (Chebyshev distance 1) with the greatest
@@ -1737,21 +1789,22 @@ def most_advanced_adjacent_ally(board):
     identical observation. Returns None when the king has no eligible
     neighbour at all."""
     king_cell = board["king_cell"]
-    if king_cell == None:
+    if king_cell == None: # PARITY-BRANCH: SBP-B-MOST-ADVANCED-ADJACENT-ALLY-1
         return None
     best_square = None
     best_progress = -1
     for cell in board["actionable_units"]:
-        if cell["rank"] == "king" or cell["convoy"]:
+        if cell["rank"] == "king" or cell["convoy"]: # PARITY-BRANCH: SBP-B-MOST-ADVANCED-ADJACENT-ALLY-2
             continue
-        if chebyshev_distance(king_cell["square"], cell["square"]) != 1:
+        if chebyshev_distance(king_cell["square"], cell["square"]) != 1: # PARITY-BRANCH: SBP-B-MOST-ADVANCED-ADJACENT-ALLY-3
             continue
         progress = forward_progress(board["side"], cell["square"])
-        if progress > best_progress:
+        if progress > best_progress: # PARITY-BRANCH: SBP-B-MOST-ADVANCED-ADJACENT-ALLY-4
             best_progress = progress
             best_square = cell["square"]
     return best_square
 
+# PARITY-FUNCTION: SBP-F-BEACON-HAND-OFF-PROPOSAL
 def beacon_hand_off_proposal(observation, board, params):
     """Hands the Beacon from a never-handed-off king-bearer to the most
     advanced adjacent ally — mirrors bot4chess/systems.go's beaconProposals'
@@ -1802,24 +1855,24 @@ def beacon_hand_off_proposal(observation, board, params):
     REQ:options-are-distinct-by-unit must dedupe THIS proposal against: an
     ordinary move of that same ally proposed elsewhere in the same decide()
     call is the other candidate for the SAME idea, not a different one."""
-    if not observation["rules"].get("beaconEnabled", False):
+    if not observation["rules"].get("beaconEnabled", False): # PARITY-BRANCH: SBP-B-BEACON-HAND-OFF-PROPOSAL-1
         return None
     king_cell = board["king_cell"]
-    if king_cell == None or board["busy_units"].get(king_cell["unitId"]):
+    if king_cell == None or board["busy_units"].get(king_cell["unitId"]): # PARITY-BRANCH: SBP-B-BEACON-HAND-OFF-PROPOSAL-2
         return None
-    if not observation["rules"]["beaconKingStartsAsBearer"]:
+    if not observation["rules"]["beaconKingStartsAsBearer"]: # PARITY-BRANCH: SBP-B-BEACON-HAND-OFF-PROPOSAL-3
         return None
     beacon = observation["beacon"]
-    if beacon["lifecycle"] != "deployed" or beacon["everHandedOff"]:
+    if beacon["lifecycle"] != "deployed" or beacon["everHandedOff"]: # PARITY-BRANCH: SBP-B-BEACON-HAND-OFF-PROPOSAL-4
         return None
-    if beacon["bearerSquare"] != king_cell["square"]:
+    if beacon["bearerSquare"] != king_cell["square"]: # PARITY-BRANCH: SBP-B-BEACON-HAND-OFF-PROPOSAL-5
         return None
     to = most_advanced_adjacent_ally(board)
-    if to == None:
+    if to == None: # PARITY-BRANCH: SBP-B-BEACON-HAND-OFF-PROPOSAL-6
         return None
     actor = None
     for cell in board["actionable_units"]:
-        if cell["square"] == to:
+        if cell["square"] == to: # PARITY-BRANCH: SBP-B-BEACON-HAND-OFF-PROPOSAL-7
             actor = cell["unitId"]
             break
     score = SYSTEM_BEACON_HAND_OFF_VALUE * beacon_aggression(observation, params)
@@ -1831,6 +1884,7 @@ def beacon_hand_off_proposal(observation, board, params):
         "key": "beacon-hand-off",
     }
 
+# PARITY-FUNCTION: SBP-F-TRAINING-PROPOSALS
 def training_proposals(observation, board, params):
     """Trains an idle, safe pawn standing on its own base rank into a
     specialist, and pushes an eligible Engineer on to Master Engineer
@@ -1870,7 +1924,7 @@ def training_proposals(observation, board, params):
     server-go/tests4bot/tiers_test.go)."""
     have_engineer = False
     for cell in board["own"]:
-        if cell.get("profession", "") == "engineer":
+        if cell.get("profession", "") == "engineer": # PARITY-BRANCH: SBP-B-TRAINING-PROPOSALS-1
             have_engineer = True
             break
 
@@ -1879,30 +1933,30 @@ def training_proposals(observation, board, params):
     base_squares = observation["rules"]["baseSquares"].get("pawn", [])
     proposals = []
     for cell in board["own"]:
-        if (cell["convoy"] or cell["refitting"] or cell["rank"] != "pawn" or
+        if (cell["convoy"] or cell["refitting"] or cell["rank"] != "pawn" or # PARITY-BRANCH: SBP-B-TRAINING-PROPOSALS-2
                 board["busy_units"].get(cell["unitId"])):
             continue
-        if cell["square"] not in base_squares:
+        if cell["square"] not in base_squares: # PARITY-BRANCH: SBP-B-TRAINING-PROPOSALS-3
             continue
         # A training channel locks the pawn in place until it settles, with
         # no way to dodge in between — never start one on a pawn the enemy
         # can already take next turn ("safe pawns", founder 2026-07-31).
-        if threatened_count(cell) > 0:
+        if threatened_count(cell) > 0: # PARITY-BRANCH: SBP-B-TRAINING-PROPOSALS-4
             continue
-        if cell.get("profession", "") == "":
+        if cell.get("profession", "") == "": # PARITY-BRANCH: SBP-B-TRAINING-PROPOSALS-5
             # Gate A (spec: veteran-progression#REQ:training-requires-
             # veteran): ActionTrain rejects any pawn that has not itself
             # delivered a prisoner it personally captured — c.Veteran is the
             # same public badge a human client renders.
-            if observation["rules"]["veteranProgression"] and not cell.get("veteran", False):
+            if observation["rules"]["veteranProgression"] and not cell.get("veteran", False): # PARITY-BRANCH: SBP-B-TRAINING-PROPOSALS-6
                 continue
-            if observation["ownSpecialists"] >= ceiling:
+            if observation["ownSpecialists"] >= ceiling: # PARITY-BRANCH: SBP-B-TRAINING-PROPOSALS-7
                 continue
             # An Engineer first (it unlocks fortifications), then Sergeants.
             profession = "sergeant"
-            if not have_engineer and "engineer" in permitted:
+            if not have_engineer and "engineer" in permitted: # PARITY-BRANCH: SBP-B-TRAINING-PROPOSALS-8
                 profession = "engineer"
-            if profession not in permitted:
+            if profession not in permitted: # PARITY-BRANCH: SBP-B-TRAINING-PROPOSALS-9
                 continue
             score = SYSTEM_TRAIN_VALUE * params["system"]
             proposals.append({
@@ -1916,7 +1970,7 @@ def training_proposals(observation, board, params):
                 "key": "train|" + str(cell["unitId"]) + "|" + profession,
             })
             continue
-        if (params["advancedTraining"] and cell.get("profession", "") == "engineer" and
+        if (params["advancedTraining"] and cell.get("profession", "") == "engineer" and # PARITY-BRANCH: SBP-B-TRAINING-PROPOSALS-10
                 "masterEngineerTraining" in (cell.get("eligibleFor", []) or []) and cell.get("grade") != "master"):
             score = SYSTEM_ADVANCED_TRAIN_VALUE * params["system"]
             proposals.append({
@@ -1943,6 +1997,7 @@ def training_proposals(observation, board, params):
 VALUE_REPAIR_WALL = 1.5
 VALUE_DISMANTLE_WALL = 1.0
 
+# PARITY-FUNCTION: SBP-F-SERGEANT-SUPPORTED
 def sergeant_supported(board, square):
     """Whether an own, active, non-convoy Sergeant stands exactly one
     king-step from `square` — mirrors bot4chess/systems.go's
@@ -1956,11 +2011,12 @@ def sergeant_supported(board, square):
     mid-channel still speeds up this work, exactly like Go's own check,
     which excludes only Convoy and Refitting."""
     for cell in board["own"]:
-        if (cell.get("profession", "") == "sergeant" and not cell["convoy"] and not cell["refitting"] and
+        if (cell.get("profession", "") == "sergeant" and not cell["convoy"] and not cell["refitting"] and # PARITY-BRANCH: SBP-B-SERGEANT-SUPPORTED-1
                 chebyshev_distance(square, cell["square"]) == 1):
             return True
     return False
 
+# PARITY-FUNCTION: SBP-F-WALL-PROPOSALS
 def wall_proposals(observation, board, params):
     """Repairs an own wall below 60% of its maximum integrity, and dismantles
     a blocking enemy wall when this tier's doctrine contests enemy work —
@@ -1998,22 +2054,22 @@ def wall_proposals(observation, board, params):
     b.busy[c.UnitID]` guard exactly."""
     proposals = []
     for cell in board["actionable_units"]:
-        if cell["convoy"] or cell["refitting"]:
+        if cell["convoy"] or cell["refitting"]: # PARITY-BRANCH: SBP-B-WALL-PROPOSALS-1
             continue
         for wall in observation["walls"]:
-            if wall["a"] == cell["square"]:
+            if wall["a"] == cell["square"]: # PARITY-BRANCH: SBP-B-WALL-PROPOSALS-2
                 direction = wall["directionFromA"]
-            elif wall["b"] == cell["square"]:
+            elif wall["b"] == cell["square"]: # PARITY-BRANCH: SBP-B-WALL-PROPOSALS-3
                 direction = wall["directionFromB"]
             else:
                 continue  # this wall's edge does not touch this unit's square
-            if wall["ownWorkSession"]:
+            if wall["ownWorkSession"]: # PARITY-BRANCH: SBP-B-WALL-PROPOSALS-4
                 continue  # a session of ours is already running on this wall
             terms = []
-            if (wall["side"] == board["side"] and cell.get("profession", "") == "engineer" and
+            if (wall["side"] == board["side"] and cell.get("profession", "") == "engineer" and # PARITY-BRANCH: SBP-B-WALL-PROPOSALS-5
                     wall["maximumIntegrity"] > 0 and wall["integrity"] * 10 < wall["maximumIntegrity"] * 6):
                 score = add_term(terms, "system", VALUE_REPAIR_WALL * params["system"], "repairWall")
-                if sergeant_supported(board, cell["square"]):
+                if sergeant_supported(board, cell["square"]): # PARITY-BRANCH: SBP-B-WALL-PROPOSALS-6
                     score += add_term(terms, "system", params["sergeantPreference"] * params["system"], "sergeantSupported")
                 proposals.append({
                     "intent": {"kind": "action", "from": cell["square"], "to": cell["square"],
@@ -2021,12 +2077,12 @@ def wall_proposals(observation, board, params):
                     "score": score, "terms": terms, "actor": cell["unitId"],
                     "key": "repair|" + str(cell["unitId"]) + "|" + wall["edge"],
                 })
-            elif wall["side"] != board["side"] and params["contestEnemyWork"]:
+            elif wall["side"] != board["side"] and params["contestEnemyWork"]: # PARITY-BRANCH: SBP-B-WALL-PROPOSALS-7
                 # Contesting enemy work is offensive play a Lieutenant leaves
                 # alone (params["contestEnemyWork"] is false on that row) —
                 # only a Commander-doctrine row reaches for it.
                 score = add_term(terms, "system", VALUE_DISMANTLE_WALL * params["system"], "dismantleWall")
-                if sergeant_supported(board, cell["square"]):
+                if sergeant_supported(board, cell["square"]): # PARITY-BRANCH: SBP-B-WALL-PROPOSALS-8
                     score += add_term(terms, "system", params["sergeantPreference"] * params["system"], "sergeantSupported")
                 proposals.append({
                     "intent": {"kind": "action", "from": cell["square"], "to": cell["square"],
@@ -2036,6 +2092,7 @@ def wall_proposals(observation, board, params):
                 })
     return proposals
 
+# PARITY-FUNCTION: SBP-F-BEACON-DEPLOY-OR-RESTORE-PROPOSAL
 def beacon_deploy_or_restore_proposal(observation, board, params):
     """Deploys an undeployed Beacon, or restores one that is Lost — mirrors
     bot4chess/systems.go's beaconProposals' own "undeployed"/"lost" switch
@@ -2068,13 +2125,13 @@ def beacon_deploy_or_restore_proposal(observation, board, params):
     itself at (REQ:options-are-distinct-by-unit), so any ordinary king move
     proposed elsewhere in the same decide() call is the SAME idea's other
     candidate, not a different one."""
-    if not observation["rules"].get("beaconEnabled", False):
+    if not observation["rules"].get("beaconEnabled", False): # PARITY-BRANCH: SBP-B-BEACON-DEPLOY-OR-RESTORE-PROPOSAL-1
         return None
     king_cell = board["king_cell"]
-    if king_cell == None or board["busy_units"].get(king_cell["unitId"]):
+    if king_cell == None or board["busy_units"].get(king_cell["unitId"]): # PARITY-BRANCH: SBP-B-BEACON-DEPLOY-OR-RESTORE-PROPOSAL-2
         return None
     beacon = observation["beacon"]
-    if beacon["lifecycle"] == "undeployed":
+    if beacon["lifecycle"] == "undeployed": # PARITY-BRANCH: SBP-B-BEACON-DEPLOY-OR-RESTORE-PROPOSAL-3
         score = SYSTEM_BEACON_DEPLOY_VALUE * beacon_aggression(observation, params)
         return {
             "intent": {"kind": "action", "from": king_cell["square"], "to": king_cell["square"], "action": "beacon_deploy"},
@@ -2083,7 +2140,7 @@ def beacon_deploy_or_restore_proposal(observation, board, params):
             "actor": king_cell["unitId"],
             "key": "beacon-deploy",
         }
-    if beacon["lifecycle"] == "lost":
+    if beacon["lifecycle"] == "lost": # PARITY-BRANCH: SBP-B-BEACON-DEPLOY-OR-RESTORE-PROPOSAL-4
         score = SYSTEM_BEACON_RESTORE_VALUE * beacon_aggression(observation, params)
         return {
             "intent": {"kind": "action", "from": king_cell["square"], "to": king_cell["square"], "action": "beacon_restore"},
@@ -2094,6 +2151,7 @@ def beacon_deploy_or_restore_proposal(observation, board, params):
         }
     return None
 
+# PARITY-FUNCTION: SBP-F-BEACON-FORGE-PROPOSALS
 def beacon_forge_proposals(observation, board, params):
     """Proposes Beacon Forging (BeaconRules.ForgeEnabled) for every own,
     idle, safe pawn standing on its own pawn base rank while the side's
@@ -2126,21 +2184,21 @@ def beacon_forge_proposals(observation, board, params):
     since the loop below is keyed on cell["unitId"] already, but every
     other system generator in this file names it explicitly rather than
     leaving rank_options to fall back to `key`, so this does too."""
-    if not observation["rules"].get("beaconEnabled", False) or not observation["rules"].get("beaconForgeEnabled", False):
+    if not observation["rules"].get("beaconEnabled", False) or not observation["rules"].get("beaconForgeEnabled", False): # PARITY-BRANCH: SBP-B-BEACON-FORGE-PROPOSALS-1
         return []
-    if observation["beacon"]["lifecycle"] != "lost":
+    if observation["beacon"]["lifecycle"] != "lost": # PARITY-BRANCH: SBP-B-BEACON-FORGE-PROPOSALS-2
         return []
     own_pawn_base_squares = observation["rules"]["baseSquares"].get("pawn", [])
     proposals = []
     for cell in board["actionable_units"]:
-        if cell["convoy"] or cell["refitting"] or cell["rank"] != "pawn":
+        if cell["convoy"] or cell["refitting"] or cell["rank"] != "pawn": # PARITY-BRANCH: SBP-B-BEACON-FORGE-PROPOSALS-3
             continue
-        if cell["square"] not in own_pawn_base_squares:
+        if cell["square"] not in own_pawn_base_squares: # PARITY-BRANCH: SBP-B-BEACON-FORGE-PROPOSALS-4
             continue
         # Never start a Forge on a pawn the enemy can already take next turn
         # — same "safe pawns" gate trainingProposals uses for the identical
         # reason (a channel locks progress in with no way to dodge).
-        if threatened_count(cell) > 0:
+        if threatened_count(cell) > 0: # PARITY-BRANCH: SBP-B-BEACON-FORGE-PROPOSALS-5
             continue
         score = SYSTEM_BEACON_FORGE_VALUE * beacon_aggression(observation, params)
         proposals.append({
@@ -2159,6 +2217,7 @@ def beacon_forge_proposals(observation, board, params):
 # move or a costlier system action.
 INTERROGATE_VALUE = 0.6
 
+# PARITY-FUNCTION: SBP-F-ESPIONAGE-PROPOSALS
 def espionage_proposals(observation, board, params):
     """Interrogates every own, adjacent, non-king, non-convoy, idle piece
     while the enemy holds something of ours — mirrors bot4chess/systems.go's
@@ -2192,15 +2251,15 @@ def espionage_proposals(observation, board, params):
     the same decide() call, the same reasoning beacon_deploy_or_restore_
     proposal's own doc comment gives."""
     king_cell = board["king_cell"]
-    if king_cell == None or board["busy_units"].get(king_cell["unitId"]):
+    if king_cell == None or board["busy_units"].get(king_cell["unitId"]): # PARITY-BRANCH: SBP-B-ESPIONAGE-PROPOSALS-1
         return []
-    if observation["enemyManaged"] <= 0:
+    if observation["enemyManaged"] <= 0: # PARITY-BRANCH: SBP-B-ESPIONAGE-PROPOSALS-2
         return []
     proposals = []
     for suspect in board["actionable_units"]:
-        if suspect["rank"] == "king" or suspect["convoy"]:
+        if suspect["rank"] == "king" or suspect["convoy"]: # PARITY-BRANCH: SBP-B-ESPIONAGE-PROPOSALS-3
             continue
-        if chebyshev_distance(king_cell["square"], suspect["square"]) != 1:
+        if chebyshev_distance(king_cell["square"], suspect["square"]) != 1: # PARITY-BRANCH: SBP-B-ESPIONAGE-PROPOSALS-4
             continue
         terms = []
         score = add_term(terms, "system", INTERROGATE_VALUE * params["system"], None)
@@ -2216,6 +2275,7 @@ def espionage_proposals(observation, board, params):
         })
     return proposals
 
+# PARITY-FUNCTION: SBP-F-SYSTEM-PROPOSALS
 def system_proposals(observation, board, params):
     """Training, wall-work (repair and dismantle), the full Beacon surface
     (deploy/restore/forge/hand-off) and espionage — the channelled/system
@@ -2255,24 +2315,24 @@ def system_proposals(observation, board, params):
     systems = observation["systems"]
     beacon_allowed = observation["rules"].get("beaconEnabled", False) and beacon_aggression(observation, params) > 0
     any_other_system_enabled = systems["training"] or systems["walls"] or systems["prisoners"] or systems["morale"] or systems["espionage"]
-    if (not beacon_allowed and (not any_other_system_enabled or params["system"] <= 0)):
+    if (not beacon_allowed and (not any_other_system_enabled or params["system"] <= 0)): # PARITY-BRANCH: SBP-B-SYSTEM-PROPOSALS-1
         return []
     proposals = []
-    if params["system"] > 0:
-        if systems["training"] and observation["rules"]["specialistsEnabled"]:
+    if params["system"] > 0: # PARITY-BRANCH: SBP-B-SYSTEM-PROPOSALS-2
+        if systems["training"] and observation["rules"]["specialistsEnabled"]: # PARITY-BRANCH: SBP-B-SYSTEM-PROPOSALS-3
             proposals.extend(training_proposals(observation, board, params))
-        if systems["walls"] and (observation["rules"]["woodWallsEnabled"] or observation["rules"]["stoneWallsEnabled"]):
+        if systems["walls"] and (observation["rules"]["woodWallsEnabled"] or observation["rules"]["stoneWallsEnabled"]): # PARITY-BRANCH: SBP-B-SYSTEM-PROPOSALS-4
             proposals.extend(wall_proposals(observation, board, params))
-        if systems["espionage"]:
+        if systems["espionage"]: # PARITY-BRANCH: SBP-B-SYSTEM-PROPOSALS-5
             proposals.extend(espionage_proposals(observation, board, params))
-    if beacon_allowed:
+    if beacon_allowed: # PARITY-BRANCH: SBP-B-SYSTEM-PROPOSALS-6
         hand_off = beacon_hand_off_proposal(observation, board, params)
-        if hand_off != None:
+        if hand_off != None: # PARITY-BRANCH: SBP-B-SYSTEM-PROPOSALS-7
             proposals.append(hand_off)
         deploy_or_restore = beacon_deploy_or_restore_proposal(observation, board, params)
-        if deploy_or_restore != None:
+        if deploy_or_restore != None: # PARITY-BRANCH: SBP-B-SYSTEM-PROPOSALS-8
             proposals.append(deploy_or_restore)
-        if observation["rules"]["beaconForgeEnabled"]:
+        if observation["rules"]["beaconForgeEnabled"]: # PARITY-BRANCH: SBP-B-SYSTEM-PROPOSALS-9
             proposals.extend(beacon_forge_proposals(observation, board, params))
     return proposals
 
@@ -2314,23 +2374,26 @@ COMMIT_SCORE_FIELD = 4000000  # score field width: +/-2000.0, comfortably above 
 COMMIT_AGE_FIELD = 100000  # width of the age field within the packed value
 COMMIT_AGE_CAP = 64  # COMMITMENT_DECAY^64 is negligible for every candidate decay value tried; bounds both the decay_power loop and the packed value's own growth
 
+# PARITY-FUNCTION: SBP-F-ROUND-HALF-UP
 def round_half_up(value):
     """Starlark's Universe has no round() builtin (go.starlark.net's own
     predeclared set stops at int()/float()), so this rounds a float to the
     nearest integer by hand, ties away from zero — adequate for packing a
     committed score, which is never itself a tie-break input."""
-    if value >= 0:
+    if value >= 0: # PARITY-BRANCH: SBP-B-ROUND-HALF-UP-1
         return int(value + 0.5)
     return -int(-value + 0.5)
 
+# PARITY-FUNCTION: SBP-F-PACK-COMMITTED
 def pack_committed(kind, age, score):
     offset_score = round_half_up(score * COMMIT_SCORE_SCALE) + COMMIT_SCORE_OFFSET
-    if offset_score < 0:
+    if offset_score < 0: # PARITY-BRANCH: SBP-B-PACK-COMMITTED-1
         offset_score = 0
-    elif offset_score >= COMMIT_SCORE_FIELD:
+    elif offset_score >= COMMIT_SCORE_FIELD: # PARITY-BRANCH: SBP-B-PACK-COMMITTED-2
         offset_score = COMMIT_SCORE_FIELD - 1
     return kind * (COMMIT_AGE_FIELD * COMMIT_SCORE_FIELD) + age * COMMIT_SCORE_FIELD + offset_score
 
+# PARITY-FUNCTION: SBP-F-UNPACK-COMMITTED
 def unpack_committed(packed):
     """Returns (kind, age, score). kind is 0 — neither COMMIT_KIND_ROUTE nor
     COMMIT_KIND_KING is ever 0 — for an absent entry: memory.get("committed",
@@ -2344,6 +2407,7 @@ def unpack_committed(packed):
     offset_score = remainder % COMMIT_SCORE_FIELD
     return kind, age, (offset_score - COMMIT_SCORE_OFFSET) / COMMIT_SCORE_SCALE
 
+# PARITY-FUNCTION: SBP-F-DECAY-POWER
 def decay_power(age):
     """COMMITMENT_DECAY raised to `age` by repeated multiplication —
     Starlark has no exponent operator, and age is capped small
@@ -2354,6 +2418,7 @@ def decay_power(age):
         value *= COMMITMENT_DECAY
     return value
 
+# PARITY-FUNCTION: SBP-F-RETENTION-SCORE
 def retention_score(memory, kind):
     """The value a replacement candidate must beat to cancel the in-flight
     channel of the given KIND — ROUTE_REPLACE_BASELINE alone (today's flat
@@ -2363,10 +2428,11 @@ def retention_score(memory, kind):
     the decayed committed value plus that same baseline (COMMITMENT_DECAY's
     own comment has the full accounting)."""
     stored_kind, age, score = unpack_committed(memory.get("committed", 0))
-    if stored_kind != kind:
+    if stored_kind != kind: # PARITY-BRANCH: SBP-B-RETENTION-SCORE-1
         return ROUTE_REPLACE_BASELINE
     return score * decay_power(age) + ROUTE_REPLACE_BASELINE
 
+# PARITY-FUNCTION: SBP-F-IS-KING-CHANNEL-START
 def is_king_channel_start(intent):
     """Whether `intent` opens the one king-actor multi-decision channel this
     file protects with commitment: Beacon Restore. chess/apply.go's own
@@ -2387,16 +2453,18 @@ def is_king_channel_start(intent):
     nothing to protect either way."""
     return intent != None and intent["kind"] == "action" and intent.get("action") == "beacon_restore"
 
+# PARITY-FUNCTION: SBP-F-KING-CHANNEL-ACTIVE
 def king_channel_active(observation, board):
     """Whether the king currently has an in-flight Beacon Restore —
     chess/apply.go's own restoring() fact, read from the wire the script
     already has (observation["beacon"]["lifecycle"]) rather than new host
     plumbing. See is_king_channel_start's own doc comment for why
     Interrogation is deliberately not read here too."""
-    if board["king_cell"] == None:
+    if board["king_cell"] == None: # PARITY-BRANCH: SBP-B-KING-CHANNEL-ACTIVE-1
         return False
     return observation.get("beacon", {}).get("lifecycle") == "restoring"
 
+# PARITY-FUNCTION: SBP-F-NEXT-COMMITTED
 def next_committed(observation, board, memory, chosen):
     """The next "committed" memory value: a fresh commitment (age 0) the
     moment a route-worthy move or a Beacon Restore is actually chosen; one
@@ -2412,10 +2480,10 @@ def next_committed(observation, board, memory, chosen):
     every other call site in this file already shapes one, or None for a
     pass — the same shape decide() already threads through rank_options."""
     intent = chosen["intent"] if chosen != None else None
-    if intent != None and intent["kind"] == "move":
+    if intent != None and intent["kind"] == "move": # PARITY-BRANCH: SBP-B-NEXT-COMMITTED-1
         mover = board["own_by_square"].get(intent["from"])
         charge_ms = observation["rules"]["pieceChargeMs"].get(mover["rank"], 0) if mover else 0
-        if charge_ms > 0:
+        if charge_ms > 0: # PARITY-BRANCH: SBP-B-NEXT-COMMITTED-2
             # The only "move" intents reachable while a route is ALREADY
             # charging are move_proposals' own replaceable-charging-unit
             # destinations (that function's own doc comment) — a genuine
@@ -2430,15 +2498,15 @@ def next_committed(observation, board, memory, chosen):
             # need — TestQuietCycleRingPreservesPlacementOnlyActionsAndFits
             # LeaderMemory's own worst-case count pins exactly this.
             return pack_committed(COMMIT_KIND_ROUTE, 0, chosen["score"])
-    if is_king_channel_start(intent):
+    if is_king_channel_start(intent): # PARITY-BRANCH: SBP-B-NEXT-COMMITTED-3
         return pack_committed(COMMIT_KIND_KING, 0, chosen["score"])
 
     stored_kind, age, score = unpack_committed(memory.get("committed", 0))
-    if board["charging_units"] and stored_kind == COMMIT_KIND_ROUTE:
+    if board["charging_units"] and stored_kind == COMMIT_KIND_ROUTE: # PARITY-BRANCH: SBP-B-NEXT-COMMITTED-4
         return pack_committed(COMMIT_KIND_ROUTE, min(age + 1, COMMIT_AGE_CAP), score)
     king_id = board["king_cell"]["unitId"] if board["king_cell"] != None else NO_SQUARE_INDEX
     actor = chosen.get("actor") if chosen != None else None
-    if king_channel_active(observation, board) and stored_kind == COMMIT_KIND_KING and actor != king_id:
+    if king_channel_active(observation, board) and stored_kind == COMMIT_KIND_KING and actor != king_id: # PARITY-BRANCH: SBP-B-NEXT-COMMITTED-5
         # The channel survives untouched only when THIS decision's own
         # action, if any, was not the king's own — ANY king action cancels
         # an in-flight Restore (chess/apply.go's shared trial-cancel path),
@@ -2447,6 +2515,7 @@ def next_committed(observation, board, memory, chosen):
         return pack_committed(COMMIT_KIND_KING, min(age + 1, COMMIT_AGE_CAP), score)
     return 0
 
+# PARITY-FUNCTION: SBP-F-FINISH-DECISION
 def finish_decision(observation, board, memory, chosen, ranked):
     """The one place every decide() return path funnels through: builds the
     ordinary memory shape (build_memory, untouched by this mechanism) and
@@ -2458,22 +2527,24 @@ def finish_decision(observation, board, memory, chosen, ranked):
     intent = chosen["intent"] if chosen != None else None
     updated_memory = build_memory(observation, memory, intent)
     committed = next_committed(observation, board, memory, chosen)
-    if committed == 0:
+    if committed == 0: # PARITY-BRANCH: SBP-B-FINISH-DECISION-1
         updated_memory.pop("committed", None)
     else:
         updated_memory["committed"] = committed
     return intent, updated_memory, ranked
 
+# PARITY-FUNCTION: SBP-F-HOLDS-FOCUS
 def holds_focus(board, memory):
     """Retain only a route visibly committed to the enemy king. Other own
     charges stay system-busy but may be replaced by a host-offered legal move."""
     focus_marker = memory.get("focusFrom", 0)
-    if focus_marker <= 0:
+    if focus_marker <= 0: # PARITY-BRANCH: SBP-B-HOLDS-FOCUS-1
         return False
     focus_square = square_name(focus_marker - 1)
     focus_cell = board["own_by_square"].get(focus_square)
     return focus_cell != None and board["protected_charging_units"].get(focus_cell["unitId"], False)
 
+# PARITY-FUNCTION: SBP-F-DROP-REFUSED
 def drop_refused(proposals, observation, memory):
     """If our last command(s) at THIS SAME revision were refused, leave
     those pieces alone this turn rather than proposing them again — a
@@ -2491,14 +2562,14 @@ def drop_refused(proposals, observation, memory):
     is deterministic. This wider set is defence in depth on top of that,
     for however many pieces turn out to tie, and costs nothing when only
     one ever does."""
-    if not memory or memory.get("revision") != observation["revision"]:
+    if not memory or memory.get("revision") != observation["revision"]: # PARITY-BRANCH: SBP-B-DROP-REFUSED-1
         return proposals
     refused_squares = []
     for slot in range(REFUSED_SET_SIZE):
         index = memory.get("refused" + str(slot), NO_SQUARE_INDEX)
-        if index >= 0 and index <= MAX_SQUARE_INDEX:
+        if index >= 0 and index <= MAX_SQUARE_INDEX: # PARITY-BRANCH: SBP-B-DROP-REFUSED-2
             refused_squares.append(square_name(index))
-    if not refused_squares:
+    if not refused_squares: # PARITY-BRANCH: SBP-B-DROP-REFUSED-3
         return proposals
     return [proposal for proposal in proposals if proposal["intent"]["from"] not in refused_squares]
 
@@ -2533,21 +2604,24 @@ def drop_refused(proposals, observation, memory):
 # or seven spares, not zero.
 RANK_BIT_SLOTS = {"pawn": 0, "knight": 1, "bishop": 2, "rook": 3, "queen": 4, "king": 5}
 
+# PARITY-FUNCTION: SBP-STAR-STRUCT-F-SIGNED-BITBOARD
 def signed_bitboard(value):
     return value - BITBOARD_MODULUS if value >= BITBOARD_SIGN_BIT else value
 
+# PARITY-FUNCTION: SBP-F-PLACEMENT-BITBOARDS
 def placement_bitboards(observation, moved_unit_id = 0, moved_to = ""):
     bitboards = [0] * 12
     for occupied_square in piece_squares(observation):
         cell = observation["pieces"][occupied_square]
         rank_slot = RANK_BIT_SLOTS.get(cell["rank"])
-        if rank_slot == None:
+        if rank_slot == None: # PARITY-BRANCH: SBP-B-PLACEMENT-BITBOARDS-1
             continue
         side_slot = 0 if cell["side"] == "white" else 6
         square = moved_to if cell["unitId"] == moved_unit_id else occupied_square
         bitboards[side_slot + rank_slot] |= 1 << square_index(square)
     return [signed_bitboard(value) for value in bitboards]
 
+# PARITY-FUNCTION: SBP-F-PACK-PLACEMENT-BOARDS
 def pack_placement_boards(bitboards):
     """The JS-float64-safe memory encoding for placement_bitboards' own
     twelve-board result — see this section's own top comment for why. Every
@@ -2566,15 +2640,16 @@ def pack_placement_boards(bitboards):
             code = 0
             for board_slot in range(12):
                 raw = bitboards[board_slot]
-                if raw < 0:
+                if raw < 0: # PARITY-BRANCH: SBP-B-PACK-PLACEMENT-BOARDS-1
                     raw += BITBOARD_MODULUS
-                if (raw >> square) & 1:
+                if (raw >> square) & 1: # PARITY-BRANCH: SBP-B-PACK-PLACEMENT-BOARDS-2
                     code = board_slot + 1
                     break
             value |= code << (local * 4)
         packed["leaderBoard" + str(slot_index)] = value
     return packed
 
+# PARITY-FUNCTION: SBP-F-UNPACK-PLACEMENT-BOARDS
 def unpack_placement_boards(memory):
     """The exact inverse of pack_placement_boards: reconstructs
     placement_bitboards' own twelve-signed-int64-board shape so every
@@ -2586,93 +2661,103 @@ def unpack_placement_boards(memory):
         value = memory.get("leaderBoard" + str(slot_index), 0)
         for local in range(squares_in_slot):
             code = (value >> (local * 4)) & 0xF
-            if code != 0:
+            if code != 0: # PARITY-BRANCH: SBP-B-UNPACK-PLACEMENT-BOARDS-1
                 bitboards[code - 1] |= 1 << (base_square + local)
     return [signed_bitboard(value) for value in bitboards]
 
+# PARITY-FUNCTION: SBP-F-LEADER-KIND
 def leader_kind(observation, cell):
-    if cell["rank"] == "king":
+    if cell["rank"] == "king": # PARITY-BRANCH: SBP-B-LEADER-KIND-1
         return 6  # king's rank bitboard slot + 1
-    if is_current_beacon_bearer(observation, cell):
+    if is_current_beacon_bearer(observation, cell): # PARITY-BRANCH: SBP-B-LEADER-KIND-2
         return RANK_BIT_SLOTS.get(cell["rank"], -1) + 1
     return 0
 
+# PARITY-FUNCTION: SBP-F-LEADER-GUARD-KEYS
 def leader_guard_keys():
     return ["leaderGuardActive", "leaderGuardFrom", "leaderGuardTo", "leaderGuardKind"] + ["leaderBoard" + str(slot) for slot in range(PLACEMENT_BOARD_SLOTS)]
 
+# PARITY-FUNCTION: SBP-F-CLEAR-LEADER-GUARD
 def clear_leader_guard(memory):
     for key in leader_guard_keys():
         memory.pop(key, None)
 
+# PARITY-FUNCTION: SBP-F-LEADER-GUARD-MATCHES
 def leader_guard_matches(observation, memory):
-    if memory.get("leaderGuardActive", 0) != 1:
+    if memory.get("leaderGuardActive", 0) != 1: # PARITY-BRANCH: SBP-B-LEADER-GUARD-MATCHES-1
         return False
     from_square = square_name(memory["leaderGuardFrom"])
     to_square = square_name(memory["leaderGuardTo"])
     # During charging/pre-layout the source placement is still visible. Keep
     # the guard rather than treating that expected transient as a board edit.
     source_cell = projected_cell(observation, from_square)
-    if source_cell and source_cell["side"] != observation["side"]:
+    if source_cell and source_cell["side"] != observation["side"]: # PARITY-BRANCH: SBP-B-LEADER-GUARD-MATCHES-2
         source_cell = None
-    if source_cell and leader_kind(observation, source_cell) == memory["leaderGuardKind"]:
+    if source_cell and leader_kind(observation, source_cell) == memory["leaderGuardKind"]: # PARITY-BRANCH: SBP-B-LEADER-GUARD-MATCHES-3
         expected_pre = unpack_placement_boards(memory)
         side_slot = 0 if source_cell["side"] == "white" else 6
         board_slot = side_slot + memory["leaderGuardKind"] - 1
         value = expected_pre[board_slot]
-        if value < 0:
+        if value < 0: # PARITY-BRANCH: SBP-B-LEADER-GUARD-MATCHES-4
             value += BITBOARD_MODULUS
         value ^= (1 << memory["leaderGuardFrom"]) | (1 << memory["leaderGuardTo"])
         expected_pre[board_slot] = signed_bitboard(value)
         return placement_bitboards(observation) == expected_pre
     destination_cell = projected_cell(observation, to_square)
-    if destination_cell and destination_cell["side"] != observation["side"]:
+    if destination_cell and destination_cell["side"] != observation["side"]: # PARITY-BRANCH: SBP-B-LEADER-GUARD-MATCHES-5
         destination_cell = None
-    if not destination_cell or leader_kind(observation, destination_cell) != memory["leaderGuardKind"]:
+    if not destination_cell or leader_kind(observation, destination_cell) != memory["leaderGuardKind"]: # PARITY-BRANCH: SBP-B-LEADER-GUARD-MATCHES-6
         return False
     return placement_bitboards(observation) == unpack_placement_boards(memory)
 
+# PARITY-FUNCTION: SBP-F-ACTIVE-LEADER-GUARD
 def active_leader_guard(observation, memory):
-    if not leader_guard_matches(observation, memory):
+    if not leader_guard_matches(observation, memory): # PARITY-BRANCH: SBP-B-ACTIVE-LEADER-GUARD-1
         return None
     return {"from": memory["leaderGuardFrom"], "to": memory["leaderGuardTo"], "kind": memory["leaderGuardKind"]}
 
+# PARITY-FUNCTION: SBP-F-LEADER-REVERSE-FORBIDDEN
 def leader_reverse_forbidden(observation, guard, cell, destination):
-    if guard == None:
+    if guard == None: # PARITY-BRANCH: SBP-B-LEADER-REVERSE-FORBIDDEN-1
         return False
-    if cell["square"] != square_name(guard["to"]) or destination != square_name(guard["from"]):
+    if cell["square"] != square_name(guard["to"]) or destination != square_name(guard["from"]): # PARITY-BRANCH: SBP-B-LEADER-REVERSE-FORBIDDEN-2
         return False
-    if leader_kind(observation, cell) != guard["kind"]:
+    if leader_kind(observation, cell) != guard["kind"]: # PARITY-BRANCH: SBP-B-LEADER-REVERSE-FORBIDDEN-3
         return False
     # A threatened leader may always take the exact reverse as an escape.
     return threatened_count(cell) <= 0
 
+# PARITY-FUNCTION: SBP-STAR-STRUCT-F-MEMORY-LAST-TO-IS
 def memory_last_to_is(memory, square):
     return memory.get("lastTo", NO_SQUARE_INDEX) == square_index(square)
 
+# PARITY-FUNCTION: SBP-F-QUIET-LEADER-INTENT
 def quiet_leader_intent(observation, intent):
-    if not intent or intent["kind"] != "move" or intent.get("promotion"):
+    if not intent or intent["kind"] != "move" or intent.get("promotion"): # PARITY-BRANCH: SBP-B-QUIET-LEADER-INTENT-1
         return None
     cell = projected_cell(observation, intent["from"])
-    if cell and cell["side"] != observation["side"]:
+    if cell and cell["side"] != observation["side"]: # PARITY-BRANCH: SBP-B-QUIET-LEADER-INTENT-2
         cell = None
-    if not cell or cell["convoy"] or not leader_kind(observation, cell):
+    if not cell or cell["convoy"] or not leader_kind(observation, cell): # PARITY-BRANCH: SBP-B-QUIET-LEADER-INTENT-3
         return None
     board = {"enemy_by_square": {square: projected_cell(observation, square) for square in piece_squares(observation) if observation["pieces"][square]["side"] != observation["side"]}}
-    if not is_quiet_move(observation, board, cell, intent["to"]):
+    if not is_quiet_move(observation, board, cell, intent["to"]): # PARITY-BRANCH: SBP-B-QUIET-LEADER-INTENT-4
         return None
     return cell
 
+# PARITY-FUNCTION: SBP-F-QUIET-ORDINARY-INTENT
 def quiet_ordinary_intent(observation, intent):
-    if not intent or intent["kind"] != "move" or intent.get("promotion"):
+    if not intent or intent["kind"] != "move" or intent.get("promotion"): # PARITY-BRANCH: SBP-B-QUIET-ORDINARY-INTENT-1
         return None
     cell = projected_cell(observation, intent["from"])
-    if cell and cell["side"] != observation["side"]:
+    if cell and cell["side"] != observation["side"]: # PARITY-BRANCH: SBP-B-QUIET-ORDINARY-INTENT-2
         cell = None
-    if not cell or cell["convoy"] or leader_kind(observation, cell):
+    if not cell or cell["convoy"] or leader_kind(observation, cell): # PARITY-BRANCH: SBP-B-QUIET-ORDINARY-INTENT-3
         return None
     board = {"enemy_by_square": {square: projected_cell(observation, square) for square in piece_squares(observation) if observation["pieces"][square]["side"] != observation["side"]}}
     return cell if is_quiet_move(observation, board, cell, intent["to"]) else None
 
+# PARITY-FUNCTION: SBP-F-BUILD-MEMORY
 def build_memory(observation, memory, intent):
     """The next memory to persist: always records the revision and the
     intent just chosen (or NO_SQUARE_INDEX for a pass), and additionally
@@ -2691,14 +2776,14 @@ def build_memory(observation, memory, intent):
     run of refusals at the SAME frozen revision keeps growing the excluded
     set instead of only ever remembering the latest one."""
     updated_memory = dict(memory)
-    if updated_memory.get("leaderGuardActive", 0) == 1 and not leader_guard_matches(observation, updated_memory):
+    if updated_memory.get("leaderGuardActive", 0) == 1 and not leader_guard_matches(observation, updated_memory): # PARITY-BRANCH: SBP-B-BUILD-MEMORY-1
         clear_leader_guard(updated_memory)
     from_index = square_index(intent["from"]) if intent else NO_SQUARE_INDEX
     to_index = square_index(intent["to"]) if intent else NO_SQUARE_INDEX
 
     still_frozen = memory.get("revision") == observation["revision"]
     cursor = memory.get("refusedCursor", 0) if still_frozen else 0
-    if not still_frozen:
+    if not still_frozen: # PARITY-BRANCH: SBP-B-BUILD-MEMORY-2
         for slot in range(REFUSED_SET_SIZE):
             updated_memory["refused" + str(slot)] = NO_SQUARE_INDEX
     updated_memory["refused" + str(cursor)] = from_index
@@ -2707,13 +2792,13 @@ def build_memory(observation, memory, intent):
     updated_memory["revision"] = observation["revision"]
     updated_memory["lastFrom"] = from_index
     updated_memory["lastTo"] = to_index
-    if intent and intent["kind"] == "action":
+    if intent and intent["kind"] == "action": # PARITY-BRANCH: SBP-B-BUILD-MEMORY-3
         updated_memory["actions"] = memory.get("actions", 0) + 1
-    elif intent and intent["kind"] == "move":
+    elif intent and intent["kind"] == "move": # PARITY-BRANCH: SBP-B-BUILD-MEMORY-4
         updated_memory["moves"] = memory.get("moves", 0) + 1
         updated_memory["focusFrom"] = from_index + 1  # the piece this bot is now committed to; holds_focus reads it back
     leader = quiet_leader_intent(observation, intent)
-    if leader:
+    if leader: # PARITY-BRANCH: SBP-B-BUILD-MEMORY-5
         updated_memory["leaderGuardActive"] = 1
         updated_memory["leaderGuardFrom"] = from_index
         updated_memory["leaderGuardTo"] = to_index
@@ -2723,11 +2808,11 @@ def build_memory(observation, memory, intent):
             updated_memory[key] = value
     quiet_ordinary = quiet_ordinary_intent(observation, intent)
     updated_memory["lastQuietTo"] = to_index if quiet_ordinary else NO_SQUARE_INDEX
-    if quiet_ordinary:
+    if quiet_ordinary: # PARITY-BRANCH: SBP-B-BUILD-MEMORY-6
         for slot in range(QUIET_VACATED_SQUARES - 1, 0, -1):
             updated_memory["quietVacated" + str(slot)] = memory.get("quietVacated" + str(slot - 1), NO_SQUARE_INDEX)
         updated_memory["quietVacated0"] = from_index
-    elif intent and intent["kind"] == "move":
+    elif intent and intent["kind"] == "move": # PARITY-BRANCH: SBP-B-BUILD-MEMORY-7
         # Captures, promotions, convoys and leaders change piece placement,
         # rank or cargo; do not let a stale quiet shuffle constrain the new
         # layout. A None/charging pass and every system action preserve it:
@@ -2736,6 +2821,7 @@ def build_memory(observation, memory, intent):
             updated_memory["quietVacated" + str(slot)] = NO_SQUARE_INDEX
     return updated_memory
 
+# PARITY-FUNCTION: SBP-F-INTN
 def intn(random_draw, count):
     """Stands in for the target host builtin rand.intn(count) — see this
     file's own top comment and the report's Host Interface section for why
@@ -2743,7 +2829,7 @@ def intn(random_draw, count):
     builtin. count <= 1 always returns 0 WITHOUT using the draw, so a
     single candidate never depends on randomness — mirrors bot4chess/
     rng.go's own intn exactly, including that comment's reasoning."""
-    if count <= 1:
+    if count <= 1: # PARITY-BRANCH: SBP-B-INTN-1
         return 0
     return random_draw % count
 
@@ -2781,44 +2867,37 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     build_memory directly — see that function's own doc comment, and
     COMMITMENT_DECAY's, for why and how the ONE new "committed" memory
     entry is written, decayed and cleared."""
-    # PARITY-BRANCH: SBP-B-DECIDE-LIFECYCLE
-    if observation["lifecycle"] != "playing":
+    if observation["lifecycle"] != "playing": # PARITY-BRANCH: SBP-B-DECIDE-1
         return None, memory, []
 
     board = build_board(observation)
-    # PARITY-BRANCH: SBP-B-DECIDE-OWN-UNITS
-    if not board["own"]:
+    if not board["own"]: # PARITY-BRANCH: SBP-B-DECIDE-2
         return None, memory, []
 
     # A visible enemy-king charge is already the highest-value objective.
     # Retain it even when it originated outside this bot's memory.
-    # PARITY-BRANCH: SBP-B-DECIDE-PROTECTED-CHARGE
-    if board["protected_charging_units"]:
+    if board["protected_charging_units"]: # PARITY-BRANCH: SBP-B-DECIDE-3
         return finish_decision(observation, board, memory, None, [])
 
     # StandardRules' convoy charge (2s) is longer than the Commander
     # cadence (1s). Keep this precise first-Engineer delivery route until it
     # settles instead of letting an equally-homeward alternative reset it.
-    # PARITY-BRANCH: SBP-B-DECIDE-PRIORITY-IN-FLIGHT
-    if priority_captive_delivery_in_flight(observation, board):
+    if priority_captive_delivery_in_flight(observation, board): # PARITY-BRANCH: SBP-B-DECIDE-4
         return finish_decision(observation, board, memory, None, [])
 
     # See this function's own doc comment above: gated identically to
     # bot4chess.go's own Decide (not holds_focus, no king-carrying convoy
     # already in flight — board["convoy_home"] empty).
-    # PARITY-BRANCH: SBP-B-DECIDE-PRIORITY-DELIVERY
-    if not board["charging_units"] and not holds_focus(board, memory) and not board["convoy_home"]:
+    if not board["charging_units"] and not holds_focus(board, memory) and not board["convoy_home"]: # PARITY-BRANCH: SBP-B-DECIDE-5
         priority = priority_captive_delivery_proposal(observation, board, params)
-        if priority != None:
+        if priority != None: # PARITY-BRANCH: SBP-B-DECIDE-6
             ranked = rank_options([priority], params, options)
             return finish_decision(observation, board, memory, priority, ranked)
 
     proposals = []
-    # PARITY-BRANCH: SBP-B-DECIDE-MOVE-PROPOSALS
-    if not holds_focus(board, memory):
+    if not holds_focus(board, memory): # PARITY-BRANCH: SBP-B-DECIDE-7
         proposals = move_proposals(observation, board, params, memory)
-    # PARITY-BRANCH: SBP-B-DECIDE-SYSTEM-PROPOSALS
-    if not board["charging_units"]:
+    if not board["charging_units"]: # PARITY-BRANCH: SBP-B-DECIDE-8
         proposals = proposals + system_proposals(observation, board, params)
     proposals = drop_refused(proposals, observation, memory)
 
@@ -2839,8 +2918,7 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     # `not board["charging_units"]` because system_proposals itself already
     # is (this function's own call above) — a route charge and the king's
     # Restore are never BOTH freshly competing on the same decision.
-    # PARITY-BRANCH: SBP-B-DECIDE-KING-CHANNEL
-    if king_channel_active(observation, board) and not board["charging_units"] and board["king_cell"] != None:
+    if king_channel_active(observation, board) and not board["charging_units"] and board["king_cell"] != None: # PARITY-BRANCH: SBP-B-DECIDE-9
         king_threshold = retention_score(memory, COMMIT_KIND_KING)
         king_id = board["king_cell"]["unitId"]
         proposals = [proposal for proposal in proposals if proposal.get("actor") != king_id or proposal["score"] > king_threshold]
@@ -2854,8 +2932,7 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     # BASELINE alone (COMMITMENT_DECAY's own comment has the full
     # accounting) — retention_score falls back to that same flat baseline
     # whenever memory holds no route commitment at all.
-    # PARITY-BRANCH: SBP-B-DECIDE-ROUTE-CHANNEL
-    if board["charging_units"]:
+    if board["charging_units"]: # PARITY-BRANCH: SBP-B-DECIDE-10
         threshold = retention_score(memory, COMMIT_KIND_ROUTE)
         # Scoped to the CHARGING unit's own alternatives only (proposal
         # actor in charging_units) — at max_active_commands == 1 that is
@@ -2867,10 +2944,9 @@ def decide(observation, memory, params, host_random_draw, options = 0):
         # retention bar designed to stop a unit from cancelling its OWN
         # sunk progress for a marginal alternative.
         proposals = [proposal for proposal in proposals
-                     if proposal.get("actor") not in board["charging_units"] or proposal["score"] > threshold]
+                     if proposal.get("actor") not in board["charging_units"] or proposal["score"] > threshold] # PARITY-BRANCH: SBP-B-DECIDE-11
 
-    # PARITY-BRANCH: SBP-B-DECIDE-NO-PROPOSALS
-    if not proposals:
+    if not proposals: # PARITY-BRANCH: SBP-B-DECIDE-12
         return finish_decision(observation, board, memory, None, [])
 
     proposals = sorted(proposals, key=_proposal_score_key)
@@ -2880,8 +2956,7 @@ def decide(observation, memory, params, host_random_draw, options = 0):
     # applies passBelow itself.
     ranked = rank_options(proposals, params, options)
     best_proposal = proposals[0]
-    # PARITY-BRANCH: SBP-B-DECIDE-PASS-FLOOR
-    if best_proposal["score"] < params["passBelow"]:
+    if best_proposal["score"] < params["passBelow"]: # PARITY-BRANCH: SBP-B-DECIDE-13
         return finish_decision(observation, board, memory, None, ranked)
 
     # Tie-break among equally good choices — the only randomness this bot

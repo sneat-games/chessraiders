@@ -289,8 +289,12 @@ The corpus keeps its original historical intent oracle and its exact decimal
 `int64` `randomDraw` strings. [`parity-manifest.json`](parity-manifest.json)
 is the small machine-readable contract for a third implementation: it names
 the inputs, compared outputs, and the stable decision-pipeline source IDs.
-Its companion test rejects an ID that is missing from, duplicated in, or
-unpaired between the Go and Starlark sources.
+Its companion test parses every strategy function and conditional in both
+sources. It rejects a missing annotation, an ID that is not registered in the
+manifest, or a paired ID missing from either implementation. The manifest's
+`goStructural` and `starlarkStructural` categories explicitly list the
+representation and error-handling control flow which is intentionally local to
+one implementation.
 
 reports `N/N recorded decisions agree` on success, or one line per
 disagreeing case naming the file, the originating test/case and the
