@@ -1,6 +1,6 @@
 module github.com/sneat-games/chessraiders/go
 
-go 1.26
+go 1.27.0
 
 require go.starlark.net v0.0.0-20260708150628-5395d018f003
 
