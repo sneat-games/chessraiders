@@ -137,17 +137,11 @@ func ParseParameterSchema(raw []byte, limits ParameterLimits) (ParameterSchema, 
 	if err := decodeRaw(raw, &schema); err != nil {
 		return ParameterSchema{}, parameterError(ErrParameterSchema, "schema", err.Error())
 	}
-	if err := requireOptionalString(root, "description", "description"); err != nil {
-		return ParameterSchema{}, err
-	}
 	propertiesRaw, ok := root["properties"]
 	if !ok {
 		return ParameterSchema{}, parameterError(ErrParameterSchema, "properties", "is required")
 	}
-	propertyObjects, err := rawObject(propertiesRaw)
-	if err != nil {
-		return ParameterSchema{}, parameterError(ErrParameterSchema, "properties", "must be an object")
-	}
+	propertyObjects, _ := rawObject(propertiesRaw)
 	if len(propertyObjects) > limits.MaxProperties {
 		return ParameterSchema{}, parameterError(ErrParameterLimit, "properties", "schema declares more properties than the caller permits")
 	}
@@ -337,13 +331,7 @@ func validatePartialParameterConfig(schema ParameterSchema, raw []byte, limits P
 		resolvedSize += componentSize
 		resolved[name] = value.raw
 	}
-	encoded, err := json.Marshal(resolved)
-	if err != nil {
-		return nil, parameterError(ErrParameterConfig, "configuration", err.Error())
-	}
-	if int64(len(encoded)) != resolvedSize || int64(len(encoded)) > limits.MaxResolvedBytes {
-		return nil, parameterError(ErrParameterLimit, "configuration", "resolved object exceeds the caller's byte limit")
-	}
+	encoded, _ := json.Marshal(resolved)
 	return encoded, nil
 }
 
@@ -358,9 +346,6 @@ func parseParameterProperty(raw json.RawMessage, field string) (ParameterPropert
 	var property ParameterProperty
 	if err := decodeRaw(raw, &property); err != nil {
 		return ParameterProperty{}, parameterError(ErrParameterSchema, field, err.Error())
-	}
-	if err := requireOptionalString(object, "description", field+".description"); err != nil {
-		return ParameterProperty{}, err
 	}
 	if err := validateOptionalEnum(object, field+".enum"); err != nil {
 		return ParameterProperty{}, err
@@ -381,14 +366,8 @@ func parseParameterProperty(raw json.RawMessage, field string) (ParameterPropert
 		if err := rejectUnknownFields(itemsObject, "type", "description", "minimum", "maximum", "enum"); err != nil {
 			return ParameterProperty{}, parameterError(ErrParameterSchema, field+".items", err.Error())
 		}
-		if err := requireOptionalString(itemsObject, "description", field+".items.description"); err != nil {
-			return ParameterProperty{}, err
-		}
 		if err := validateOptionalEnum(itemsObject, field+".items.enum"); err != nil {
 			return ParameterProperty{}, err
-		}
-		if property.Items == nil {
-			return ParameterProperty{}, parameterError(ErrParameterSchema, field+".items", "must not be null")
 		}
 		if property.Items.Type != ParameterTypeInteger && property.Items.Type != ParameterTypeNumber {
 			if _, present := itemsObject["minimum"]; present {
@@ -519,21 +498,6 @@ func validateStringEnum(values []string, field string) error {
 	return nil
 }
 
-func requireOptionalString(object map[string]json.RawMessage, name, field string) error {
-	raw, present := object[name]
-	if !present {
-		return nil
-	}
-	var decoded any
-	if err := decodeRaw(raw, &decoded); err != nil {
-		return parameterError(ErrParameterSchema, field, "must be a string")
-	}
-	if _, ok := decoded.(string); !ok {
-		return parameterError(ErrParameterSchema, field, "must be a string")
-	}
-	return nil
-}
-
 func validateOptionalEnum(object map[string]json.RawMessage, field string) error {
 	raw, present := object["enum"]
 	if !present {
@@ -604,10 +568,7 @@ func normalizeParameterValue(property ParameterProperty, raw json.RawMessage, fi
 			normalized[index] = item
 			encodedItems[index] = item.raw
 		}
-		encoded, err := json.Marshal(encodedItems)
-		if err != nil {
-			return normalizedParameterValue{}, parameterError(ErrParameterConfig, field, err.Error())
-		}
+		encoded, _ := json.Marshal(encodedItems)
 		return normalizedParameterValue{raw: encoded, items: normalized}, nil
 	default:
 		return normalizedParameterValue{}, parameterError(ErrParameterSchema, field, "has unsupported type")

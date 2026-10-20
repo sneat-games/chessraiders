@@ -29,7 +29,7 @@ import (
 // sets") rather than "check 1" — fail()'s own message is never reached in
 // that case. Both are real failure shapes this canary must catch; only one
 // of them speaks in this source's own vocabulary.
-const canarySource = `
+var canarySource = `
 def _run_canary():
     # 1. set() is available and behaves as a set — the exact symptom the
     #    legacy dialect API's silent no-op produced (decision 0007: "set()

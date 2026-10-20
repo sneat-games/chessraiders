@@ -72,13 +72,10 @@ func MarshalResolvedParams() ([]byte, error) {
 		}
 		rows[name] = json.RawMessage(row)
 	}
-	encoded, err := json.MarshalIndent(resolvedParamsFile{
+	encoded, _ := json.MarshalIndent(resolvedParamsFile{
 		Schema: ResolvedParamsVersion,
 		Rows:   rows,
 	}, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("standardbot: marshal resolved params: %w", err)
-	}
 	return append(encoded, '\n'), nil
 }
 

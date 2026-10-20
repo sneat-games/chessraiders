@@ -347,24 +347,14 @@ func (p *Program) HasFunction(name string) bool {
 // another still reading a shared field) would defeat the point.
 func (p *Program) decodeJSON(thread *starlark.Thread, raw string) (starlark.Value, error) {
 	decodeFn, _ := starlarkjson.Module.Attr("decode")
-	if decodeFn == nil {
-		return nil, fmt.Errorf("starlarkbot: json.decode is not available on the predeclared json module")
-	}
 	return starlark.Call(thread, decodeFn, starlark.Tuple{starlark.String(raw)}, nil)
 }
 
 func (p *Program) encodeJSON(thread *starlark.Thread, v starlark.Value) (string, error) {
 	encodeFn, _ := starlarkjson.Module.Attr("encode")
-	if encodeFn == nil {
-		return "", fmt.Errorf("starlarkbot: json.encode is not available on the predeclared json module")
-	}
 	result, err := starlark.Call(thread, encodeFn, starlark.Tuple{v}, nil)
 	if err != nil {
 		return "", err
 	}
-	s, ok := result.(starlark.String)
-	if !ok {
-		return "", fmt.Errorf("starlarkbot: json.encode returned a %s, want string", result.Type())
-	}
-	return string(s), nil
+	return string(result.(starlark.String)), nil
 }

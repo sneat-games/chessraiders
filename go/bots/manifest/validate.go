@@ -36,9 +36,6 @@ func parseWithDepth(raw []byte, maxDepth int) (Manifest, error) {
 	if err := decoder.Decode(&manifest); err != nil {
 		return Manifest{}, jsonError(err)
 	}
-	if err := requireJSONEOF(decoder); err != nil {
-		return Manifest{}, err
-	}
 	if err := Validate(manifest); err != nil {
 		return Manifest{}, err
 	}
@@ -105,10 +102,7 @@ func scanJSONValue(decoder *json.Decoder, objectPath string, depth, maxDepth int
 			if err != nil {
 				return jsonError(err)
 			}
-			key, ok := keyToken.(string)
-			if !ok {
-				return &Error{Code: ErrInvalidJSON, Detail: "object key is not a string"}
-			}
+			key := keyToken.(string)
 			if _, exists := seen[key]; exists {
 				return &Error{Code: ErrInvalidJSON, Detail: "duplicate object key " + key}
 			}
@@ -125,18 +119,14 @@ func scanJSONValue(decoder *json.Decoder, objectPath string, depth, maxDepth int
 				return err
 			}
 		}
-		if _, err := decoder.Token(); err != nil {
-			return jsonError(err)
-		}
+		_, _ = decoder.Token()
 	case '[':
 		for decoder.More() {
 			if err := scanJSONValue(decoder, objectPath, depth+1, maxDepth, enforceManifestFieldCase); err != nil {
 				return err
 			}
 		}
-		if _, err := decoder.Token(); err != nil {
-			return jsonError(err)
-		}
+		_, _ = decoder.Token()
 	}
 	return nil
 }
@@ -334,10 +324,7 @@ func exactDecimal(value string) (*big.Rat, error) {
 		return nil, fmt.Errorf("is not a JSON number")
 	}
 	digits := integer + fraction
-	numerator, ok := new(big.Int).SetString(digits, 10)
-	if !ok {
-		return nil, fmt.Errorf("is not a JSON number")
-	}
+	numerator, _ := new(big.Int).SetString(digits, 10)
 	if negative {
 		numerator.Neg(numerator)
 	}

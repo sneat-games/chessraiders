@@ -7,6 +7,9 @@ import (
 	"sort"
 )
 
+var jsonMarshal = json.Marshal
+var decideExtraProposals []proposal
+
 // PARITY-FUNCTION: SBP-F-INTN
 func intn(randomDraw int64, count int) int {
 	if count <= 1 { // PARITY-BRANCH: SBP-B-INTN-1
@@ -55,6 +58,7 @@ func Decide(obs *Observation, memory map[string]int64, params *BotParams, hostRa
 		proposals = append(proposals, systemProposals(obs, b, params)...)
 	}
 	proposals = dropRefused(proposals, obs, memory)
+	proposals = append(proposals, decideExtraProposals...)
 
 	if kingChannelActive(obs, b) && len(b.chargingUnits) == 0 && b.kingCell != nil { // PARITY-BRANCH: SBP-B-DECIDE-9
 		kingThreshold := retentionScore(memory, CommitKindKing)
@@ -142,7 +146,7 @@ func DecideJSON(observationJSON, memoryJSON, paramsJSON []byte, hostRandomDraw i
 	var intentBytes, memBytes, rankedBytes []byte
 	var err error
 	if intent != nil { // PARITY-BRANCH: SBP-GO-STRUCT-B-DECIDE-JSON-6
-		intentBytes, err = json.Marshal(intent)
+		intentBytes, err = jsonMarshal(intent)
 		if err != nil { // PARITY-BRANCH: SBP-GO-STRUCT-B-DECIDE-JSON-7
 			return nil, nil, nil, err
 		}
@@ -150,13 +154,13 @@ func DecideJSON(observationJSON, memoryJSON, paramsJSON []byte, hostRandomDraw i
 		intentBytes = []byte("null")
 	}
 
-	memBytes, err = json.Marshal(updatedMem)
+	memBytes, err = jsonMarshal(updatedMem)
 	if err != nil { // PARITY-BRANCH: SBP-GO-STRUCT-B-DECIDE-JSON-8
 		return nil, nil, nil, err
 	}
 
 	if ranked != nil { // PARITY-BRANCH: SBP-GO-STRUCT-B-DECIDE-JSON-9
-		rankedBytes, err = json.Marshal(ranked)
+		rankedBytes, err = jsonMarshal(ranked)
 		if err != nil { // PARITY-BRANCH: SBP-GO-STRUCT-B-DECIDE-JSON-10
 			return nil, nil, nil, err
 		}

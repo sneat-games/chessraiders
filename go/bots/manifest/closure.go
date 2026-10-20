@@ -127,9 +127,6 @@ func validateClosure(manifest Manifest, manifestBytes []byte, entries []TreeEntr
 	if !reflect.DeepEqual(parsed, manifest) {
 		return closureValidation{}, &Error{Code: ErrInvalidManifest, Path: ManifestPath, Detail: "parsed manifest does not match the manifest argument"}
 	}
-	if err := Validate(manifest); err != nil {
-		return closureValidation{}, err
-	}
 	if len(entries) > limits.MaxFiles {
 		return closureValidation{}, &Error{Code: ErrFileLimit, Detail: "tree has more entries than the caller permits"}
 	}
@@ -141,33 +138,29 @@ func validateClosure(manifest Manifest, manifestBytes []byte, entries []TreeEntr
 	files := make(map[string][]byte, len(entries))
 	var total int64
 	for _, entry := range entries {
-		canonical, err := canonicalPath(entry.Path)
-		if err != nil {
+		if _, err := canonicalPath(entry.Path); err != nil {
 			return closureValidation{}, pathError(entry.Path, err)
 		}
-		if canonical != entry.Path {
-			return closureValidation{}, &Error{Code: ErrInvalidPath, Path: entry.Path, Detail: "is not canonical"}
-		}
-		if _, exists := files[canonical]; exists {
-			return closureValidation{}, &Error{Code: ErrDuplicatePath, Path: canonical, Detail: "appears more than once in the tree"}
+		if _, exists := files[entry.Path]; exists {
+			return closureValidation{}, &Error{Code: ErrDuplicatePath, Path: entry.Path, Detail: "appears more than once in the tree"}
 		}
 		if entry.Kind != EntryKindRegular {
-			return closureValidation{}, &Error{Code: ErrNonRegularFile, Path: canonical, Detail: "must be a regular file"}
+			return closureValidation{}, &Error{Code: ErrNonRegularFile, Path: entry.Path, Detail: "must be a regular file"}
 		}
 		if int64(len(entry.Content)) > limits.MaxFileBytes {
-			return closureValidation{}, &Error{Code: ErrByteLimit, Path: canonical, Detail: "exceeds the caller's per-file byte limit"}
+			return closureValidation{}, &Error{Code: ErrByteLimit, Path: entry.Path, Detail: "exceeds the caller's per-file byte limit"}
 		}
 		total += int64(len(entry.Content))
 		if total > limits.MaxTotalBytes {
 			return closureValidation{}, &Error{Code: ErrByteLimit, Detail: "exceeds the caller's total byte limit"}
 		}
 		if isLFSPointer(entry.Content) {
-			return closureValidation{}, &Error{Code: ErrLFSPointer, Path: canonical, Detail: "Git LFS pointer files are not executable source"}
+			return closureValidation{}, &Error{Code: ErrLFSPointer, Path: entry.Path, Detail: "Git LFS pointer files are not executable source"}
 		}
-		if _, ok := declared[canonical]; !ok {
-			return closureValidation{}, &Error{Code: ErrUndeclaredFile, Path: canonical, Detail: "is not declared by sources"}
+		if _, ok := declared[entry.Path]; !ok {
+			return closureValidation{}, &Error{Code: ErrUndeclaredFile, Path: entry.Path, Detail: "is not declared by sources"}
 		}
-		files[canonical] = append([]byte(nil), entry.Content...)
+		files[entry.Path] = append([]byte(nil), entry.Content...)
 	}
 	for declaredPath := range declared {
 		content, ok := files[declaredPath]

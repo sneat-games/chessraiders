@@ -17,22 +17,30 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/sneat-games/chessraiders/go/bots/standardbot"
 )
 
+var (
+	exitFunc                  = os.Exit
+	stderrWriter    io.Writer = os.Stderr
+	marshalParams             = standardbot.MarshalResolvedParams
+	writeOutputFile           = os.WriteFile
+)
+
 func main() {
 	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, "gen:", err)
-		os.Exit(1)
+		_, _ = fmt.Fprintln(stderrWriter, "gen:", err)
+		exitFunc(1)
 	}
 }
 
 func run() error {
-	data, err := standardbot.MarshalResolvedParams()
+	data, err := marshalParams()
 	if err != nil {
 		return err
 	}
-	return os.WriteFile("params.resolved.json", data, 0o644)
+	return writeOutputFile("params.resolved.json", data, 0o644)
 }

@@ -62,7 +62,12 @@ jobs:
         run: go vet ./...
       - name: Test
         working-directory: go
-        run: go test ./...
+        run: |
+          go test -v -cover ./... | tee test.log
+          if grep -E 'coverage: [0-9.]+%' test.log | grep -v '100.0%'; then
+            echo "::error::Not all packages achieved 100% statement test coverage!"
+            exit 1
+          fi
 
   spec:
     name: spec lint

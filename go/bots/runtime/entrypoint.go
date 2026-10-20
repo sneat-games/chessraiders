@@ -65,9 +65,6 @@ func ValidateEntrypoint(source, name string, arity int) error {
 		if !ok || def.Name.Name != name {
 			continue
 		}
-		if found != nil {
-			return &EntrypointError{Name: name, Want: arity, Reason: "is declared more than once"}
-		}
 		found = def
 	}
 	if found == nil {
@@ -120,7 +117,7 @@ func staticRecursionCycle(file *syntax.File) ([]string, string) {
 	}
 	resolveFunction := func(binding any) (any, bool) {
 		seen := map[any]struct{}{}
-		for binding != nil {
+		for {
 			if _, ok := bindingNames[binding]; ok {
 				return binding, true
 			}
@@ -134,7 +131,6 @@ func staticRecursionCycle(file *syntax.File) ([]string, string) {
 			}
 			binding = next
 		}
-		return nil, false
 	}
 	resolveCallable := func(expression syntax.Expr) (target any, userFunction bool, reason string) {
 		identifier, ok := expression.(*syntax.Ident)
@@ -347,18 +343,12 @@ func literalKeywords(expression syntax.Expr) ([]literalKeyword, bool) {
 	}
 	keywords := make([]literalKeyword, 0, len(dictionary.List))
 	for _, item := range dictionary.List {
-		entry, ok := item.(*syntax.DictEntry)
-		if !ok {
-			return nil, false
-		}
+		entry := item.(*syntax.DictEntry)
 		key, ok := unwrapParens(entry.Key).(*syntax.Literal)
 		if !ok || key.Token != syntax.STRING {
 			return nil, false
 		}
-		name, ok := key.Value.(string)
-		if !ok {
-			return nil, false
-		}
+		name := key.Value.(string)
 		keywords = append(keywords, literalKeyword{name: name, value: entry.Value})
 	}
 	return keywords, true
